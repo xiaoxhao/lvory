@@ -1,0 +1,98 @@
+/* 系统状态卡片样式 */
+.system-status-card {
+  margin-top: auto;
+  padding: 15px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #f0f2f5;
+}
+
+.system-status-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #24292e;
+}
+
+.status-item {
+  margin-bottom: 12px;
+}
+
+.status-item:last-child {
+  margin-bottom: 0;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.status-value {
+  font-size: 13px;
+  color: #24292e;
+  font-weight: 500;
+}
+
+.status-value-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.download-core-btn {
+  padding: 3px 8px;
+  background-color: #50b2d0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.download-core-btn:hover {
+  background-color: #3d9cb9;
+}
+
+.download-progress {
+  width: 100%;
+  height: 16px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  font-size: 10px;
+}
+
+.progress-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  color: #495057;
+  z-index: 1;
+  line-height: 16px;
+}
+
+.progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #50b2d0;
+  transition: width 0.3s ease;
+}
+
+.download-error {
+  color: #dc3545;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.download-success {
+  color: #28a745;
+  font-size: 11px;
+  margin-top: 4px;
+} 

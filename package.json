@@ -1,0 +1,72 @@
+{
+  "name": "lvory",
+  "version": "0.1.0",
+  "description": "Minimalist Cross-Platform Client for Singbox",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev:webpack": "cross-env NODE_ENV=development webpack serve --mode development",
+    "dev:electron": "wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .",
+    "dev": "concurrently \"npm run dev:webpack\" \"npm run dev:electron\"",
+    "build:webpack": "cross-env NODE_ENV=production webpack --mode production",
+    "build": "npm run build:webpack && electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sxueck/lvory.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sxueck/lvory/issues"
+  },
+  "homepage": "https://github.com/sxueck/lvory#readme",
+  "devDependencies": {
+    "@babel/core": "^7.26.9",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
+    "babel-loader": "^10.0.0",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "css-loader": "^7.1.2",
+    "electron": "^35.0.1",
+    "electron-builder": "^25.1.8",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.6.3",
+    "mini-css-extract-plugin": "^2.9.2",
+    "style-loader": "^4.0.0",
+    "wait-on": "^8.0.2",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.0.4"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "electron-squirrel-startup": "^1.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "system-proxy": "^2.0.0"
+  },
+  "build": {
+    "appId": "com.lvory.app",
+    "productName": "LVORY",
+    "directories": {
+      "output": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "index.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
