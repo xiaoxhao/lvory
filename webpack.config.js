@@ -57,11 +57,7 @@ module.exports = {
       directory: path.join(__dirname, 'public'),
       watch: true,
       publicPath: '/',
-      serveIndex: true,
-      staticOptions: {
-        fallthrough: false,
-        redirect: false
-      }
+      serveIndex: true
     },
     port: 3000,
     hot: true,
