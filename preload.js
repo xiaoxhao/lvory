@@ -2,9 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // 暴露安全的API给渲染进程
 contextBridge.exposeInMainWorld('electron', {
-  minimizeWindow: () => ipcRenderer.send('window-control', 'minimize'),
-  maximizeWindow: () => ipcRenderer.send('window-control', 'maximize'),
-  closeWindow: () => ipcRenderer.send('window-control', 'close'),
+  minimizeWindow: () => ipcRenderer.send('window-minimize'),
+  maximizeWindow: () => ipcRenderer.send('window-maximize'),
+  closeWindow: () => ipcRenderer.send('window-close'),
+  
+  showWindow: () => ipcRenderer.invoke('show-window'),
+  quitApp: () => ipcRenderer.invoke('quit-app'),
   
   downloadProfile: (data) => ipcRenderer.invoke('download-profile', data),
   
@@ -14,6 +17,13 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('core-download-progress', (event, progress) => callback(progress));
     return () => ipcRenderer.removeListener('core-download-progress', callback);
   },
+  
+  onStatusUpdate: (callback) => {
+    ipcRenderer.on('status-update', (event, status) => callback(status));
+    return () => ipcRenderer.removeListener('status-update', callback);
+  },
+  
+  openConfigDir: () => ipcRenderer.invoke('open-config-dir'),
   
   singbox: {
     checkInstalled: () => ipcRenderer.invoke('singbox-check-installed'),
@@ -54,12 +64,12 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('core-version-update', callback);
   },
   
-  onDownloadComplete: (callback) => ipcRenderer.on('download-complete', callback),
+  onDownloadComplete: (callback) => ipcRenderer.on('download-complete', (event, data) => callback(data)),
   removeDownloadComplete: (callback) => ipcRenderer.removeListener('download-complete', callback),
   
   getProfileData: () => ipcRenderer.invoke('get-profile-data'),
   
-  onProfileData: (callback) => ipcRenderer.on('profile-data', callback),
+  onProfileData: (callback) => ipcRenderer.on('profile-data', (event, data) => callback(data)),
   removeProfileData: (callback) => ipcRenderer.removeListener('profile-data', callback),
   
   getConfigPath: () => ipcRenderer.invoke('get-config-path'),
@@ -72,6 +82,12 @@ contextBridge.exposeInMainWorld('electron', {
     onLogMessage: (callback) => {
       ipcRenderer.on('log-message', (event, log) => callback(log));
       return () => ipcRenderer.removeListener('log-message', callback);
+    },
+    
+    // 接收活动日志
+    onActivityLog: (callback) => {
+      ipcRenderer.on('activity-log', (event, log) => callback(log));
+      return () => ipcRenderer.removeListener('activity-log', callback);
     },
     
     // 获取之前的日志历史

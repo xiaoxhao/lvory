@@ -1,11 +1,13 @@
 import React from 'react';
 import '../assets/css/sidebar.css';
 import SystemStatus from './SystemStatus';
+import logoSvg from '../../resource/icon/logo.svg';
 
 const Sidebar = ({ activeItem, onItemClick }) => {
   return (
     <div className="sidebar">
       <div className="logo">
+        <img src={logoSvg} alt="LVORY Logo" className="logo-image" />
         <h2>LVORY</h2>
       </div>
       

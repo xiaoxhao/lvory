@@ -17,6 +17,8 @@ class SingBox {
     this.processHandlers = new Map(); // 存储运行中的进程及其处理程序
     this.outputCallback = null;
     this.exitCallback = null;
+    this.statusCallback = null; // 添加状态回调
+    this.process = null; // 存储当前运行的进程
     this.proxyConfig = {
       host: '127.0.0.1',
       port: 7890,
@@ -214,57 +216,69 @@ class SingBox {
   }
 
   /**
-   * 运行sing-box服务
+   * 运行sing-box核心
    * @param {String} configPath 配置文件路径
-   * @param {Function} outputCallback 输出回调函数
-   * @param {Function} exitCallback 退出回调函数
+   * @param {Function} outputCallback 输出回调
+   * @param {Function} exitCallback 退出回调
    * @returns {Promise<Object>} 运行结果
    */
   async run(configPath, outputCallback, exitCallback) {
     try {
-      logger.info(`运行sing-box核心，配置文件: ${configPath}`);
+      logger.info(`[SingBox] 运行sing-box核心，配置文件: ${configPath}`);
       
       if (!this.checkInstalled()) {
         const errorMsg = 'sing-box核心尚未安装，请先安装核心';
-        logger.error(errorMsg);
+        logger.error(`[SingBox] ${errorMsg}`);
         return { success: false, error: errorMsg };
       }
       
       // 检查配置文件是否存在
       if (!fs.existsSync(configPath)) {
         const errorMsg = `配置文件不存在: ${configPath}`;
-        logger.error(errorMsg);
+        logger.error(`[SingBox] ${errorMsg}`);
         return { success: false, error: errorMsg };
       }
       
       // 解析配置文件并更新代理端口
       const configInfo = this.parseConfigFile(configPath);
       if (configInfo && configInfo.port) {
-        logger.info(`从配置文件解析到代理端口: ${configInfo.port}`);
+        logger.info(`[SingBox] 从配置文件解析到代理端口: ${configInfo.port}`);
         this.proxyConfig.port = configInfo.port;
       } else {
-        logger.warn(`未能从配置文件解析到代理端口，使用默认端口: ${this.proxyConfig.port}`);
+        logger.warn(`[SingBox] 未能从配置文件解析到代理端口，使用默认端口: ${this.proxyConfig.port}`);
       }
       
-      // 创建命令行参数
-      const args = ['run', '--config', configPath, '--disable-color'];
-      logger.info(`执行命令: ${this.binPath} ${args.join(' ')}`);
+      // 构建运行参数
+      const args = ['run', '-c', configPath];
+      logger.info(`[SingBox] 执行命令: ${this.binPath} ${args.join(' ')}`);
       
-      // 启动进程
-      this.process = spawn(this.binPath, args);
-      this.pid = this.process.pid;
-      this.configPath = configPath;
+      // 创建子进程
+      const child = spawn(this.binPath, args, {
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
       
-      // 确保将进程添加到processHandlers
-      if (this.pid) {
-        this.processHandlers.set(this.pid, this.process);
-        logger.info(`sing-box进程已添加到处理器列表，PID: ${this.pid}`);
-      }
+      // 存储进程信息
+      const pid = child.pid;
+      this.processHandlers.set(pid, {
+        childProcess: child,
+        configPath: configPath,
+        startTime: new Date(),
+        outputCallbacks: outputCallback ? [outputCallback] : [],
+        exitCallbacks: exitCallback ? [exitCallback] : []
+      });
       
-      logger.info(`sing-box进程已启动，PID: ${this.pid}`);
+      // 设置为当前活动进程
+      this.process = {
+        childProcess: child,
+        pid: pid,
+        configPath: configPath
+      };
+      
+      logger.info(`sing-box进程已启动，PID: ${pid}`);
       
       // 添加输出处理
-      this.process.stdout.on('data', (data) => {
+      child.stdout.on('data', (data) => {
         const output = data.toString();
         // 通过日志系统记录SingBox输出
         logger.singbox(output);
@@ -274,7 +288,7 @@ class SingBox {
         }
       });
       
-      this.process.stderr.on('data', (data) => {
+      child.stderr.on('data', (data) => {
         const output = data.toString();
         // 分析输出内容来决定日志类型
         // sing-box的大多数输出都以时间戳+INFO开头，即使从stderr输出
@@ -293,7 +307,7 @@ class SingBox {
       });
       
       // 添加退出处理
-      this.process.on('exit', (code) => {
+      child.on('exit', (code) => {
         const exitInfo = `sing-box进程已退出，退出码: ${code}`;
         logger.info(exitInfo);
         
@@ -306,7 +320,7 @@ class SingBox {
         }
       });
       
-      this.process.on('error', (error) => {
+      child.on('error', (error) => {
         const errorMsg = `sing-box进程出错: ${error.message}`;
         logger.error(errorMsg);
         
@@ -321,7 +335,7 @@ class SingBox {
       
       return {
         success: true,
-        pid: this.pid
+        pid: pid
       };
     } catch (error) {
       const errorMsg = `启动sing-box核心失败: ${error.message}`;
@@ -340,7 +354,7 @@ class SingBox {
       if (pid && this.processHandlers.has(pid)) {
         // 停止指定进程
         const process = this.processHandlers.get(pid);
-        process.kill();
+        process.childProcess.kill();
         this.processHandlers.delete(pid);
         logger.info(`[SingBox] 已停止进程: ${pid}`);
         return { success: true };
@@ -349,7 +363,7 @@ class SingBox {
         let count = 0;
         for (const [pid, process] of this.processHandlers.entries()) {
           try {
-            process.kill();
+            process.childProcess.kill();
             this.processHandlers.delete(pid);
             count++;
           } catch (e) {
@@ -368,6 +382,32 @@ class SingBox {
   }
 
   /**
+   * 检查sing-box是否正在运行
+   * @returns {Boolean} 是否正在运行
+   */
+  isRunning() {
+    return this.process !== null && this.processHandlers.size > 0;
+  }
+  
+  /**
+   * 设置状态变化回调
+   * @param {Function} callback 状态变化回调
+   */
+  setStatusCallback(callback) {
+    this.statusCallback = callback;
+  }
+  
+  /**
+   * 触发状态变化回调
+   * @param {Boolean} isRunning 是否正在运行
+   */
+  triggerStatusCallback(isRunning) {
+    if (this.statusCallback && typeof this.statusCallback === 'function') {
+      this.statusCallback(isRunning);
+    }
+  }
+
+  /**
    * 启动内核服务
    * @param {Object} options 启动选项
    * @param {string} options.configPath 配置文件路径
@@ -377,93 +417,77 @@ class SingBox {
    */
   async startCore(options = {}) {
     try {
-      logger.info('启动sing-box核心服务');
-      
-      // 检查是否安装
-      if (!this.checkInstalled()) {
-        const errorMsg = 'sing-box未安装，请先安装核心';
-        logger.error(errorMsg);
-        return { success: false, error: errorMsg };
+      // 首先停止已存在的进程
+      if (this.processHandlers.size > 0) {
+        logger.info('[SingBox] 启动前停止现有进程');
+        await this.stopCore();
       }
       
-      // 解析选项
-      const { configPath, proxyConfig, enableSystemProxy = false } = options;
-      
-      // 检查配置文件
-      if (!configPath || !fs.existsSync(configPath)) {
-        const errorMsg = `配置文件不存在: ${configPath || '未指定'}`;
-        logger.error(errorMsg);
-        return { success: false, error: errorMsg };
+      const configPath = options.configPath;
+      if (!configPath) {
+        return { success: false, error: '没有指定配置文件' };
       }
       
-      // 停止可能正在运行的进程
-      await this.stopCore();
-      
-      // 如果传递了代理配置，更新代理设置
-      if (proxyConfig) {
-        this.setProxyConfig(proxyConfig);
+      if (!fs.existsSync(configPath)) {
+        return { success: false, error: `配置文件不存在: ${configPath}` };
       }
       
-      // 从配置文件解析端口配置
+      // 读取配置中的端口号
       const configInfo = this.parseConfigFile(configPath);
       if (configInfo && configInfo.port) {
-        logger.info(`从配置文件解析到代理端口: ${configInfo.port}`);
-        // 只更新端口，保持其他代理设置不变
+        logger.info(`[SingBox] 从配置文件解析到代理端口: ${configInfo.port}`);
         this.proxyConfig.port = configInfo.port;
       }
       
-      logger.info(`启动核心，配置文件: ${configPath}, 代理端口: ${this.proxyConfig.port}`);
+      if (options.proxyConfig) {
+        this.proxyConfig = { ...this.proxyConfig, ...options.proxyConfig };
+      }
       
-      // 定义输出回调和退出回调
+      logger.info(`[SingBox] 启动sing-box，配置文件: ${configPath}, 代理端口: ${this.proxyConfig.port}`);
+      
+      // 定义输出回调
       const outputCallback = (data) => {
-        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          this.mainWindow.webContents.send('singbox-output', data);
-        }
+        if (this.outputCallback) this.outputCallback(data);
       };
       
+      // 定义退出回调
       const exitCallback = (code, error) => {
-        logger.info(`sing-box进程退出，退出码: ${code}${error ? ', 错误: ' + error : ''}`);
-        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          this.mainWindow.webContents.send('singbox-exit', { code, error });
-        }
+        logger.info(`[SingBox] 进程退出，退出码: ${code}${error ? ', 错误: ' + error : ''}`);
         
-        // 如果启用了系统代理，尝试恢复
-        if (this.proxyConfig.enableSystemProxy) {
-          this.disableSystemProxy().catch(err => {
-            logger.error(`恢复系统代理失败: ${err.message}`);
-          });
-        }
+        // 清理进程记录
+        this.processHandlers.clear();
+        this.process = null;
+        
+        // 禁用系统代理
+        this.disableSystemProxy().catch(err => {
+          logger.error('[SingBox] 禁用系统代理失败:', err);
+        });
+        
+        // 触发状态回调
+        this.triggerStatusCallback(false);
+        
+        if (this.exitCallback) this.exitCallback({ code, error });
       };
       
-      // 启动核心
+      // 执行sing-box run命令
       const result = await this.run(configPath, outputCallback, exitCallback);
       
       if (result.success) {
-        logger.info(`sing-box核心启动成功，PID: ${result.pid}`);
+        logger.info('[SingBox] 启动成功');
         
-        // 记录状态
-        this.status = {
-          isRunning: true,
-          configPath: configPath,
-          startTime: new Date().toISOString(),
-          systemProxyEnabled: enableSystemProxy,
-          proxyPort: this.proxyConfig.port,
-          pid: result.pid
-        };
-        
-        // 如果需要启用系统代理
-        if (enableSystemProxy) {
+        // 设置系统代理
+        if (this.proxyConfig.enableSystemProxy) {
+          logger.info(`[SingBox] 正在设置系统代理: ${this.proxyConfig.host}:${this.proxyConfig.port}`);
           await this.enableSystemProxy();
+        } else {
+          logger.info('[SingBox] 未启用系统代理');
         }
         
-        return {
-          success: true,
-          status: this.status
-        };
-      } else {
-        logger.error(`sing-box核心启动失败: ${result.error}`);
-        return result;
+        // 触发状态回调
+        this.triggerStatusCallback(true);
       }
+      
+      return result;
     } catch (error) {
       const errorMsg = `启动sing-box核心服务失败: ${error.message}`;
       logger.error(errorMsg);
@@ -477,14 +501,31 @@ class SingBox {
    */
   async stopCore() {
     try {
-      logger.info('[SingBox] 停止内核');
-      
-      // 先禁用系统代理，再停止服务
+      // 禁用系统代理
       await this.disableSystemProxy();
       
-      return this.stop();
+      // 停止所有sing-box进程
+      for (const [pid, handler] of this.processHandlers.entries()) {
+        logger.info(`[SingBox] 正在停止进程 PID: ${pid}`);
+        if (handler && handler.childProcess) {
+          try {
+            process.kill(pid);
+          } catch (e) {
+            logger.warn(`[SingBox] 无法终止进程 ${pid}: ${e.message}`);
+          }
+        }
+      }
+      
+      // 清空进程集合
+      this.processHandlers.clear();
+      this.process = null;
+      
+      // 触发状态回调
+      this.triggerStatusCallback(false);
+      
+      return { success: true, message: '已停止所有sing-box进程' };
     } catch (error) {
-      logger.error(`[SingBox] 停止内核时发生异常: ${error.message}`);
+      logger.error('[SingBox] 停止进程失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -654,7 +695,7 @@ class SingBox {
     if (this.process) {
       try {
         // 尝试终止进程（如果仍在运行）
-        this.process.kill();
+        this.process.childProcess.kill();
       } catch (e) {
         logger.error(`尝试终止进程失败: ${e.message}`);
       }

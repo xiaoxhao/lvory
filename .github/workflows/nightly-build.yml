@@ -1,0 +1,61 @@
+name: Nightly Build
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [windows-latest]
+    
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+      
+      - name: Configuring nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'npm'
+      
+      - name: Installation of dependencies
+        run: npm ci
+      
+      - name: build
+        run: npm run build
+      
+      - name: Get the current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+      
+      - name: Create a Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly-${{ steps.date.outputs.date }}
+          name: Nightly Build ${{ steps.date.outputs.date }}
+          body: |
+            Automatically built nightly version - ${{ steps.date.outputs.date }}
+            
+            This version is built automatically based on the latest master branch code and may contain unstable features.
+          draft: false
+          prerelease: true
+          files: |
+            build/*.exe
+            build/*.zip
+            build/*.AppImage
+            build/*.dmg
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: build/ 

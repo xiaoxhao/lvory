@@ -15,11 +15,9 @@ const App = () => {
 
   // 处理窗口控制按钮的点击事件
   const handleMinimize = () => {
-    // 使用Electron的IPC通信来最小化窗口
     if (window.electron) {
       window.electron.minimizeWindow();
     } else {
-      // 如果electron对象不可用，尝试直接使用electron的remote模块
       try {
         const { remote } = window.require('electron');
         if (remote) {

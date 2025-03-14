@@ -15,6 +15,14 @@
 .logo {
   margin-top: 20px;
   margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-image {
+  width: 28px;
+  height: 28px;
 }
 
 .logo h2 {

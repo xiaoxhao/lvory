@@ -111,7 +111,7 @@ const customStyles = {
 };
 
 const Dashboard = ({ activeView = 'dashboard' }) => {
-  // 添加弹窗状态
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [fileName, setFileName] = useState('');
@@ -184,7 +184,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     }
   };
 
-  // 重置状态
+  // 重置所有交互状态，包括下载配置、错误提示和自动更新定时器
   const resetState = () => {
     setUrl('');
     setFileName('');
@@ -290,13 +290,18 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
   useEffect(() => {
     const handleProfileData = (event, data) => {
       console.log('Received profile data:', data);
-      setProfileData(data);
+      
+      // 判断是否是新的返回格式，处理profileData提取
+      const processedData = Array.isArray(data) ? data : 
+                         (data && data.success && Array.isArray(data.profiles)) ? data.profiles : [];
+      
+      setProfileData(processedData);
       
       // 计算各类型节点数量
-      if (data && data.length > 0) {
+      if (processedData.length > 0) {
         const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
         
-        data.forEach(node => {
+        processedData.forEach(node => {
           const type = node.type ? node.type.toLowerCase() : '';
           
           if (type.includes('shadowsocks')) {
@@ -322,11 +327,66 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
       
       // 手动请求配置文件数据
       window.electron.getProfileData().then((data) => {
-        if (data && data.length > 0) {
+        console.log('Fetched profile data:', data);
+        // 判断是否是新的返回格式，处理profileData提取
+        if (data && data.success && Array.isArray(data.profiles)) {
+          setProfileData(data.profiles);
+          
+          // 计算各类型节点数量
+          if (data.profiles.length > 0) {
+            const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
+            
+            data.profiles.forEach(node => {
+              const type = node.type ? node.type.toLowerCase() : '';
+              
+              if (type.includes('shadowsocks')) {
+                stats.ss++;
+              } else if (type.includes('vmess')) {
+                stats.vm++;
+              } else if (type.includes('trojan')) {
+                stats.tr++;
+              } else if (type.includes('direct')) {
+                stats.dir++;
+              } else {
+                stats.other++;
+              }
+            });
+            
+            setNodeTypeStats(stats);
+          }
+        } else if (Array.isArray(data)) {
+          // 兼容旧格式
           setProfileData(data);
+          
+          // 计算各类型节点数量
+          if (data.length > 0) {
+            const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
+            
+            data.forEach(node => {
+              const type = node.type ? node.type.toLowerCase() : '';
+              
+              if (type.includes('shadowsocks')) {
+                stats.ss++;
+              } else if (type.includes('vmess')) {
+                stats.vm++;
+              } else if (type.includes('trojan')) {
+                stats.tr++;
+              } else if (type.includes('direct')) {
+                stats.dir++;
+              } else {
+                stats.other++;
+              }
+            });
+            
+            setNodeTypeStats(stats);
+          }
+        } else {
+          console.error('获取到的配置文件数据格式不正确:', data);
+          setProfileData([]);
         }
       }).catch(err => {
         console.error('Failed to get profile data:', err);
+        setProfileData([]);
       });
     }
 
@@ -367,17 +427,40 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
       setIsStopping(false);
     };
     
+    // 监听从托盘菜单发送的状态更新
+    const handleStatusUpdate = (status) => {
+      console.log('收到状态更新:', status);
+      if (status && typeof status.isRunning !== 'undefined') {
+        setIsRunning(status.isRunning);
+        setIsStarting(false);
+        setIsStopping(false);
+      }
+    };
+    
     if (window.electron && window.electron.singbox && window.electron.singbox.onExit) {
-      const removeExitListener = window.electron.singbox.onExit(handleSingBoxExit);
-      
-      return () => {
-        clearInterval(statusInterval);
-        if (removeExitListener) removeExitListener();
-      };
+      window.electron.singbox.onExit(handleSingBoxExit);
     }
     
+    // 添加状态更新监听
+    if (window.electron && window.electron.onStatusUpdate) {
+      window.electron.onStatusUpdate(handleStatusUpdate);
+    }
+    
+    // 组件卸载时清理
     return () => {
       clearInterval(statusInterval);
+      
+      if (window.electron && window.electron.singbox && window.electron.singbox.onExit) {
+        // 移除退出事件监听
+        const removeExitListener = window.electron.singbox.onExit(() => {});
+        if (removeExitListener) removeExitListener();
+      }
+      
+      // 移除状态更新监听
+      if (window.electron && window.electron.onStatusUpdate) {
+        const removeStatusListener = window.electron.onStatusUpdate(() => {});
+        if (removeStatusListener) removeStatusListener();
+      }
     };
   }, []);
 
@@ -892,12 +975,13 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
         
         <div style={{...customStyles.statusItem, marginBottom: '0px'}}>
           <div style={{...customStyles.statusLabel, fontSize: '13px', color: '#666', marginBottom: '3px'}}>总节点数</div>
-          <div style={{...customStyles.statusValue, fontSize: '14px', fontWeight: '500'}}>{profileData.length} 个</div>
+          <div style={{...customStyles.statusValue, fontSize: '14px', fontWeight: '500'}}>{profileData && profileData.length || 0} 个</div>
         </div>
       </div>
     );
   };
 
+  // 渲染眼睛图标
   const renderEyeIcon = () => {
     return (
       <div 
@@ -924,6 +1008,29 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
       </div>
     );
   };
+  
+  // 渲染目录图标
+  const renderFolderIcon = () => {
+    return (
+      <div 
+        style={{
+          ...customStyles.eyeIcon,
+          backgroundColor: 'transparent'
+        }}
+        onClick={() => {
+          if (window.electron && window.electron.openConfigDir) {
+            window.electron.openConfigDir()
+              .catch(err => console.error('打开配置目录失败:', err));
+          }
+        }}
+        title="打开配置文件所在目录"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </div>
+    );
+  };
 
   // 渲染运行/停止按钮
   const renderRunStopButton = () => {
@@ -932,7 +1039,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center',
-        padding: '15px',
+        padding: '5px',
         height: '100%',
         width: '100%'
       }}>
@@ -944,16 +1051,16 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            padding: '8px 24px',
-            fontSize: '15px',
-            fontWeight: '600',
+            padding: '5px 15px',
+            fontSize: '13px',
+            fontWeight: '500',
             cursor: (isStarting || isStopping) ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
             boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
             position: 'relative',
             overflow: 'hidden',
-            width: '120px',
-            height: '45px',
+            width: '85px',  // 缩小尺寸
+            height: '32px', // 缩小尺寸
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -1005,16 +1112,37 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
               <div className="header-actions" style={{ background: 'transparent', boxShadow: 'none' }}>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                   {renderEyeIcon()}
+                  {renderFolderIcon()}
                   <div className="action-separator" style={{ margin: '0 10px' }}></div>
-                  <button className="add-customer-btn" onClick={() => {
-                    setIsModalOpen(true);
-                    resetState();
-                  }}>
-                    <span className="plus-icon"></span>
-                    <span>Add Profiles</span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button className="add-customer-btn" onClick={() => {
+                      setIsModalOpen(true);
+                      resetState();
+                    }} style={{ padding: '6px 12px', height: '28px' }}>
+                      <span className="plus-icon"></span>
+                      <span>PROFILE</span>
+                    </button>
+                    <div style={{ marginLeft: '10px' }}>
+                      {renderRunStopButton()}
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* 托盘提示 */}
+            <div style={{ 
+              padding: '8px 15px', 
+              background: '#f9f9f9', 
+              borderRadius: '4px', 
+              fontSize: '12px', 
+              color: '#666', 
+              marginTop: '10px',
+              textAlign: 'center'
+            }}>
+              <span style={{ fontStyle: 'italic' }}>
+                提示: 点击最小化按钮可将应用缩小到系统托盘，托盘菜单提供快速 RUN/STOP 功能
+              </span>
             </div>
 
             {/* 弹窗组件 */}
@@ -1037,41 +1165,16 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
                 </div>
               )}
             </Modal>
-
-            {/* 调整stats-sections-row的样式，使其在固定高度内正确显示 */}
-            <div className="stats-sections-row" style={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              padding: '0 20px',
-              marginTop: '5px',
-              marginBottom: '5px',
-              flex: '1',
-              overflow: 'auto'
-            }}>
-              {/* 现在只显示RUN/STOP按钮，移除了系统状态卡片 */}
-              <div className="run-button-section" style={{ 
-                background: 'transparent', 
-                boxShadow: 'none',
-                width: '100%', // 调整为占据全宽
-                padding: '0',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center'
-              }}>
-                {renderRunStopButton()}
-              </div>
-            </div>
           </div>
 
           <div className="customer-pipeline">
             <div className="pipeline-stage">
               <div className="stage-header">
                 <h3 style={{ fontSize: '20px', fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>Service Nodes</h3>
-                <div className="count">{profileData.length} <span className="up-arrow-icon"></span></div>
+                <div className="count">{profileData && profileData.length || 0} <span className="up-arrow-icon"></span></div>
               </div>
               <div className="customer-cards">
-                {profileData.length > 0 ? (
+                {profileData && profileData.length > 0 ? (
                   <div className="profile-tags-container" style={{ 
                     display: 'flex', 
                     flexWrap: 'wrap', 
@@ -1145,7 +1248,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
                   </div>
                 ) : (
                   <div style={{ padding: '20px', textAlign: 'center', color: '#8896ab', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
-                    No service nodes found. Please click "Add Profiles" to add configuration file.
+                    No service nodes found. Please click "+ Profiles" to add configuration file.
                   </div>
                 )}
               </div>
@@ -1211,4 +1314,4 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

@@ -185,6 +185,21 @@ class Logger {
     this.logHistory = [];
     return { success: true };
   }
+  
+  // 输出启动日志
+  logStartup() {
+    console.log('==================================================');
+    console.log('  LVORY 应用程序启动');
+    console.log('==================================================');
+    console.log('  时间: ' + new Date().toLocaleString());
+    console.log('  平台: ' + process.platform);
+    console.log('  Node.js: ' + process.version);
+    console.log('  Electron: ' + process.versions.electron);
+    console.log('==================================================');
+    
+    this.info('LVORY 应用程序启动');
+    this.info('初始化日志系统');
+  }
 }
 
 // 导出单例

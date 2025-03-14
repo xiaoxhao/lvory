@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import '../assets/css/systemindicator.css';
 
 const SystemStatus = () => {
-  // 添加系统状态
+  
   const [systemStats, setSystemStats] = useState({
     startTime: new Date().toLocaleString(),
     coreVersion: 'N/A',
@@ -15,9 +15,9 @@ const SystemStatus = () => {
   const [coreDownloadError, setCoreDownloadError] = useState('');
   const [coreDownloadSuccess, setCoreDownloadSuccess] = useState(false);
 
-  // 获取系统状态和配置文件数据
+  // 初始化数据订阅：监听配置文件变更事件并获取sing-box核心版本信息
   useEffect(() => {
-    // 监听配置文件数据
+    // 处理配置文件更新事件：当主进程推送新配置时更新组件状态
     const handleProfileData = (event, data) => {
       setProfileData(data || []);
     };
@@ -44,11 +44,18 @@ const SystemStatus = () => {
       
       // 手动请求配置文件数据
       window.electron.getProfileData().then((data) => {
-        if (data && data.length > 0) {
+        if (data && data.success && Array.isArray(data.profiles)) {
+          setProfileData(data.profiles);
+        } else if (Array.isArray(data)) {
+          // 兼容可能的直接返回数组的情况
           setProfileData(data);
+        } else {
+          console.error('获取到的配置文件数据格式不正确:', data);
+          setProfileData([]);
         }
       }).catch(err => {
         console.error('获取配置文件数据失败:', err);
+        setProfileData([]);
       });
     }
 
@@ -157,4 +164,4 @@ const SystemStatus = () => {
   );
 };
 
-export default SystemStatus; 
+export default SystemStatus;
