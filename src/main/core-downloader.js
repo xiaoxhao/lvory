@@ -21,6 +21,27 @@ try {
 }
 
 /**
+ * 获取应用数据目录
+ * @returns {String} 应用数据目录路径
+ */
+function getAppDataDir() {
+  // 使用LOCALAPPDATA目录作为数据存储位置
+  const appDataDir = process.env.LOCALAPPDATA || '';
+  const appDir = path.join(appDataDir, 'LVORY');
+  
+  // 确保目录存在
+  if (!fs.existsSync(appDir)) {
+    try {
+      fs.mkdirSync(appDir, { recursive: true });
+    } catch (error) {
+      logger.error(`创建应用数据目录失败: ${error.message}`);
+    }
+  }
+  
+  return appDir;
+}
+
+/**
  * 下载内核函数
  * @param {Object} options 下载选项
  * @returns {Promise<Object>} 下载结果
@@ -61,9 +82,19 @@ const downloadCore = async (mainWindow) => {
     
     const zipFilePath = path.join(tempDir, 'sing-box.zip');
     
-    const binDir = path.join(app.getAppPath(), 'bin');
+    // 获取应用数据目录
+    const appDataDir = getAppDataDir();
+    
+    // 创建bin目录
+    const binDir = path.join(appDataDir, 'bin');
     if (!fs.existsSync(binDir)) {
       fs.mkdirSync(binDir, { recursive: true });
+    }
+    
+    // 创建配置目录
+    const configDir = path.join(appDataDir, 'configs');
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
     }
     
     // 尝试所有下载链接，直到一个成功
@@ -96,7 +127,7 @@ const downloadCore = async (mainWindow) => {
               hostname: urlObj.hostname,
               path: urlObj.pathname + urlObj.search,
               headers: {
-                'User-Agent': 'LVORY-Downloader'
+                'User-Agent': 'lvory-Downloader'
               }
             };
             

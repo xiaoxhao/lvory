@@ -10,9 +10,31 @@ const { spawn } = require('child_process');
 const systemProxy = require('./system-proxy');
 const logger = require('./logger');
 
+/**
+ * 获取应用数据目录
+ * @returns {String} 应用数据目录路径
+ */
+function getAppDataDir() {
+  // 使用LOCALAPPDATA目录作为数据存储位置
+  const appDataDir = process.env.LOCALAPPDATA || '';
+  const appDir = path.join(appDataDir, 'lvory');
+  
+  // 确保目录存在
+  if (!fs.existsSync(appDir)) {
+    try {
+      fs.mkdirSync(appDir, { recursive: true });
+    } catch (error) {
+      logger.error(`[SingBox] 创建应用数据目录失败: ${error.message}`);
+    }
+  }
+  
+  return appDir;
+}
+
 class SingBox {
   constructor() {
     this.binPath = '';
+    this.appDataDir = '';
     this.initialized = false;
     this.processHandlers = new Map(); // 存储运行中的进程及其处理程序
     this.outputCallback = null;
@@ -34,8 +56,20 @@ class SingBox {
   init(options = {}) {
     if (this.initialized) return this.checkInstalled();
     
-    const appPath = app ? app.getAppPath() : options.appPath || '';
-    this.binPath = path.join(appPath, 'bin', 'sing-box.exe');
+    // 使用Windows推荐的应用数据目录
+    this.appDataDir = getAppDataDir();
+    
+    // 创建bin目录
+    const binDir = path.join(this.appDataDir, 'bin');
+    if (!fs.existsSync(binDir)) {
+      try {
+        fs.mkdirSync(binDir, { recursive: true });
+      } catch (error) {
+        logger.error(`[SingBox] 创建bin目录失败: ${error.message}`);
+      }
+    }
+    
+    this.binPath = path.join(binDir, 'sing-box.exe');
     
     // 合并代理配置
     if (options.proxyConfig) {
@@ -248,14 +282,14 @@ class SingBox {
         logger.warn(`[SingBox] 未能从配置文件解析到代理端口，使用默认端口: ${this.proxyConfig.port}`);
       }
       
-      // 构建运行参数
       const args = ['run', '-c', configPath];
       logger.info(`[SingBox] 执行命令: ${this.binPath} ${args.join(' ')}`);
       
-      // 创建子进程
+      // 创建子进程 - 设置工作目录为应用数据目录
       const child = spawn(this.binPath, args, {
         windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['ignore', 'pipe', 'pipe'],
+        cwd: this.appDataDir // 设置工作目录为应用数据目录
       });
       
       // 存储进程信息

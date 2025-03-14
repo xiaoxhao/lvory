@@ -57,7 +57,11 @@
     "files": [
       "dist/**/*",
       "index.js",
-      "package.json"
+      "package.json",
+      "src/**/*",
+      "resource/**/*",
+      "public/**/*",
+      "preload.js"
     ],
     "win": {
       "target": "portable"

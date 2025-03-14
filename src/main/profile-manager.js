@@ -11,19 +11,44 @@ const logger = require('../utils/logger');
 let currentConfigPath = null;
 
 /**
- * 扫描文档目录中的配置文件并解析
+ * 获取应用数据目录
+ * @returns {String} 应用数据目录路径
+ */
+function getAppDataDir() {
+  const appDataDir = process.env.LOCALAPPDATA || '';
+  const appDir = path.join(appDataDir, 'lvory');
+  
+  // 确保目录存在
+  if (!fs.existsSync(appDir)) {
+    try {
+      fs.mkdirSync(appDir, { recursive: true });
+    } catch (error) {
+      logger.error(`创建应用数据目录失败: ${error.message}`);
+    }
+  }
+  
+  return appDir;
+}
+
+/**
+ * 扫描应用数据目录中的配置文件并解析
  * @returns {Array} 配置文件中的outbounds数组
  */
 const scanProfileConfig = () => {
   try {
-    const documentsPath = app.getPath('documents');
+    const appDataDir = getAppDataDir();
+    const configDir = path.join(appDataDir, 'configs');
     
-    const testConfigPath = path.join(documentsPath, 'profiles-test.json');
-    const configFilePath = path.join(documentsPath, 'sing-box.json');
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
+    const testConfigPath = path.join(configDir, 'profiles-test.json');
+    const configFilePath = path.join(configDir, 'sing-box.json');
     
     let fileToUse = null;
     
-    // 优先使用 profiles-test.json - 测试配置文件
+    // 检查配置文件是否存在
     if (fs.existsSync(testConfigPath)) {
       fileToUse = testConfigPath;
       logger.info('找到测试配置文件:', testConfigPath);
@@ -35,10 +60,8 @@ const scanProfileConfig = () => {
       return [];
     }
 
-    // 保存当前使用的配置文件路径
     currentConfigPath = fileToUse;
     
-    // 读取并解析配置文件
     const configContent = fs.readFileSync(fileToUse, 'utf8');
     const config = JSON.parse(configContent);
     
@@ -64,17 +87,18 @@ const getConfigPath = () => {
     return currentConfigPath;
   }
   
-  // 如果未设置，尝试查找配置文件
-  const documentsPath = app.getPath('documents');
-  const testConfigPath = path.join(documentsPath, 'profiles-test.json');
-  const configFilePath = path.join(documentsPath, 'sing-box.json');
+  const appDataDir = getAppDataDir();
+  const configDir = path.join(appDataDir, 'configs');
+  const testConfigPath = path.join(configDir, 'profiles-test.json');
+  const configFilePath = path.join(configDir, 'sing-box.json');
   
+  // 检查配置文件是否存在
   if (fs.existsSync(testConfigPath)) {
     currentConfigPath = testConfigPath;
   } else if (fs.existsSync(configFilePath)) {
     currentConfigPath = configFilePath;
   } else {
-    currentConfigPath = configFilePath; // 默认使用标准路径
+    currentConfigPath = configFilePath;
   }
   
   return currentConfigPath;

@@ -96,7 +96,31 @@ const createWindow = () => {
     // mainWindow.webContents.openDevTools();
   } else {
     // 生产环境：加载打包后的文件
-    mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
+    try {
+      const indexPath = path.join(__dirname, '../../dist', 'index.html');
+      logger.info(`尝试加载HTML文件: ${indexPath}`);
+      
+      // 检查文件是否存在
+      if (!require('fs').existsSync(indexPath)) {
+        logger.error(`HTML文件不存在: ${indexPath}`);
+        
+        // 尝试查找可能的替代路径
+        const altPath = path.join(process.resourcesPath, 'app.asar', 'dist', 'index.html');
+        if (require('fs').existsSync(altPath)) {
+          logger.info(`找到替代HTML文件: ${altPath}`);
+          mainWindow.loadFile(altPath);
+        } else {
+          logger.error(`替代HTML文件也不存在: ${altPath}`);
+          mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
+        }
+      } else {
+        mainWindow.loadFile(indexPath);
+      }
+    } catch (error) {
+      logger.error(`加载HTML文件时出错: ${error.message}`);
+      // 备用方案
+      mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
+    }
   }
 
   // 添加IPC事件监听器处理窗口控制

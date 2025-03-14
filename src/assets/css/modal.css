@@ -23,6 +23,11 @@
   flex-direction: column;
 }
 
+/* 成功状态时增加高度 */
+.modal-container.success-state {
+  min-height: 320px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -54,6 +59,12 @@
   padding: 20px;
   overflow-y: auto;
   flex-grow: 1;
+  min-height: 150px;
+}
+
+/* 成功状态时增加内容区域高度 */
+.modal-container.success-state .modal-content {
+  min-height: 240px;
 }
 
 .url-input-container {

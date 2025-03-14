@@ -18,9 +18,9 @@ Lvory 是一个基于 Electron 开发的跨平台 SingBox 客户端，具有以�
 
 Lvory支持以下两种方式管理配置文件：
 
-1. **直接导入**：点击界面右上角的 "Add Profiles" 按钮，输入配置文件 URL 进行下载
+1. **直接导入**：点击界面右上角的 "+ Profiles" 按钮，输入配置文件 URL 进行下载
 2. **本地配置**：将配置文件命名为`sing-box.json`并保存到系统的 Documents 目录
-   - Windows: `C:\Users\YourUsername\Documents\sing-box.json`
+   - Windows: `%LOCALAPPDATA%\lvory\configs/sing-box.json`
    - macOS: `/Users/YourUsername/Documents/sing-box.json`
    - Linux: `/home/YourUsername/Documents/sing-box.json`
 

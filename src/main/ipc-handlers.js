@@ -1,14 +1,38 @@
-const { ipcMain, shell } = require('electron');
+/**
+ * IPC事件处理模块
+ * 统一管理Electron的IPC通信处理
+ */
+const { app, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
 const logger = require('../utils/logger');
 const singbox = require('../utils/sing-box');
 const profileManager = require('./profile-manager');
 const windowManager = require('./window');
 const coreDownloader = require('./core-downloader');
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const { app } = require('electron');
+
+/**
+ * 获取应用数据目录
+ * @returns {String} 应用数据目录路径
+ */
+function getAppDataDir() {
+  // 使用LOCALAPPDATA目录作为数据存储位置
+  const appDataDir = process.env.LOCALAPPDATA || '';
+  const appDir = path.join(appDataDir, 'LVORY');
+  
+  // 确保目录存在
+  if (!fs.existsSync(appDir)) {
+    try {
+      fs.mkdirSync(appDir, { recursive: true });
+    } catch (error) {
+      logger.error(`创建应用数据目录失败: ${error.message}`);
+    }
+  }
+  
+  return appDir;
+}
 
 let ipcHandlersRegistered = false;
 
@@ -70,7 +94,7 @@ const setupIpcHandlers = () => {
         const configDir = path.dirname(configPath);
         logger.info(`打开配置文件目录: ${configDir}`);
         
-        // 使用系统默认方式打开目录
+        // 直接使用shell.openPath打开目录
         await shell.openPath(configDir);
         return { success: true };
       } else {
@@ -308,9 +332,16 @@ const setupIpcHandlers = () => {
         };
       }
       
-      // 获取Windows的文档目录
-      const documentsPath = app.getPath('documents');
-      logger.info('Documents directory:', documentsPath);
+      // 获取应用数据目录
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      
+      // 确保配置目录存在
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
+      
+      logger.info('Config directory:', configDir);
       
       // 如果没有提供自定义文件名，从URL中提取
       if (!customFileName) {
@@ -328,21 +359,17 @@ const setupIpcHandlers = () => {
       customFileName = customFileName.replace(/[/\\?%*:|"<>]/g, '-');
       
       // 完整的保存路径
-      const filePath = path.join(documentsPath, customFileName);
+      const filePath = path.join(configDir, customFileName);
       logger.info('File will be saved to:', filePath);
       
       // 检查文件夹是否可写
       try {
-        if (!fs.existsSync(documentsPath)) {
-          fs.mkdirSync(documentsPath, { recursive: true });
-        }
-        
         // 检查目录是否可写
-        fs.accessSync(documentsPath, fs.constants.W_OK);
+        fs.accessSync(configDir, fs.constants.W_OK);
       } catch (err) {
         return {
           success: false,
-          message: 'Cannot write to Documents folder: ' + err.message,
+          message: 'Cannot write to config folder: ' + err.message,
           error: 'Permission denied'
         };
       }
@@ -511,7 +538,6 @@ const setupIpcHandlers = () => {
       // 先禁用系统代理
       await singbox.disableSystemProxy();
       
-      // 然后停止服务
       return await singbox.stopCore();
     } catch (error) {
       logger.error('停止服务错误:', error);

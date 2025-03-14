@@ -1146,7 +1146,12 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
             </div>
 
             {/* 弹窗组件 */}
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title="Add Profile">
+            <Modal 
+              isOpen={isModalOpen} 
+              onClose={handleCloseModal} 
+              title="ADD PROFILE"
+              className={downloadStatus === 'success' ? 'success-state' : ''}
+            >
               {renderDownloadStatusUI()}
               {(!isDownloading && downloadStatus === '' && !errorDetails) && (
                 <div className="modal-actions">

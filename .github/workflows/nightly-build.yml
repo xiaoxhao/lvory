@@ -34,25 +34,31 @@ jobs:
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
       
+      - name: List build directory contents
+        run: |
+          ls -la build
+          echo "Portable EXE files:"
+          find build -name "*.exe" -type f
+        shell: bash
+      
       - name: Create a Release
         id: create_release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: nightly-${{ steps.date.outputs.date }}
-          name: Nightly Build ${{ steps.date.outputs.date }}
+          tag_name: nightly
+          name: Nightly Build
           body: |
             Automatically built nightly version - ${{ steps.date.outputs.date }}
-            
             This version is built automatically based on the latest master branch code and may contain unstable features.
           draft: false
-          prerelease: true
+          prerelease: false
           files: |
             build/*.exe
-            build/*.zip
             build/*.AppImage
             build/*.dmg
+            build/win-unpacked/*.exe
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

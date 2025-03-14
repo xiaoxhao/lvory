@@ -27,23 +27,14 @@ contextBridge.exposeInMainWorld('electron', {
   
   singbox: {
     checkInstalled: () => ipcRenderer.invoke('singbox-check-installed'),
-    
     getVersion: () => ipcRenderer.invoke('singbox-get-version'),
-    
     checkConfig: (configPath) => ipcRenderer.invoke('singbox-check-config', { configPath }),
-    
     formatConfig: (configPath) => ipcRenderer.invoke('singbox-format-config', { configPath }),
-    
     startCore: (options) => ipcRenderer.invoke('singbox-start-core', options),
-    
     stopCore: () => ipcRenderer.invoke('singbox-stop-core'),
-    
     getStatus: () => ipcRenderer.invoke('singbox-get-status'),
-    
     run: (configPath) => ipcRenderer.invoke('singbox-run', { configPath }),
-    
     stop: () => ipcRenderer.invoke('singbox-stop'),
-    
     downloadCore: () => ipcRenderer.invoke('singbox-download-core'),
     
     onOutput: (callback) => {
