@@ -1,16 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import Profiles from './components/Profiles';
+import { initMessageBox } from './utils/messageBox';
 import './assets/css/global.css';
 import './assets/css/app.css';
 
 const App = () => {
   // 添加活动项状态
   const [activeItem, setActiveItem] = useState('dashboard');
+  // 添加配置文件数量状态
+  const [profilesCount, setProfilesCount] = useState(0);
+
+  // 初始化消息框
+  useEffect(() => {
+    initMessageBox();
+  }, []);
+
+  // 获取配置文件数量
+  useEffect(() => {
+    const getProfilesCount = async () => {
+      if (window.electron && window.electron.getProfileFiles) {
+        try {
+          const result = await window.electron.getProfileFiles();
+          if (result && result.success && Array.isArray(result.files)) {
+            setProfilesCount(result.files.length);
+          } else {
+            console.error('获取配置文件数据格式不正确:', result);
+            setProfilesCount(0);
+          }
+        } catch (error) {
+          console.error('获取配置文件数量失败:', error);
+          setProfilesCount(0);
+        }
+      }
+    };
+
+    getProfilesCount();
+
+    // 添加事件监听器以更新配置文件数量
+    const updateProfilesCount = () => {
+      getProfilesCount();
+    };
+
+    if (window.electron && window.electron.onProfilesChanged) {
+      window.electron.onProfilesChanged(updateProfilesCount);
+    }
+
+    return () => {
+      if (window.electron && window.electron.offProfilesChanged) {
+        window.electron.offProfilesChanged(updateProfilesCount);
+      }
+    };
+  }, []);
 
   // 处理侧边栏菜单点击
   const handleItemClick = (item) => {
     setActiveItem(item);
+    
+    // 如果切换到dashboard，确保使用当前配置文件
+    if (item === 'dashboard' && window.electron && window.electron.getProfileData) {
+      // 延迟一下让 UI 先切换过去
+      setTimeout(() => {
+        // 刷新配置数据，以便使用最新的配置文件
+        window.electron.getProfileData()
+          .catch(err => console.error('刷新配置数据失败:', err));
+      }, 100);
+    }
   };
 
   // 处理窗口控制按钮的点击事件
@@ -88,9 +144,15 @@ const App = () => {
       
       {/* 内容区域 */}
       <div className="content-container">
-        <Sidebar activeItem={activeItem} onItemClick={handleItemClick} />
+        <Sidebar 
+          activeItem={activeItem} 
+          onItemClick={handleItemClick} 
+          profilesCount={profilesCount}
+        />
         <div className="main-content">
-          <Dashboard activeView={activeItem} />
+          {activeItem === 'dashboard' && <Dashboard activeView="dashboard" />}
+          {activeItem === 'activity' && <Dashboard activeView="activity" />}
+          {activeItem === 'profiles' && <Profiles />}
         </div>
       </div>
     </div>

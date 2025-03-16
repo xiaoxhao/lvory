@@ -86,22 +86,32 @@ const setupIpcHandlers = () => {
     }
   });
   
-  // 打开配置文件所在目录
-  ipcMain.handle('open-config-dir', async () => {
+  // 设置配置文件路径
+  ipcMain.handle('set-config-path', async (event, filePath) => {
     try {
-      const configPath = profileManager.getConfigPath();
-      if (configPath) {
-        const configDir = path.dirname(configPath);
-        logger.info(`打开配置文件目录: ${configDir}`);
-        
-        // 直接使用shell.openPath打开目录
-        await shell.openPath(configDir);
-        return { success: true };
+      if (!filePath) {
+        return { success: false, error: '文件路径不能为空' };
+      }
+      
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(configDir, filePath);
+      
+      // 检查文件是否存在
+      if (!fs.existsSync(fullPath)) {
+        return { success: false, error: `文件不存在: ${fullPath}` };
+      }
+      
+      // 使用profileManager的setConfigPath方法
+      const success = profileManager.setConfigPath(fullPath);
+      if (success) {
+        logger.info(`设置当前配置文件路径: ${fullPath}`);
+        return { success: true, configPath: fullPath };
       } else {
-        return { success: false, error: '配置文件路径未设置' };
+        return { success: false, error: '设置配置文件路径失败' };
       }
     } catch (error) {
-      logger.error('打开配置文件目录失败:', error);
+      logger.error('设置配置文件路径失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -545,6 +555,190 @@ const setupIpcHandlers = () => {
     }
   });
   
+  // 获取配置文件列表
+  ipcMain.handle('getProfileFiles', async () => {
+    try {
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+        return { success: true, files: [] };
+      }
+      
+      const files = fs.readdirSync(configDir)
+        // 重点显示JSON配置文件
+        .filter(file => {
+          const ext = path.extname(file).toLowerCase();
+          return ext === '.json' || ext === '.yaml' || ext === '.yml' || ext === '.config';
+        })
+        .map(file => {
+          const filePath = path.join(configDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            name: file,
+            path: filePath,
+            size: `${Math.round(stats.size / 1024)} KB`,
+            createDate: new Date(stats.birthtime).toLocaleDateString(),
+            modifiedDate: new Date(stats.mtime).toLocaleDateString()
+          };
+        });
+      
+      logger.info(`找到${files.length}个配置文件`);
+      return { success: true, files };
+    } catch (error) {
+      logger.error(`获取配置文件列表失败: ${error.message}`);
+      return { success: false, error: error.message, files: [] };
+    }
+  });
+
+  // 导出配置文件
+  ipcMain.handle('exportProfile', async (event, fileName) => {
+    try {
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      const filePath = path.join(configDir, fileName);
+      
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: '文件不存在' };
+      }
+      
+      const saveDialog = await dialog.showSaveDialog({
+        title: '导出配置文件',
+        defaultPath: path.join(app.getPath('downloads'), fileName),
+        filters: [
+          { name: '配置文件', extensions: ['json', 'yaml', 'yml', 'config'] },
+          { name: '所有文件', extensions: ['*'] }
+        ]
+      });
+      
+      if (saveDialog.canceled) {
+        return { success: false, error: '用户取消' };
+      }
+      
+      fs.copyFileSync(filePath, saveDialog.filePath);
+      return { success: true };
+    } catch (error) {
+      logger.error(`导出配置文件失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 重命名配置文件
+  ipcMain.handle('renameProfile', async (event, { oldName, newName }) => {
+    try {
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      const oldPath = path.join(configDir, oldName);
+      const newPath = path.join(configDir, newName);
+      
+      if (!fs.existsSync(oldPath)) {
+        return { success: false, error: '原文件不存在' };
+      }
+      
+      if (fs.existsSync(newPath)) {
+        return { success: false, error: '新文件名已存在' };
+      }
+      
+      fs.renameSync(oldPath, newPath);
+      
+      // 触发配置文件变更事件
+      const mainWindow = windowManager.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('profiles-changed');
+      }
+      
+      return { success: true };
+    } catch (error) {
+      logger.error(`重命名配置文件失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 删除配置文件
+  ipcMain.handle('deleteProfile', async (event, fileName) => {
+    try {
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      const filePath = path.join(configDir, fileName);
+      
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: '文件不存在' };
+      }
+      
+      fs.unlinkSync(filePath);
+      
+      // 触发配置文件变更事件
+      const mainWindow = windowManager.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('profiles-changed');
+      }
+      
+      return { success: true };
+    } catch (error) {
+      logger.error(`删除配置文件失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 使用默认编辑器打开配置文件
+  ipcMain.handle('openFileInEditor', async (event, fileName) => {
+    try {
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      const filePath = path.join(configDir, fileName);
+      
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: '文件不存在' };
+      }
+      
+      await shell.openPath(filePath);
+      return { success: true };
+    } catch (error) {
+      logger.error(`打开编辑器失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 打开配置文件所在目录
+  ipcMain.handle('openConfigDir', async () => {
+    try {
+      const appDataDir = getAppDataDir();
+      const configDir = path.join(appDataDir, 'configs');
+      
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
+      
+      shell.openPath(configDir);
+      return { success: true };
+    } catch (error) {
+      logger.error(`打开配置目录失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 添加配置文件变更事件
+  ipcMain.on('profiles-changed-listen', (event) => {
+    const webContents = event.sender;
+    const win = windowManager.getMainWindow();
+    
+    // 移除旧的监听器，防止重复
+    ipcMain.removeListener('profiles-changed-notify', () => {});
+    
+    // 添加新的监听器
+    ipcMain.on('profiles-changed-notify', () => {
+      if (!webContents.isDestroyed()) {
+        webContents.send('profiles-changed');
+      }
+    });
+  });
+  
+  // 移除配置文件变更监听
+  ipcMain.on('profiles-changed-unlisten', () => {
+    ipcMain.removeListener('profiles-changed-notify', () => {});
+  });
+  
   // 标记IPC处理程序已注册
   ipcHandlersRegistered = true;
   logger.info('IPC处理程序注册完成');
@@ -575,7 +769,15 @@ const removeExistingHandlers = () => {
       'clear-logs',
       'download-profile',
       'singbox-run',
-      'singbox-stop'
+      'singbox-stop',
+      'getProfileFiles',
+      'exportProfile',
+      'renameProfile',
+      'deleteProfile',
+      'openFileInEditor',
+      'openConfigDir',
+      'profiles-changed-listen',
+      'profiles-changed-unlisten'
     ];
     
     // 尝试移除每个处理程序

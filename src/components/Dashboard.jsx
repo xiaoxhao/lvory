@@ -3,6 +3,7 @@ import '../assets/css/dashboard.css';
 import CustomerCard from './CustomerCard';
 import Modal from './Modal';
 import Activity from './Activity';
+import { showMessage } from '../utils/messageBox';
 
 // 自定义样式
 const customStyles = {
@@ -237,12 +238,12 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
                 console.log('Singbox started successfully');
               } else {
                 console.error('Failed to start singbox:', result ? result.error : 'Unknown error');
-                alert('启动失败: ' + (result && result.error ? result.error : '未知错误'));
+                showMessage('启动失败: ' + (result && result.error ? result.error : '未知错误'));
               }
             } catch (err) {
               setIsStarting(false);
               console.error('Error starting singbox:', err);
-              alert('启动错误: ' + (err && err.message ? err.message : '未知错误'));
+              showMessage('启动错误: ' + (err && err.message ? err.message : '未知错误'));
             }
           };
           
@@ -251,7 +252,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
         } else {
           setIsStarting(false);
           console.error('startCore API not available');
-          alert('启动API不可用');
+          showMessage('启动API不可用');
         }
       } else {
         // 停止 singbox
@@ -267,22 +268,22 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
                 console.log('Singbox stopped successfully');
               } else {
                 console.error('Failed to stop singbox:', result ? result.error : 'Unknown error');
-                alert('停止失败: ' + (result && result.error ? result.error : '未知错误'));
+                showMessage('停止失败: ' + (result && result.error ? result.error : '未知错误'));
               }
             })
             .catch(err => {
               setIsStopping(false);
               console.error('Error stopping singbox:', err);
-              alert('停止错误: ' + (err && err.message ? err.message : '未知错误'));
+              showMessage('停止错误: ' + (err && err.message ? err.message : '未知错误'));
             });
         } else {
           setIsStopping(false);
           console.error('stopCore API not available');
-          alert('停止API不可用');
+          showMessage('停止API不可用');
         }
       }
     } else {
-      alert('Singbox API 不可用');
+      showMessage('Singbox API 不可用');
     }
   };
 
@@ -337,32 +338,6 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
             const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
             
             data.profiles.forEach(node => {
-              const type = node.type ? node.type.toLowerCase() : '';
-              
-              if (type.includes('shadowsocks')) {
-                stats.ss++;
-              } else if (type.includes('vmess')) {
-                stats.vm++;
-              } else if (type.includes('trojan')) {
-                stats.tr++;
-              } else if (type.includes('direct')) {
-                stats.dir++;
-              } else {
-                stats.other++;
-              }
-            });
-            
-            setNodeTypeStats(stats);
-          }
-        } else if (Array.isArray(data)) {
-          // 兼容旧格式
-          setProfileData(data);
-          
-          // 计算各类型节点数量
-          if (data.length > 0) {
-            const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
-            
-            data.forEach(node => {
               const type = node.type ? node.type.toLowerCase() : '';
               
               if (type.includes('shadowsocks')) {
@@ -464,23 +439,20 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     };
   }, []);
 
-  // 监听下载完成事件
   useEffect(() => {
     const handleDownloadComplete = (event, data) => {
       console.log('Download complete event:', data);
       
       if (data.success) {
         setDownloadStatus('success');
-        // 3秒后关闭弹窗
         setTimeout(() => {
           setIsModalOpen(false);
           resetState();
           
-          // 重新获取配置文件数据
           if (window.electron) {
             window.electron.getProfileData().then((data) => {
-              if (data && data.length > 0) {
-                setProfileData(data);
+              if (data && data.success && Array.isArray(data.profiles)) {
+                setProfileData(data.profiles);
               }
             }).catch(err => {
               console.error('Failed to get profile data:', err);
@@ -507,7 +479,6 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     };
   }, []);
 
-  // 添加useEffect钩子，用于监听内核下载进度
   useEffect(() => {
     // 检查window.electron是否存在
     if (window.electron && window.electron.onCoreDownloadProgress) {
@@ -539,9 +510,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
         }));
       });
       
-      // 主动请求版本信息
       if (window.electron.singbox && window.electron.singbox.getVersion) {
-        console.log('主动请求sing-box版本');
         window.electron.singbox.getVersion()
           .then(result => {
             console.log('获取版本结果:', result);
@@ -593,7 +562,6 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     console.log(`已设置自动更新定时器，间隔 ${updateInterval} 小时`);
   };
   
-  // 无提示下载配置文件（用于自动更新）
   const downloadProfileSilently = (url, customFileName) => {
     if (!url || !customFileName) return;
     
@@ -608,8 +576,8 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
           if (result.success) {
             // 重新获取配置文件数据
             window.electron.getProfileData().then((data) => {
-              if (data && data.length > 0) {
-                setProfileData(data);
+              if (data && data.success && Array.isArray(data.profiles)) {
+                setProfileData(data.profiles);
               }
             }).catch(err => {
               console.error('Failed to get profile data:', err);
@@ -627,7 +595,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
   // 处理下载配置文件
   const handleDownloadProfiles = () => {
     if (!url) {
-      alert('Please enter a URL');
+      showMessage('Please enter a URL');
       return;
     }
 

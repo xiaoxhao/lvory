@@ -3,7 +3,7 @@ import '../assets/css/sidebar.css';
 import SystemStatus from './SystemStatus';
 import logoSvg from '../../resource/icon/logo.svg';
 
-const Sidebar = ({ activeItem, onItemClick }) => {
+const Sidebar = ({ activeItem, onItemClick, profilesCount }) => {
   return (
     <div className="sidebar">
       <div className="logo">
@@ -27,10 +27,13 @@ const Sidebar = ({ activeItem, onItemClick }) => {
             <span className="icon activity-icon"></span>
             <span>Activity</span>
           </li>
-          <li className="menu-item">
-            <span className="icon tasks-icon"></span>
-            <span>Tasks</span>
-            <span className="badge">2</span>
+          <li 
+            className={`menu-item ${activeItem === 'profiles' ? 'active' : ''}`}
+            onClick={() => onItemClick('profiles')}
+          >
+            <span className="icon profiles-icon"></span>
+            <span>Profiles</span>
+            <span className="badge">{profilesCount || 0}</span>
           </li>
           <li className="menu-item">
             <span className="icon settings-icon"></span>

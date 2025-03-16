@@ -56,6 +56,9 @@ app.on('ready', () => {
   // 初始创建托盘
   trayManager.createTray();
   
+  // 确保加载用户配置
+  profileManager.getConfigPath();
+  
   logger.info('初始化SingBox模块');
   singbox.init();
   

@@ -64,7 +64,8 @@
       "preload.js"
     ],
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "resource/icon/index256.png"
     },
     "mac": {
       "target": null

@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('status-update', callback);
   },
   
-  openConfigDir: () => ipcRenderer.invoke('open-config-dir'),
+  openConfigDir: () => ipcRenderer.invoke('openConfigDir'),
   
   singbox: {
     checkInstalled: () => ipcRenderer.invoke('singbox-check-installed'),
@@ -63,7 +63,36 @@ contextBridge.exposeInMainWorld('electron', {
   onProfileData: (callback) => ipcRenderer.on('profile-data', (event, data) => callback(data)),
   removeProfileData: (callback) => ipcRenderer.removeListener('profile-data', callback),
   
+  // 获取配置文件列表
+  getProfileFiles: () => ipcRenderer.invoke('getProfileFiles'),
+  
+  // 导出配置文件
+  exportProfile: (fileName) => ipcRenderer.invoke('exportProfile', fileName),
+  
+  // 重命名配置文件
+  renameProfile: (data) => ipcRenderer.invoke('renameProfile', data),
+  
+  // 删除配置文件
+  deleteProfile: (fileName) => ipcRenderer.invoke('deleteProfile', fileName),
+  
+  // 使用默认编辑器打开配置文件
+  openFileInEditor: (fileName) => ipcRenderer.invoke('openFileInEditor', fileName),
+  
+  // 打开添加配置文件对话框
+  openAddProfileDialog: () => ipcRenderer.send('open-add-profile-dialog'),
+  
+  // 监听配置文件变更事件
+  onProfilesChanged: (callback) => {
+    ipcRenderer.send('profiles-changed-listen');
+    ipcRenderer.on('profiles-changed', () => callback());
+    return () => {
+      ipcRenderer.send('profiles-changed-unlisten');
+      ipcRenderer.removeListener('profiles-changed', callback);
+    };
+  },
+  
   getConfigPath: () => ipcRenderer.invoke('get-config-path'),
+  setConfigPath: (filePath) => ipcRenderer.invoke('set-config-path', filePath),
   
   platform: process.platform,
 
