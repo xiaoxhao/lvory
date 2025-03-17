@@ -6,8 +6,6 @@ const SystemStatus = () => {
   const [systemStats, setSystemStats] = useState({
     startTime: new Date().toLocaleString(),
     coreVersion: 'N/A',
-    activeConnections: 0,
-    memoryUsage: '0MB'
   });
   const [profileData, setProfileData] = useState([]);
   const [isDownloadingCore, setIsDownloadingCore] = useState(false);

@@ -87,27 +87,6 @@ app.on('ready', () => {
       logger.info('sing-box未安装，不获取版本信息');
     }
   }, 1000);
-  
-  // 设置定期版本检查（每10秒检查一次，确保界面能获取到）
-  setTimeout(() => {
-    const mainWindow = windowManager.getMainWindow();
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    
-    if (!singbox.checkInstalled()) return;
-    
-    logger.info('执行延迟版本检查');
-    singbox.getVersion().then(result => {
-      if (result.success && mainWindow && !mainWindow.isDestroyed()) {
-        logger.info('延迟检查 - 发送版本更新事件:', result.version);
-        mainWindow.webContents.send('core-version-update', {
-          version: result.version,
-          fullOutput: result.fullOutput
-        });
-      }
-    }).catch(err => {
-      logger.error('延迟版本检查失败:', err);
-    });
-  }, 3000);
 });
 
 // 劫持窗口关闭行为

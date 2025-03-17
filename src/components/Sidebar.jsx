@@ -35,7 +35,10 @@ const Sidebar = ({ activeItem, onItemClick, profilesCount }) => {
             <span>Profiles</span>
             <span className="badge">{profilesCount || 0}</span>
           </li>
-          <li className="menu-item">
+          <li 
+            className={`menu-item ${activeItem === 'settings' ? 'active' : ''}`}
+            onClick={() => onItemClick('settings')}
+          >
             <span className="icon settings-icon"></span>
             <span>Settings</span>
           </li>

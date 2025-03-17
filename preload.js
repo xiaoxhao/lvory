@@ -115,5 +115,13 @@ contextBridge.exposeInMainWorld('electron', {
     
     // 清除日志历史
     clearLogs: () => ipcRenderer.invoke('clear-logs')
-  }
+  },
+
+  // 开机自启动相关API
+  setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
+  getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+  
+  // 设置相关API
+  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  getSettings: () => ipcRenderer.invoke('get-settings'),
 }); 

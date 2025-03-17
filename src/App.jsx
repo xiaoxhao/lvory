@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Profiles from './components/Profiles';
+import Settings from './components/Settings/Settings';
 import { initMessageBox } from './utils/messageBox';
 import './assets/css/global.css';
 import './assets/css/app.css';
@@ -60,7 +61,7 @@ const App = () => {
     
     // 如果切换到dashboard，确保使用当前配置文件
     if (item === 'dashboard' && window.electron && window.electron.getProfileData) {
-      // 延迟一下让 UI 先切换过去
+      // 延迟让 UI 先切换过去
       setTimeout(() => {
         // 刷新配置数据，以便使用最新的配置文件
         window.electron.getProfileData()
@@ -153,6 +154,7 @@ const App = () => {
           {activeItem === 'dashboard' && <Dashboard activeView="dashboard" />}
           {activeItem === 'activity' && <Dashboard activeView="activity" />}
           {activeItem === 'profiles' && <Profiles />}
+          {activeItem === 'settings' && <Settings />}
         </div>
       </div>
     </div>

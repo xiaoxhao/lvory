@@ -108,13 +108,12 @@ export function showMessage(message, onClose) {
   if (window.showMessage) {
     window.showMessage(message, onClose);
   } else {
-    // 如果还没初始化完成，使用setTimeout延迟调用
     setTimeout(() => {
       if (window.showMessage) {
         window.showMessage(message, onClose);
       } else {
         console.warn('MessageBox not initialized properly');
-        alert(message); // 降级到原生alert
+        alert(message);
       }
     }, 100);
   }

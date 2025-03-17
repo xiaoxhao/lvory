@@ -117,7 +117,7 @@ const Activity = () => {
           <div className="search-filter">
             <input
               type="text"
-              placeholder="搜索日志..."
+              placeholder="search logs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -125,7 +125,7 @@ const Activity = () => {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
-              <option value="all">全部类型</option>
+              <option value="all">ALL</option>
               <option value="SYSTEM">系统</option>
               <option value="SINGBOX">SingBox</option>
               <option value="NETWORK">网络</option>
@@ -138,17 +138,17 @@ const Activity = () => {
                 checked={autoScroll}
                 onChange={() => setAutoScroll(!autoScroll)}
               />
-              自动滚动
+              Auto-Scrolling
             </label>
             <button onClick={handleClearLogs} className="clear-button">
-              清除日志
+              Clear Logs
             </button>
           </div>
         </div>
       </div>
       <div className="log-container" ref={logContainerRef}>
         {filteredLogs.length === 0 ? (
-          <div className="no-logs">没有日志记录</div>
+          <div className="no-logs">no log recording</div>
         ) : (
           filteredLogs.map((log, index) => {
             // 确保log存在且包含必要的属性

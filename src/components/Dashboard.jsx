@@ -205,7 +205,8 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
 
   // 处理关闭模态框
   const handleCloseModal = () => {
-    if (!isDownloading) {
+    // 当下载状态为成功时也允许关闭窗口
+    if (!isDownloading || downloadStatus === 'success') {
       setIsModalOpen(false);
       resetState();
     }
@@ -445,6 +446,9 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
       
       if (data.success) {
         setDownloadStatus('success');
+        setIsDownloading(false); // 确保下载状态被重置，这样关闭按钮才能正常工作
+        
+        // 3秒后自动关闭
         setTimeout(() => {
           setIsModalOpen(false);
           resetState();
@@ -539,20 +543,16 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
 
   // 设置配置文件更新定时器
   const setupUpdateTimer = (url, fileName) => {
-    // 清除已存在的定时器
     if (updateTimerRef.current) {
       clearInterval(updateTimerRef.current);
     }
     
-    // 如果选择了不自动更新，则不设置定时器
     if (updateInterval === '0') {
       return;
     }
     
-    // 转换为毫秒
     const intervalMs = parseInt(updateInterval) * 60 * 60 * 1000;
     
-    // 设置新的定时器
     updateTimerRef.current = setInterval(() => {
       console.log(`自动更新配置文件: ${fileName} - ${new Date().toLocaleString()}`);
       // 执行下载操作但不显示UI
@@ -632,6 +632,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
           console.log('Download result:', result);
           if (result.success) {
             setDownloadStatus('success');
+            setIsDownloading(false); // 确保下载状态被重置
             
             // 设置定时更新（如果有的话）
             if (updateInterval !== '0') {
@@ -710,7 +711,6 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     setShowErrorDetails(!showErrorDetails);
   };
 
-  // 切换隐私模式
   const togglePrivateMode = () => {
     setPrivateMode(!privateMode);
   };
@@ -726,19 +726,19 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
       );
     } else if (downloadStatus === 'success') {
       return (
-        <div className="download-progress">
+        <div className="download-success">
           <div className="progress-bar success"></div>
-          <p className="status-text">Profile successfully downloaded!</p>
+          <p className="status-text success-text">Profile successfully downloaded!</p>
           {isDefaultConfig && (
-            <p className="status-text">已设置为默认配置文件 (sing-box.json)</p>
+            <p className="status-text success-text">已设置为默认配置文件 (sing-box.json)</p>
           )}
           {updateInterval !== '0' && (
-            <p className="status-text update-schedule">
+            <p className="status-text update-schedule success-text">
               自动更新已设置为每 {updateInterval} 小时一次
             </p>
           )}
-          <p className="status-text" style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
-            窗口将在3秒后自动关闭
+          <p className="status-text auto-close success-text">
+            窗口将在3秒后自动关闭，或点击右上角关闭按钮关闭窗口
           </p>
         </div>
       );
@@ -1264,10 +1264,21 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
             word-break: break-word;
           }
           
+          .success-text {
+            color: #34495e;
+            font-weight: 500;
+          }
+          
           .update-schedule {
             font-size: 12px;
             color: #57a45d;
             margin-top: 5px;
+          }
+          
+          .auto-close {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
           }
           
           .checkbox-label {
@@ -1280,6 +1291,27 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
           .checkbox-label input {
             width: 16px;
             height: 16px;
+          }
+          
+          .download-success {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            position: relative;
+            z-index: 10;
+          }
+          
+          .success-state .modal-content {
+            background-color: #f8fafc;
+          }
+          
+          .success-state .close-button {
+            display: block !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
           }
         `}
       </style>

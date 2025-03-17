@@ -1,6 +1,6 @@
 {
   "name": "lvory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Minimalist Cross-Platform Client for Singbox",
   "main": "index.js",
   "scripts": {
@@ -50,7 +50,7 @@
   },
   "build": {
     "appId": "com.lvory.app",
-    "productName": "LVORY",
+    "productName": "lvory",
     "directories": {
       "output": "build"
     },
@@ -64,8 +64,25 @@
       "preload.js"
     ],
     "win": {
-      "target": "portable",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "resource/icon/index256.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "lvory",
+      "installerIcon": "resource/icon/installer/installer.ico",
+      "uninstallerIcon": "resource/icon/installer/installer.ico",
+      "installerHeaderIcon": "resource/icon/installer/installer.ico"
     },
     "mac": {
       "target": null

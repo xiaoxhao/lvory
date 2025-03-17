@@ -67,16 +67,8 @@ class Logger {
       data
     };
     
-    // 控制台输出
-    console.log(`[${timestamp}] [${type}] ${message}`);
-    
-    // 写入文件
     this.writeToFile(logEntry);
-    
-    // 添加到历史记录
     this.addToHistory(logEntry);
-    
-    // 发送到渲染进程
     this.sendToRenderer(logEntry);
   }
   
@@ -197,7 +189,6 @@ class Logger {
     console.log('  Electron: ' + process.versions.electron);
     console.log('==================================================');
     
-    this.info('LVORY 应用程序启动');
     this.info('初始化日志系统');
   }
 }

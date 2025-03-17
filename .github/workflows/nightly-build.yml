@@ -58,7 +58,6 @@ jobs:
             build/*.exe
             build/*.AppImage
             build/*.dmg
-            build/win-unpacked/*.exe
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

@@ -9,18 +9,22 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .modal-container {
   background-color: white;
   border-radius: 8px;
-  width: 400px;
-  max-width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 500px;
+  max-width: 95%;
   max-height: 90vh;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1001;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* 成功状态时增加高度 */
@@ -32,34 +36,44 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eaeaea;
-  flex-shrink: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e6e8eb;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2e3b52;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .close-button {
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 22px;
+  color: #8896ab;
   cursor: pointer;
-  color: #666;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .close-button:hover {
-  color: #000;
+  background-color: #f5f7f9;
+  color: #2e3b52;
 }
 
 .modal-content {
   padding: 20px;
   overflow-y: auto;
-  flex-grow: 1;
-  min-height: 150px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* 成功状态时增加内容区域高度 */
@@ -67,143 +81,193 @@
   min-height: 240px;
 }
 
+/* 表单和输入框样式 */
 .url-input-container {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .url-input-container label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 400;
+  font-size: 14px;
+  color: #445668;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .url-input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border: 1px solid #d9dde3;
+  border-radius: 6px;
   font-size: 14px;
+  color: #2e3b52;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 500;
 }
 
 .url-input:focus {
-  border-color: #999;
+  outline: none;
+  border-color: #7166f9;
+  box-shadow: 0 0 0 3px rgba(113, 102, 249, 0.15);
 }
 
+.url-input:disabled {
+  background-color: #f5f7f9;
+  color: #8896ab;
+  cursor: not-allowed;
+}
+
+/* 动作按钮样式 */
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 0 0 10px 0;
-  flex-shrink: 0;
+  gap: 12px;
+  margin-top: 20px;
 }
 
-.cancel-button, .download-button {
+.cancel-button, .download-button, .try-again-button {
   padding: 8px 16px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .cancel-button {
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
+  background-color: #f5f7f9;
+  color: #445668;
 }
 
-.download-button {
-  background-color: #000;
+.cancel-button:hover {
+  background-color: #e6e8eb;
+}
+
+.download-button, .try-again-button {
+  background-color: #7166f9;
   color: white;
-  border: none;
+}
+
+.download-button:hover, .try-again-button:hover {
+  background-color: #5a51cc;
 }
 
 /* 下载进度和状态样式 */
-.download-progress {
-  margin-bottom: 20px;
-  width: 100%;
+.download-progress, .download-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
 }
 
 .progress-bar {
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  margin-bottom: 10px;
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
 }
 
 .progress-bar.loading {
-  background: linear-gradient(90deg, #f0f0f0 25%, #ddd 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
+  background-color: #e6e8eb;
+}
+
+.progress-bar.loading:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background-color: #7166f9;
+  animation: loading 1.5s infinite ease-in-out;
 }
 
 .progress-bar.success {
-  background-color: #28c940;
+  background-color: #47c9a2;
 }
 
 .progress-bar.error {
-  background-color: #ff5f57;
+  background-color: #ff5e62;
 }
 
-.status-text {
-  margin: 8px 0;
-  font-size: 14px;
-  text-align: center;
-  word-break: break-word;
+@keyframes loading {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(200%);
+  }
+  100% {
+    transform: translateX(500%);
+  }
 }
 
 /* 错误详情样式 */
 .error-details-container {
-  margin-top: 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   width: 100%;
+  margin-top: 12px;
 }
 
 .error-details-toggle {
   background: none;
   border: none;
-  color: #777;
-  font-size: 12px;
+  color: #7166f9;
+  font-size: 13px;
   cursor: pointer;
+  padding: 0;
+  margin-bottom: 8px;
   text-decoration: underline;
-  padding: 5px;
-}
-
-.error-details-toggle:hover {
-  color: #444;
+  display: inline-block;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
 }
 
 .error-details {
-  margin-top: 10px;
-  padding: 10px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-  border-left: 3px solid #ff5f57;
-  width: 100%;
-  font-size: 12px;
-  color: #666;
-  max-height: 100px;
+  background-color: #f5f7f9;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #445668;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  white-space: pre-wrap;
+  margin-top: 8px;
+  max-height: 200px;
   overflow-y: auto;
-  word-break: break-word;
+  font-weight: 500;
 }
 
 .error-actions {
-  margin-top: 15px;
-  justify-content: center;
+  margin-top: 16px;
 }
 
-.try-again-button {
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
+/* 成功状态模态框样式 */
+.success-state .modal-container {
+  background-color: #f8fafc;
 }
 
-.try-again-button:hover {
-  background-color: #e5e5e5;
+.success-state .modal-content {
+  background-color: #f8fafc;
+}
+
+.success-state .modal-header {
+  border-bottom-color: #e2e8f0;
+}
+
+.success-state .progress-bar.success {
+  background-color: #47c9a2;
+  height: 6px;
+}
+
+.success-state .status-text {
+  color: #2e3b52;
+  font-weight: 600;
 }
 
 /* 更新周期选择器样式 */
@@ -215,6 +279,8 @@
   font-size: 14px;
   background-color: white;
   cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 500;
 }
 
 .is-default-checkbox {
@@ -228,17 +294,10 @@
   cursor: pointer;
   font-size: 14px;
   color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 500;
 }
 
 .checkbox-label input[type="checkbox"] {
   margin-right: 8px;
-}
-
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
 } 

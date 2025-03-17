@@ -12,6 +12,7 @@ const singbox = require('../utils/sing-box');
 const profileManager = require('./profile-manager');
 const windowManager = require('./window');
 const coreDownloader = require('./core-downloader');
+const settingsManager = require('./settings-manager');
 
 /**
  * 获取应用数据目录
@@ -155,6 +156,19 @@ const setupIpcHandlers = () => {
         port: 7890,
         enableSystemProxy: true  // 默认启用系统代理
       };
+      
+      // 启动内核前检查版本
+      logger.info('启动内核前检查版本');
+      const versionResult = await singbox.getVersion();
+      if (versionResult.success) {
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('core-version-update', {
+            version: versionResult.version,
+            fullOutput: versionResult.fullOutput
+          });
+        }
+      }
       
       // 这里不需要打印代理设置，因为在startCore函数里会获取配置文件中的端口并覆盖
       logger.info(`启动sing-box内核，配置文件: ${configPath}`);
@@ -739,6 +753,27 @@ const setupIpcHandlers = () => {
     ipcMain.removeListener('profiles-changed-notify', () => {});
   });
   
+  // 设置开机自启动
+  ipcMain.handle('set-auto-launch', async (event, enable) => {
+    return settingsManager.setAutoLaunch(enable);
+  });
+
+  // 获取开机自启动状态
+  ipcMain.handle('get-auto-launch', async () => {
+    return settingsManager.getAutoLaunch();
+  });
+  
+  // 保存设置
+  ipcMain.handle('save-settings', async (event, settings) => {
+    return settingsManager.saveSettings(settings);
+  });
+
+  // 加载设置
+  ipcMain.handle('get-settings', async () => {
+    const settings = await settingsManager.loadSettings();
+    return { success: true, settings };
+  });
+  
   // 标记IPC处理程序已注册
   ipcHandlersRegistered = true;
   logger.info('IPC处理程序注册完成');
@@ -777,7 +812,11 @@ const removeExistingHandlers = () => {
       'openFileInEditor',
       'openConfigDir',
       'profiles-changed-listen',
-      'profiles-changed-unlisten'
+      'profiles-changed-unlisten',
+      'set-auto-launch',
+      'get-auto-launch',
+      'save-settings',
+      'get-settings'
     ];
     
     // 尝试移除每个处理程序
