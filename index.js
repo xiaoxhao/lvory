@@ -41,9 +41,6 @@ global.isQuitting = false;
 
 ipcHandlers.setupIpcHandlers();
 
-// 初始化SingBox模块
-singbox.init();
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', () => {

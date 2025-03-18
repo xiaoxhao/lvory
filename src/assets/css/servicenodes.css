@@ -1,0 +1,126 @@
+.service-nodes {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nodes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.nodes-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.speed-test-icon {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f4ff;
+  color: #4CAF50;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.speed-test-icon:hover {
+  background: #e0ebff;
+  transform: scale(1.05);
+}
+
+.speed-test-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.speed-test-icon svg.spinning {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.testing-tooltip {
+  position: absolute;
+  top: -30px;
+  right: -20px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.testing-tooltip:after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  right: 30px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid rgba(0, 0, 0, 0.7);
+}
+
+.test-speed-btn {
+  padding: 8px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.test-speed-btn:hover {
+  background: #45a049;
+}
+
+.test-speed-btn.testing {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+
+.nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.node-card {
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.node-name {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.node-type {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.node-delay {
+  font-size: 0.9em;
+  color: #4CAF50;
+}
+
+.node-delay .timeout {
+  color: #f44336;
+} 
