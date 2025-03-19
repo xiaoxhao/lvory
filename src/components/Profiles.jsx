@@ -7,6 +7,7 @@ const Profiles = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeProfile, setActiveProfile] = useState('');
+  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
 
   // 加载配置文件列表和当前活跃配置
   useEffect(() => {
@@ -22,6 +23,24 @@ const Profiles = () => {
         }
       }).catch(err => {
         console.error('获取当前配置文件失败:', err);
+      });
+    }
+    
+    // 监听配置文件更新事件
+    if (window.electron && window.electron.onProfileUpdated) {
+      window.electron.onProfileUpdated((data) => {
+        if (data.success) {
+          console.log(`配置文件已更新: ${data.fileName}`);
+        } else {
+          console.error(`更新失败: ${data.fileName}, 错误: ${data.error}`);
+        }
+      });
+    }
+    
+    // 监听配置文件变更事件
+    if (window.electron && window.electron.onProfilesChanged) {
+      window.electron.onProfilesChanged(() => {
+        loadProfileFiles();
       });
     }
   }, []);
@@ -77,6 +96,35 @@ const Profiles = () => {
     } catch (err) {
       console.error('切换配置文件失败:', err);
       showMessage(`切换配置文件失败: ${err.message || '未知错误'}`);
+    }
+  };
+
+  // 更新所有配置文件
+  const handleUpdateAll = async () => {
+    if (isUpdatingAll) {
+      return;
+    }
+    
+    setIsUpdatingAll(true);
+    
+    if (window.electron && window.electron.updateAllProfiles) {
+      try {
+        const result = await window.electron.updateAllProfiles();
+        if (result.success) {
+          showMessage(result.message || '所有配置文件已更新');
+          loadProfileFiles(); // 刷新列表
+        } else {
+          showMessage(`更新失败: ${result.error || '未知错误'}`);
+        }
+      } catch (error) {
+        showMessage(`更新错误: ${error.message || '未知错误'}`);
+        console.error('批量更新配置文件失败:', error);
+      } finally {
+        setIsUpdatingAll(false);
+      }
+    } else {
+      showMessage('更新API不可用');
+      setIsUpdatingAll(false);
     }
   };
 
@@ -165,10 +213,26 @@ const Profiles = () => {
     }
   };
 
-  // 处理刷新
-  const handleRefresh = () => {
+  // 处理更新
+  const handleUpdate = (fileName) => {
     closeDropdown();
-    loadProfileFiles();
+    
+    if (window.electron && window.electron.updateProfile) {
+      window.electron.updateProfile(fileName)
+        .then(result => {
+          if (result.success) {
+            showMessage(`成功更新配置文件: ${fileName}`);
+            loadProfileFiles(); // 刷新列表
+          } else {
+            showMessage(`更新失败: ${result.error || '未知错误'}`);
+          }
+        })
+        .catch(error => {
+          showMessage(`更新错误: ${error.message || '未知错误'}`);
+        });
+    } else {
+      showMessage('更新API不可用，请检查应用是否需要升级');
+    }
   };
 
   // 处理删除文件
@@ -214,6 +278,36 @@ const Profiles = () => {
     <div className="profiles-container">
       <div className="profiles-header">
         <h2>All Files</h2>
+        <div style={{ flexGrow: 1 }}></div>
+        <button 
+          className="update-all-button" 
+          onClick={handleUpdateAll} 
+          disabled={isUpdatingAll}
+          style={{
+            padding: '6px 12px',
+            backgroundColor: isUpdatingAll ? '#cccccc' : '#50b2d0',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isUpdatingAll ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '13px',
+            transition: 'background-color 0.2s'
+          }}
+        >
+          {isUpdatingAll ? (
+            <>
+              <span style={{ display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid #ffffff', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', marginRight: '6px' }}></span>
+              Updating...
+            </>
+          ) : (
+            <>
+              <span style={{ marginRight: '6px' }}>↻</span>
+              Update All
+            </>
+          )}
+        </button>
       </div>
 
       <div className="profiles-table-container">
@@ -252,6 +346,20 @@ const Profiles = () => {
                       onClick={() => activateProfile(file.name)}
                     >
                       {file.name}
+                      {file.status === 'failed' && (
+                        <span style={{ 
+                          display: 'inline-block',
+                          marginLeft: '8px',
+                          fontSize: '11px',
+                          padding: '2px 6px',
+                          backgroundColor: '#ffebee',
+                          color: '#e53935',
+                          borderRadius: '3px',
+                          fontWeight: 'normal'
+                        }}>
+                          已失效
+                        </span>
+                      )}
                       {activeProfile === file.name && <span className="active-label">ACTIVE</span>}
                     </div>
                   </td>
@@ -301,10 +409,10 @@ const Profiles = () => {
                           </button>
                           <button 
                             className="dropdown-item"
-                            onClick={() => handleRefresh()}
+                            onClick={() => handleUpdate(file.name)}
                           >
                             <span className="dropdown-icon refresh-icon"></span>
-                            <span>Refresh</span>
+                            <span>Update</span>
                           </button>
                           <div className="dropdown-divider"></div>
                           <button 
@@ -324,6 +432,13 @@ const Profiles = () => {
           </tbody>
         </table>
       </div>
+      
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

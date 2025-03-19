@@ -18,7 +18,6 @@ const useProfileUpdate = (setProfileData) => {
     
     updateTimerRef.current = setInterval(() => {
       console.log(`自动更新配置文件: ${fileName} - ${new Date().toLocaleString()}`);
-      // 执行下载操作但不显示UI
       downloadProfileSilently(url, fileName);
     }, intervalMs);
     
@@ -29,11 +28,7 @@ const useProfileUpdate = (setProfileData) => {
     if (!url || !customFileName) return;
     
     if (window.electron) {
-      window.electron.downloadProfile({
-        url: url,
-        fileName: customFileName,
-        isDefaultConfig: customFileName === 'sing-box.json'
-      })
+      window.electron.updateProfile(customFileName)
         .then(result => {
           console.log('自动更新结果:', result);
           if (result.success) {

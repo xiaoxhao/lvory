@@ -8,7 +8,7 @@ const singbox = require('./src/utils/sing-box');
 // 导入拆分后的模块
 const windowManager = require('./src/main/window');
 const trayManager = require('./src/main/tray');
-const ipcHandlers = require('./src/main/ipc-handlers');
+const ipcHandlers = require('./src/main/ipc-handlers-new');
 const profileManager = require('./src/main/profile-manager');
 
 // 启用V8特性

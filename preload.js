@@ -66,6 +66,21 @@ contextBridge.exposeInMainWorld('electron', {
   // 获取配置文件列表
   getProfileFiles: () => ipcRenderer.invoke('getProfileFiles'),
   
+  // 获取配置文件元数据
+  getProfileMetadata: (fileName) => ipcRenderer.invoke('getProfileMetadata', fileName),
+  
+  // 更新配置文件
+  updateProfile: (fileName) => ipcRenderer.invoke('updateProfile', fileName),
+  
+  // 更新所有配置文件
+  updateAllProfiles: () => ipcRenderer.invoke('updateAllProfiles'),
+  
+  // 监听配置文件更新事件
+  onProfileUpdated: (callback) => {
+    ipcRenderer.on('profile-updated', (event, data) => callback(data));
+    return () => ipcRenderer.removeListener('profile-updated', callback);
+  },
+  
   // 导出配置文件
   exportProfile: (fileName) => ipcRenderer.invoke('exportProfile', fileName),
   
