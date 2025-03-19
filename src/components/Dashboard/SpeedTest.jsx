@@ -25,15 +25,20 @@ const useSpeedTest = (profileData, apiAddress) => {
             }
           });
           
+          const data = await response.json();
+          
           if (!response.ok) {
             if (response.status === 408) {
               return 'timeout';
             }
-            throw new Error(`HTTP错误: ${response.status}`);
+            if (data && typeof data.delay === 'number') {
+              return data.delay;
+            }
+            console.error(`HTTP错误: ${response.status}`);
+            return 'timeout';
           }
           
-          const data = await response.json();
-          return data.delay;
+          return typeof data.delay === 'number' ? data.delay : 'timeout';
         } catch (error) {
           console.error(`测试节点失败:`, error);
           return 'timeout';
@@ -43,7 +48,14 @@ const useSpeedTest = (profileData, apiAddress) => {
       if (window.electron && window.electron.testNodes) {
         try {
           const results = await window.electron.testNodes(profileData);
-          setTestResults(results);
+          
+          // 确保结果中的每个值都是数值类型
+          const processedResults = {};
+          for (const [key, value] of Object.entries(results)) {
+            processedResults[key] = typeof value === 'number' ? value : 'timeout';
+          }
+          
+          setTestResults(processedResults);
         } catch (error) {
           console.error('测速失败:', error);
           

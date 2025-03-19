@@ -12,24 +12,16 @@ Lvory 是一个基于 Electron 开发的跨平台 SingBox 客户端，具有以�
 5. **活动日志**：实时显示 SingBox 运行日志和系统活动
 6. **更加灵活**: 核心操作基于配置文件声明，UI 只提供辅助，极高提升了灵活度
 
-## 使用指南
-
-### 配置文件
-
-Lvory支持以下两种方式管理配置文件：
-
-1. **直接导入**：点击界面右上角的 "+ Profiles" 按钮，输入配置文件 URL 进行下载
-2. **本地配置**：将配置文件命名为`sing-box.json`并保存到系统的 Documents 目录
-   - Windows: `%LOCALAPPDATA%\lvory\configs/sing-box.json`
-   - macOS: `/Users/YourUsername/Documents/sing-box.json`
-   - Linux: `/home/YourUsername/Documents/sing-box.json`
-
 ## 技术栈
 
 - Electron
 - React
 - Node.js
 - Golang
+
+## 开发指南
+
+[配置映射引擎设计原型 - Alpha](profiles_engine.md)
 
 ## DISCLAIMER
 
