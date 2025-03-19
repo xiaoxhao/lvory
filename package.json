@@ -64,14 +64,7 @@
       "preload.js"
     ],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": "portable",
       "icon": "resource/icon/index256.png"
     },
     "nsis": {
