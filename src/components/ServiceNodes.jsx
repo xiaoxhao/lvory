@@ -3,9 +3,11 @@ import '../assets/css/servicenodes.css';
 
 const ServiceNodes = () => {
   const [nodes, setNodes] = useState([]);
+  const [ruleSets, setRuleSets] = useState([]);
   const [isTesting, setIsTesting] = useState(false);
   const [testResults, setTestResults] = useState({});
   const [apiAddress, setApiAddress] = useState('127.0.0.1:9090');
+  const [selectedTab, setSelectedTab] = useState('nodes'); // 'nodes' 或 'rules'
 
   useEffect(() => {
     const handleProfileData = (event, data) => {
@@ -28,6 +30,34 @@ const ServiceNodes = () => {
       }
     };
 
+    const loadRuleSets = async () => {
+      if (window.electron && window.electron.getUserConfig) {
+        try {
+          // 获取当前配置文件
+          const configResult = await window.electron.getUserConfig();
+          if (configResult.success && configResult.config) {
+            // 使用引擎解析配置
+            const engine = window.electron.engine || window.electron.profileEngine;
+            if (engine && engine.getValueByPath) {
+              // 获取route.rule_set数据
+              const ruleSetData = engine.getValueByPath(configResult.config, 'route.rule_set');
+              if (Array.isArray(ruleSetData)) {
+                setRuleSets(ruleSetData);
+              }
+            } else {
+              // 如果没有引擎，尝试通过IPC调用获取
+              const ruleSetResult = await window.electron.getRuleSets();
+              if (ruleSetResult.success && Array.isArray(ruleSetResult.ruleSets)) {
+                setRuleSets(ruleSetResult.ruleSets);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('获取规则集失败:', error);
+        }
+      }
+    };
+
     if (window.electron) {
       window.electron.onProfileData(handleProfileData);
       window.electron.getProfileData().then((data) => {
@@ -42,6 +72,9 @@ const ServiceNodes = () => {
       
       // 加载API地址设置
       loadSettings();
+      
+      // 加载规则集数据
+      loadRuleSets();
     }
 
     return () => {
@@ -82,78 +115,149 @@ const ServiceNodes = () => {
     setIsTesting(false);
   };
 
+  // 获取规则集类型的颜色
+  const getRuleSetTypeColor = (type) => {
+    switch (type) {
+      case 'remote':
+        return '#9254de'; // 紫色
+      case 'local':
+        return '#52c41a'; // 绿色
+      case 'source':
+        return '#1890ff'; // 蓝色
+      case 'binary':
+        return '#fa8c16'; // 橙色
+      default:
+        return '#8c8c8c'; // 灰色
+    }
+  };
+
+  // 渲染节点卡片
+  const renderNodes = () => (
+    <div className="nodes-grid">
+      {nodes.map((node) => {
+        const nodeKey = node.tag || node.name;
+        return (
+          <div key={nodeKey} className="node-card">
+            <div className="node-name">{nodeKey}</div>
+            <div className="node-type">{node.type}</div>
+            <div className="node-delay">
+              {testResults[nodeKey] !== undefined ? (
+                testResults[nodeKey] === 'timeout' ? (
+                  <span className="timeout">超时</span>
+                ) : (
+                  <span>{testResults[nodeKey]}ms</span>
+                )
+              ) : (
+                <span>-</span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // 渲染规则集卡片
+  const renderRuleSets = () => (
+    <div className="nodes-grid">
+      {ruleSets.length > 0 ? (
+        ruleSets.map((ruleSet, index) => (
+          <div key={index} className="node-card rule-set-card">
+            <div className="rule-tag">
+              <span
+                className="rule-type-indicator"
+                style={{ backgroundColor: getRuleSetTypeColor(ruleSet.format || ruleSet.type) }}
+              ></span>
+              <span className="rule-name">{ruleSet.tag}</span>
+            </div>
+            <div className="rule-info">
+              <div className="rule-type">{ruleSet.format || ruleSet.type}</div>
+              {ruleSet.url && (
+                <div className="rule-url" title={ruleSet.url}>
+                  {ruleSet.url.length > 40 ? ruleSet.url.substring(0, 37) + '...' : ruleSet.url}
+                </div>
+              )}
+              {ruleSet.update_interval && (
+                <div className="rule-update">更新间隔: {ruleSet.update_interval}</div>
+              )}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="empty-rules">
+          <p>没有发现规则集</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="service-nodes">
       <div className="nodes-header">
-        <h3>服务节点</h3>
-        <div className="speed-test-icon" onClick={isTesting ? null : handleTestAll}>
-          <svg 
-            className={isTesting ? "spinning" : ""} 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
+        <div className="tabs">
+          <div 
+            className={`tab ${selectedTab === 'nodes' ? 'active' : ''}`}
+            onClick={() => setSelectedTab('nodes')}
           >
-            <path 
-              d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20Z" 
-              fill="currentColor"
-            />
-            <path 
-              d="M16.9 7.1C16.5 6.7 15.8 6.7 15.4 7.1L11 11.5L8.6 9.1C8.2 8.7 7.5 8.7 7.1 9.1C6.7 9.5 6.7 10.2 7.1 10.6L10.3 13.8C10.7 14.2 11.3 14.2 11.7 13.8L16.9 8.6C17.3 8.2 17.3 7.5 16.9 7.1Z" 
-              fill="currentColor"
-            />
-            <path 
-              d="M12 6V8" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round"
-            />
-            <path 
-              d="M18 12H16" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round"
-            />
-            <path 
-              d="M12 18V16" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round"
-            />
-            <path 
-              d="M8 12H6" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round"
-            />
-          </svg>
-          {isTesting && <span className="testing-tooltip">测速中...</span>}
+            服务节点
+          </div>
+          <div 
+            className={`tab ${selectedTab === 'rules' ? 'active' : ''}`}
+            onClick={() => setSelectedTab('rules')}
+          >
+            规则集合
+          </div>
         </div>
+        
+        {selectedTab === 'nodes' && (
+          <div className="speed-test-icon" onClick={isTesting ? null : handleTestAll}>
+            <svg 
+              className={isTesting ? "spinning" : ""} 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path 
+                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20Z" 
+                fill="currentColor"
+              />
+              <path 
+                d="M16.9 7.1C16.5 6.7 15.8 6.7 15.4 7.1L11 11.5L8.6 9.1C8.2 8.7 7.5 8.7 7.1 9.1C6.7 9.5 6.7 10.2 7.1 10.6L10.3 13.8C10.7 14.2 11.3 14.2 11.7 13.8L16.9 8.6C17.3 8.2 17.3 7.5 16.9 7.1Z" 
+                fill="currentColor"
+              />
+              <path 
+                d="M12 6V8" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round"
+              />
+              <path 
+                d="M18 12H16" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round"
+              />
+              <path 
+                d="M12 18V16" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round"
+              />
+              <path 
+                d="M8 12H6" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round"
+              />
+            </svg>
+            {isTesting && <span className="testing-tooltip">测速中...</span>}
+          </div>
+        )}
       </div>
       
-      <div className="nodes-grid">
-        {nodes.map((node) => {
-          const nodeKey = node.tag || node.name;
-          return (
-            <div key={nodeKey} className="node-card">
-              <div className="node-name">{nodeKey}</div>
-              <div className="node-type">{node.type}</div>
-              <div className="node-delay">
-                {testResults[nodeKey] !== undefined ? (
-                  testResults[nodeKey] === 'timeout' ? (
-                    <span className="timeout">超时</span>
-                  ) : (
-                    <span>{testResults[nodeKey]}ms</span>
-                  )
-                ) : (
-                  <span>-</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {selectedTab === 'nodes' ? renderNodes() : renderRuleSets()}
     </div>
   );
 };

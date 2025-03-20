@@ -7,6 +7,7 @@ const utils = require('./utils');
 const singbox = require('../../utils/sing-box');
 const profileManager = require('../profile-manager');
 const coreDownloader = require('../core-downloader');
+const fs = require('fs');
 
 /**
  * 设置SingBox相关IPC处理程序
@@ -50,8 +51,20 @@ function setup() {
   // 启动sing-box内核
   ipcMain.handle('singbox-start-core', async (event, options) => {
     try {
-      // 如果没有提供配置文件路径，使用默认路径
-      const configPath = options && options.configPath ? options.configPath : profileManager.getConfigPath();
+      let configPath;
+      if (options && options.configPath) {
+        // 创建配置副本
+        const originalPath = options.configPath;
+        if (fs.existsSync(originalPath)) {
+          profileManager.updateConfigCopy();
+          configPath = profileManager.getConfigCopyPath();
+        } else {
+          configPath = originalPath;
+        }
+      } else {
+        // 使用默认配置的副本
+        configPath = profileManager.getConfigCopyPath();
+      }
       
       const proxyConfig = options && options.proxyConfig ? options.proxyConfig : {
         host: '127.0.0.1',
@@ -72,8 +85,7 @@ function setup() {
         }
       }
       
-      // 这里不需要打印代理设置，因为在startCore函数里会获取配置文件中的端口并覆盖
-      logger.info(`启动sing-box内核，配置文件: ${configPath}`);
+      logger.info(`启动sing-box内核，使用配置文件副本: ${configPath}`);
       
       // 启动内核
       const result = await singbox.startCore({ 

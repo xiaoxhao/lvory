@@ -7,6 +7,8 @@ const fs = require('fs');
 const logger = require('../../utils/logger');
 const utils = require('./utils');
 const profileManager = require('../profile-manager');
+const mappingDefinition = require('../engine/mapping-definition');
+const profileEngine = require('../engine/profiles-engine');
 
 /**
  * 设置配置文件相关IPC处理程序
@@ -317,6 +319,179 @@ function setup() {
   // 移除配置文件变更监听
   ipcMain.on('profiles-changed-unlisten', () => {
     ipcMain.removeListener('profiles-changed-notify', () => {});
+  });
+
+  // 获取用户配置
+  ipcMain.handle('get-user-config', async () => {
+    try {
+      const userConfig = profileManager.loadUserConfig();
+      return { success: true, config: userConfig };
+    } catch (error) {
+      logger.error('获取用户配置失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 保存用户配置
+  ipcMain.handle('save-user-config', async (event, config) => {
+    try {
+      if (!config) {
+        return { success: false, error: '配置不能为空' };
+      }
+      
+      const success = profileManager.saveUserConfig(config);
+      if (success) {
+        logger.info('用户配置已保存并应用映射');
+        
+        // 通知前端配置已更新
+        const mainWindow = utils.getMainWindow();
+        if (mainWindow) {
+          mainWindow.webContents.send('user-config-updated');
+        }
+        
+        return { success: true };
+      } else {
+        return { success: false, error: '保存用户配置失败' };
+      }
+    } catch (error) {
+      logger.error('保存用户配置失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 获取映射定义
+  ipcMain.handle('get-mapping-definition', async () => {
+    try {
+      const mappings = profileManager.loadMappingDefinition();
+      return { success: true, mappings };
+    } catch (error) {
+      logger.error('获取映射定义失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 保存映射定义
+  ipcMain.handle('save-mapping-definition', async (event, mappings) => {
+    try {
+      const mappingPath = profileManager.getMappingDefinitionPath();
+      
+      const definition = { mappings };
+      fs.writeFileSync(mappingPath, JSON.stringify(definition, null, 2), 'utf8');
+      
+      // 清除缓存，下次加载时会重新读取
+      profileManager.loadMappingDefinition();
+      
+      logger.info('映射定义已保存');
+      return { success: true };
+    } catch (error) {
+      logger.error('保存映射定义失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 获取默认映射定义
+  ipcMain.handle('get-default-mapping-definition', async () => {
+    try {
+      const defaultDefinition = mappingDefinition.getDefaultMappingDefinition();
+      return { success: true, definition: defaultDefinition };
+    } catch (error) {
+      logger.error('获取默认映射定义失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 获取特定协议的映射模板
+  ipcMain.handle('get-protocol-template', async (event, protocol) => {
+    try {
+      if (!protocol) {
+        return { success: false, error: '协议类型不能为空' };
+      }
+      
+      const template = mappingDefinition.getProtocolTemplate(protocol);
+      return { success: true, template };
+    } catch (error) {
+      logger.error(`获取协议模板失败 (${protocol}): ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 创建特定协议的映射定义
+  ipcMain.handle('create-protocol-mapping', async (event, protocol) => {
+    try {
+      if (!protocol) {
+        return { success: false, error: '协议类型不能为空' };
+      }
+      
+      const mapping = mappingDefinition.createProtocolMapping(protocol);
+      return { success: true, mapping };
+    } catch (error) {
+      logger.error(`创建协议映射失败 (${protocol}): ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 应用映射到现有配置
+  ipcMain.handle('apply-config-mapping', async () => {
+    try {
+      const userConfig = profileManager.loadUserConfig();
+      
+      // 获取当前sing-box配置
+      let targetConfig = {};
+      const configPath = profileManager.getConfigPath();
+      if (fs.existsSync(configPath)) {
+        const configContent = fs.readFileSync(configPath, 'utf8');
+        targetConfig = JSON.parse(configContent);
+      }
+      
+      // 应用映射
+      const mappedConfig = profileManager.applyConfigMapping(userConfig, targetConfig);
+      
+      // 保存映射后的sing-box配置
+      fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
+      
+      logger.info('配置映射已应用到sing-box配置');
+      return { success: true };
+    } catch (error) {
+      logger.error('应用配置映射失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 获取映射定义路径
+  ipcMain.handle('get-mapping-definition-path', async () => {
+    try {
+      const mappingPath = profileManager.getMappingDefinitionPath();
+      return { success: true, path: mappingPath };
+    } catch (error) {
+      logger.error('获取映射定义路径失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
+  // 获取规则集
+  ipcMain.handle('get-rule-sets', async () => {
+    try {
+      // 获取当前配置文件路径
+      const configPath = profileManager.getConfigPath();
+      if (!configPath || !fs.existsSync(configPath)) {
+        return { success: false, error: '配置文件不存在' };
+      }
+      
+      // 读取配置文件
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      const config = JSON.parse(configContent);
+      
+      // 使用引擎获取规则集
+      const ruleSets = profileEngine.getValueByPath(config, 'route.rule_set');
+      
+      return {
+        success: true,
+        ruleSets: Array.isArray(ruleSets) ? ruleSets : []
+      };
+    } catch (error) {
+      logger.error('获取规则集失败:', error);
+      return { success: false, error: error.message };
+    }
   });
 }
 

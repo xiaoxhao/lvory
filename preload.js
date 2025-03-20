@@ -1,6 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// 暴露安全的API给渲染进程
 contextBridge.exposeInMainWorld('electron', {
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
@@ -109,6 +108,44 @@ contextBridge.exposeInMainWorld('electron', {
   getConfigPath: () => ipcRenderer.invoke('get-config-path'),
   setConfigPath: (filePath) => ipcRenderer.invoke('set-config-path', filePath),
   
+  // 配置映射引擎相关API
+  userConfig: {
+    // 获取用户配置
+    get: () => ipcRenderer.invoke('get-user-config'),
+    
+    // 保存用户配置
+    save: (config) => ipcRenderer.invoke('save-user-config', config),
+    
+    // 监听用户配置更新事件
+    onUpdated: (callback) => {
+      ipcRenderer.on('user-config-updated', () => callback());
+      return () => ipcRenderer.removeListener('user-config-updated', callback);
+    }
+  },
+  
+  mappingEngine: {
+    // 获取映射定义
+    getDefinition: () => ipcRenderer.invoke('get-mapping-definition'),
+    
+    // 保存映射定义
+    saveDefinition: (mappings) => ipcRenderer.invoke('save-mapping-definition', mappings),
+    
+    // 应用配置映射
+    applyMapping: () => ipcRenderer.invoke('apply-config-mapping'),
+    
+    // 获取映射定义文件路径
+    getDefinitionPath: () => ipcRenderer.invoke('get-mapping-definition-path'),
+    
+    // 获取默认映射定义
+    getDefaultDefinition: () => ipcRenderer.invoke('get-default-mapping-definition'),
+    
+    // 获取特定协议的映射模板
+    getProtocolTemplate: (protocol) => ipcRenderer.invoke('get-protocol-template', protocol),
+    
+    // 创建特定协议的映射定义
+    createProtocolMapping: (protocol) => ipcRenderer.invoke('create-protocol-mapping', protocol)
+  },
+  
   platform: process.platform,
 
   // 日志系统接口
@@ -139,4 +176,26 @@ contextBridge.exposeInMainWorld('electron', {
   // 设置相关API
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getSettings: () => ipcRenderer.invoke('get-settings'),
+
+  // 获取规则集
+  getRuleSets: () => ipcRenderer.invoke('get-rule-sets'),
+
+  // 添加引擎到窗口对象，用于前端直接使用
+  engine: {
+    getValueByPath: (obj, path) => {
+      // 这里简单实现getValueByPath，如果需要更复杂的实现，可以考虑引入完整的引擎
+      try {
+        const keys = path.split('.');
+        let current = obj;
+        for (let key of keys) {
+          if (current === null || current === undefined) return undefined;
+          current = current[key];
+        }
+        return current;
+      } catch (error) {
+        console.error('获取路径值失败:', error);
+        return undefined;
+      }
+    }
+  },
 }); 

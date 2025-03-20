@@ -123,4 +123,105 @@
 
 .node-delay .timeout {
   color: #f44336;
+}
+
+.tabs {
+  display: flex;
+  gap: 20px;
+}
+
+.tab {
+  cursor: pointer;
+  padding: 6px 0;
+  position: relative;
+  color: #666;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.tab:hover {
+  color: #333;
+}
+
+.tab.active {
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+.tab.active:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  background-color: #4CAF50;
+}
+
+.rule-set-card {
+  background: #f8f9fa;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.rule-set-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rule-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rule-type-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rule-name {
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rule-info {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.rule-type {
+  display: inline-block;
+  background-color: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  margin-bottom: 6px;
+}
+
+.rule-url {
+  font-size: 0.9em;
+  color: #888;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rule-update {
+  font-size: 0.9em;
+  color: #888;
+}
+
+.empty-rules {
+  width: 100%;
+  text-align: center;
+  padding: 30px;
+  color: #999;
+  font-style: italic;
 } 

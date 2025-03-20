@@ -95,10 +95,68 @@ const styles = {
     borderRadius: '12px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     fontWeight: '600'
+  },
+  button: {
+    backgroundColor: '#818cf8',
+    color: 'white',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    border: 'none',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontSize: '13px'
+  },
+  buttonHover: {
+    backgroundColor: '#6366f1'
+  },
+  secondaryButton: {
+    backgroundColor: '#f3f4f6',
+    color: '#4b5563',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    border: '1px solid #e5e7eb',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontSize: '13px',
+    marginRight: '10px'
+  },
+  secondaryButtonHover: {
+    backgroundColor: '#e5e7eb'
+  },
+  buttonContainer: {
+    marginTop: '24px',
+    display: 'flex',
+    justifyContent: 'flex-end'
+  },
+  notification: {
+    position: 'fixed',
+    bottom: '24px',
+    right: '24px',
+    padding: '12px 24px',
+    borderRadius: '6px',
+    backgroundColor: '#10b981',
+    color: 'white',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontWeight: '600',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    zIndex: 1000,
+    opacity: 1,
+    transition: 'opacity 0.3s ease-in-out'
   }
 };
 
 const SettingsContent = ({ section }) => {
+  const [userConfig, setUserConfig] = useState({
+    settings: {
+      proxy_port: '7890',
+      allow_lan: false,
+      api_address: '127.0.0.1:9090'
+    }
+  });
   const [settings, setSettings] = useState({
     proxyPort: '7890',
     apiAddress: '127.0.0.1:9090',
@@ -106,10 +164,13 @@ const SettingsContent = ({ section }) => {
     autoStart: false,
     autoRestart: false
   });
+  const [isButtonHovered, setIsButtonHovered] = useState(false);
+  const [isResetButtonHovered, setIsResetButtonHovered] = useState(false);
+  const [notification, setNotification] = useState(null);
 
-  // 加载设置
+  // 加载设置和用户配置
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadData = async () => {
       try {
         // 加载持久化的设置
         if (window.electron && window.electron.getSettings) {
@@ -122,37 +183,183 @@ const SettingsContent = ({ section }) => {
           }
         }
 
-        // 加载API地址
-        if (window.electron && window.electron.getProfileData) {
-          const profileData = await window.electron.getProfileData();
-          if (profileData && profileData.experimental && profileData.experimental.clash_api) {
-            setSettings(prev => ({
-              ...prev,
-              apiAddress: profileData.experimental.clash_api.external_controller || '127.0.0.1:9090'
-            }));
+        // 加载开机自启动设置
+        if (window.electron && window.electron.getAutoLaunch) {
+          const autoLaunch = await window.electron.getAutoLaunch();
+          setSettings(prev => ({
+            ...prev,
+            autoStart: autoLaunch
+          }));
+        }
+
+        // 加载用户配置
+        if (window.electron && window.electron.userConfig && window.electron.userConfig.get) {
+          const result = await window.electron.userConfig.get();
+          if (result.success && result.config) {
+            setUserConfig(result.config);
+            
+            // 使用来自用户配置的值更新UI状态
+            if (result.config.settings) {
+              setSettings(prev => ({
+                ...prev,
+                proxyPort: result.config.settings.proxy_port || prev.proxyPort,
+                allowLan: result.config.settings.allow_lan || false,
+                apiAddress: result.config.settings.api_address || prev.apiAddress,
+                tunMode: result.config.settings.tun_mode || false,
+                autoRestart: result.config.settings.auto_restart || false
+              }));
+            }
           }
         }
       } catch (error) {
         console.error('加载设置失败:', error);
       }
     };
-    loadSettings();
+    loadData();
   }, []);
 
-  const handleSettingChange = async (key, value) => {
+  // 监听用户配置更新
+  useEffect(() => {
+    if (window.electron && window.electron.userConfig && window.electron.userConfig.onUpdated) {
+      const unsubscribe = window.electron.userConfig.onUpdated(() => {
+        // 当用户配置更新时重新加载
+        window.electron.userConfig.get().then(result => {
+          if (result.success && result.config) {
+            setUserConfig(result.config);
+          }
+        });
+      });
+      
+      return unsubscribe;
+    }
+  }, []);
+
+  const showNotification = (message) => {
+    setNotification(message);
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000);
+  };
+
+  const handleSettingChange = (key, value) => {
     const newSettings = {
       ...settings,
       [key]: value
     };
     setSettings(newSettings);
 
-    // 保存设置
+    // 同时更新用户配置对象，但不立即保存
+    const newUserConfig = { ...userConfig };
+    
+    // 确保settings对象存在
+    if (!newUserConfig.settings) {
+      newUserConfig.settings = {};
+    }
+
+    // 根据key更新相应字段
+    switch (key) {
+      case 'proxyPort':
+        newUserConfig.settings.proxy_port = value;
+        break;
+      case 'allowLan':
+        newUserConfig.settings.allow_lan = value;
+        break;
+      case 'apiAddress':
+        newUserConfig.settings.api_address = value;
+        break;
+      case 'tunMode':
+        newUserConfig.settings.tun_mode = value;
+        break;
+      case 'autoStart':
+        // autoStart是系统级设置，不需要存入用户配置文件
+        break;
+      case 'autoRestart':
+        newUserConfig.settings.auto_restart = value;
+        break;
+      // 其他可能的映射...
+    }
+
+    setUserConfig(newUserConfig);
+  };
+
+  const applySettings = async () => {
     try {
+      // 保存用户配置（会触发配置映射）
+      if (window.electron && window.electron.userConfig && window.electron.userConfig.save) {
+        const result = await window.electron.userConfig.save(userConfig);
+        if (result.success) {
+          showNotification('Settings applied successfully');
+          
+          // 可选：应用映射到现有配置
+          if (window.electron && window.electron.mappingEngine && window.electron.mappingEngine.applyMapping) {
+            await window.electron.mappingEngine.applyMapping();
+          }
+        } else {
+          console.error('保存配置失败:', result.error);
+        }
+      }
+
+      // 处理自动启动设置
+      if (window.electron && window.electron.setAutoLaunch) {
+        await window.electron.setAutoLaunch(settings.autoStart);
+      }
+
+      // 同时保存electron设置
       if (window.electron && window.electron.saveSettings) {
-        await window.electron.saveSettings(newSettings);
+        await window.electron.saveSettings(settings);
       }
     } catch (error) {
-      console.error('保存设置失败:', error);
+      console.error('应用设置失败:', error);
+    }
+  };
+
+  const resetSettings = async () => {
+    try {
+      // 重新加载用户配置
+      if (window.electron && window.electron.userConfig && window.electron.userConfig.get) {
+        const result = await window.electron.userConfig.get();
+        if (result.success && result.config) {
+          setUserConfig(result.config);
+          
+          // 使用来自用户配置的值更新UI状态
+          if (result.config.settings) {
+            setSettings(prev => ({
+              ...prev,
+              proxyPort: result.config.settings.proxy_port || prev.proxyPort,
+              allowLan: result.config.settings.allow_lan || false,
+              apiAddress: result.config.settings.api_address || prev.apiAddress,
+              tunMode: result.config.settings.tun_mode || false,
+              autoRestart: result.config.settings.auto_restart || false
+            }));
+          }
+          
+          showNotification('Settings reset successfully');
+        } else {
+          console.error('重置设置失败:', result.error);
+        }
+      }
+      
+      // 重新获取系统级设置
+      if (window.electron && window.electron.getSettings) {
+        const result = await window.electron.getSettings();
+        if (result.success) {
+          setSettings(prev => ({
+            ...prev,
+            ...result.settings
+          }));
+        }
+      }
+      
+      // 重新获取开机自启动设置
+      if (window.electron && window.electron.getAutoLaunch) {
+        const autoLaunch = await window.electron.getAutoLaunch();
+        setSettings(prev => ({
+          ...prev,
+          autoStart: autoLaunch
+        }));
+      }
+    } catch (error) {
+      console.error('重置设置失败:', error);
     }
   };
 
@@ -213,6 +420,9 @@ const SettingsContent = ({ section }) => {
                   </p>
                 </div>
 
+                {/* 允许局域网连接开关 */}
+                {renderToggle('Allow LAN Connections', 'allowLan', settings.allowLan)}
+
                 {/* TUN模式开关 */}
                 {renderToggle('TUN Mode', 'tunMode', settings.tunMode)}
 
@@ -221,10 +431,38 @@ const SettingsContent = ({ section }) => {
 
                 {/* 自动重启内核开关 */}
                 {renderToggle('Auto Restart Core', 'autoRestart', settings.autoRestart)}
+
+                {/* 修改按钮容器 */}
+                <div style={styles.buttonContainer}>
+                  <button
+                    onClick={resetSettings}
+                    onMouseEnter={() => setIsResetButtonHovered(true)}
+                    onMouseLeave={() => setIsResetButtonHovered(false)}
+                    style={{
+                      ...styles.secondaryButton,
+                      ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
+                    }}
+                  >
+                    Reset
+                  </button>
+                
+                  <button
+                    onClick={applySettings}
+                    onMouseEnter={() => setIsButtonHovered(true)}
+                    onMouseLeave={() => setIsButtonHovered(false)}
+                    style={{
+                      ...styles.button,
+                      ...(isButtonHovered ? styles.buttonHover : {})
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         );
+      
       case 'ai':
         return (
           <div>
@@ -249,6 +487,11 @@ const SettingsContent = ({ section }) => {
   return (
     <div style={styles.container}>
       {renderContent()}
+      {notification && (
+        <div style={styles.notification}>
+          {notification}
+        </div>
+      )}
     </div>
   );
 };
