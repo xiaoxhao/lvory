@@ -35,6 +35,8 @@ Dashboard
 
 [配置映射引擎设计原型 - Alpha](docs/profiles_engine.md)
 
+[代理节点打分算法与流程 - Alpha](docs/node_score.md)
+
 ## DISCLAIMER
 
 1. This project and its documentation are provided solely for technical research, discussion, and learning purposes and do not constitute commercial or legal advice.

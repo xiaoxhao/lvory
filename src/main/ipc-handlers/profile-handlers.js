@@ -493,6 +493,70 @@ function setup() {
       return { success: false, error: error.message };
     }
   });
+
+  // 获取节点组信息
+  ipcMain.handle('get-node-groups', async () => {
+    try {
+      // 获取当前配置文件路径
+      const configPath = profileManager.getConfigPath();
+      if (!configPath || !fs.existsSync(configPath)) {
+        return { success: false, error: '配置文件不存在' };
+      }
+      
+      // 读取配置文件
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      const config = JSON.parse(configContent);
+      
+      // 获取outbounds数组
+      const outbounds = profileEngine.getValueByPath(config, 'outbounds');
+      if (!Array.isArray(outbounds)) {
+        return { success: false, error: 'outbounds不是数组或不存在' };
+      }
+      
+      // 区分节点和节点组
+      const nodeGroups = [];
+      const nodes = [];
+      
+      outbounds.forEach(outbound => {
+        // 如果有outbounds属性且是数组，则视为节点组
+        if (outbound.outbounds && Array.isArray(outbound.outbounds) && outbound.outbounds.length > 0) {
+          nodeGroups.push({
+            tag: outbound.tag,
+            type: outbound.type,
+            outbounds: outbound.outbounds,
+            interval: outbound.interval,
+            url: outbound.url,
+            tolerance: outbound.tolerance
+          });
+        } else {
+          // 普通节点
+          nodes.push(outbound);
+        }
+      });
+      
+      // 为每个节点添加组信息
+      const nodesWithGroup = nodes.map(node => {
+        // 查找该节点属于哪些组
+        const belongsToGroups = nodeGroups
+          .filter(group => group.outbounds.includes(node.tag))
+          .map(group => group.tag);
+        
+        return {
+          ...node,
+          groups: belongsToGroups
+        };
+      });
+      
+      return {
+        success: true,
+        nodeGroups: nodeGroups,
+        nodes: nodesWithGroup
+      };
+    } catch (error) {
+      logger.error('获取节点组信息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
 }
 
 module.exports = {

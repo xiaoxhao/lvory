@@ -6,6 +6,7 @@ import Activity from '../Activity';
 import ProfileModal from './ProfileModal';
 import ControlPanel from './ControlPanel';
 import NodeList from './NodeList';
+import StatsOverview from './StatsOverview';
 
 // 导入拆分出来的功能模块
 import useSpeedTest from './SpeedTest';
@@ -31,14 +32,10 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     memoryUsage: '0MB'
   });
 
-  // 添加活动选项卡状态
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' or 'activity'
-  
-  // 使用拆分出来的功能hooks
   const { isTesting, testResults, setTestResults, handleSpeedTest } = useSpeedTest(profileData, apiAddress);
   
-  const coreManagement = useCoreManagement();
-  
+  const coreManagement = useCoreManagement()
   const singBoxControl = useSingBoxControl();
   const { 
     isRunning, 
@@ -82,13 +79,14 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
       {activeView === 'dashboard' ? (
         <>
           <div className="stats-overview" style={{
-            height: 'calc(100vh / 3)', // 强制高度为视口高度的1/3
-            minHeight: 'calc(100vh / 3)', // 最小高度也是1/3
-            maxHeight: 'calc(100vh / 3)', // 最大高度也是1/3
-            overflow: 'hidden', // 防止内容溢出
-            boxSizing: 'border-box', // 确保padding不会增加高度
+            height: 'calc(100vh / 3)', 
+            minHeight: '200px',  // 降低最小高度限制
+            maxHeight: 'none',    // 移除最大高度限制
+            overflow: 'hidden',
+            boxSizing: 'border-box',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            gap: '0px'  // 移除内部元素间距
           }}>
             {/* 控制面板组件 */}
             <ControlPanel 
@@ -103,21 +101,19 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
               isRestarting={isRestarting}
               onOpenProfileModal={() => setIsModalOpen(true)}
               onRestartSingBox={restartSingBox}
+              style={{ padding: '5px 0' }}  // 减少控制面板内边距
             />
-
-            {/* 托盘提示 */}
+            
+            {/* 监控面板组件 */}
             <div style={{ 
-              padding: '8px 15px', 
-              background: '#f9f9f9', 
-              borderRadius: '4px', 
-              fontSize: '12px', 
-              color: '#666', 
-              marginTop: '10px',
-              textAlign: 'center'
+              flex: 1,
+              width: '100%',
+              overflow: 'hidden',
+              marginTop: '-25px', // 负边距减少与ControlPanel的间距
+              backgroundColor: 'transparent',
+              minHeight: '160px'  // 确保最小可视高度
             }}>
-              <span style={{ fontStyle: 'italic' }}>
-                提示: 点击最小化按钮可将应用缩小到系统托盘，托盘菜单提供快速 RUN/STOP 功能
-              </span>
+              <StatsOverview apiAddress={apiAddress} />
             </div>
 
             {/* 配置文件下载弹窗 */}
@@ -142,8 +138,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
           <Activity />
         </div>
       ) : null}
-      
-      {/* 添加CSS动画 */}
+          {/* 添加CSS动画 */}
       <style>
         {`
           @keyframes loading-shimmer {
