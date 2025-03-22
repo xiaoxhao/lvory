@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import NodeDetailModal from './NodeDetailModal';
 
-const NodeList = ({ profileData, testResults, privateMode }) => {
+const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onToggleExpandedView }) => {
   const [ruleSets, setRuleSets] = useState([]);
   const [selectedTab, setSelectedTab] = useState('nodes'); // 'nodes' 或 'rules'
   const [nodeGroups, setNodeGroups] = useState([]); // 节点组数据
@@ -9,6 +10,10 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
   const [isOverflow, setIsOverflow] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const tabsRef = React.useRef(null);
+  
+  // 节点详情弹窗状态
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [showNodeDetail, setShowNodeDetail] = useState(false);
 
   useEffect(() => {
     const loadRuleSets = async () => {
@@ -149,6 +154,17 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
     }
   };
 
+  // 打开节点详情弹窗
+  const openNodeDetail = (node) => {
+    setSelectedNode(node);
+    setShowNodeDetail(true);
+  };
+
+  // 关闭节点详情弹窗
+  const closeNodeDetail = () => {
+    setShowNodeDetail(false);
+  };
+
   // 渲染节点卡片
   const renderNodes = () => {
     const filteredNodes = getFilteredNodes();
@@ -164,27 +180,35 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
             width: '100%'
           }}>
             {filteredNodes.map((profile, index) => (
-              <div key={index} className="profile-tag-card" style={{ 
-                backgroundColor: '#ffffff', 
-                border: '1px solid #d9dde3', 
-                borderRadius: '6px', 
-                padding: '12px', 
-                width: 'calc(25% - 12px)',
-                margin: '0 0 8px 0',
-                display: 'flex', 
-                flexDirection: 'column', 
-                transition: 'all 0.2s ease',
-                cursor: 'pointer',
-                position: 'relative',
-                overflow: 'hidden',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#b3b7bd';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#d9dde3';
-              }}
+              <div 
+                key={index} 
+                className="profile-tag-card" 
+                style={{ 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d9dde3', 
+                  borderRadius: '6px', 
+                  padding: '12px', 
+                  width: 'calc(25% - 12px)',
+                  margin: '0 0 8px 0',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+                }}
+                onClick={() => openNodeDetail(profile)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#b3b7bd';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#d9dde3';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
               >
                 {/* 测速结果 - 右上角显示 */}
                 {testResults[profile.tag] && (
@@ -196,7 +220,13 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
                     alignItems: 'center',
                     gap: '4px',
                     fontSize: '11px',
-                    fontWeight: '500'
+                    fontWeight: '500',
+                    backgroundColor: 'rgba(245, 245, 247, 0.85)',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    backdropFilter: 'blur(2px)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    border: '1px solid rgba(230, 230, 235, 0.9)'
                   }}>
                     <span style={{
                       display: 'inline-block',
@@ -212,7 +242,10 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
                       color: testResults[profile.tag] === 'timeout' ? '#e74c3c' : 
                              (testResults[profile.tag] < 100 ? '#2ecc71' : 
                               testResults[profile.tag] < 200 ? '#f39c12' : 
-                              testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c')
+                              testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c'),
+                      fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+                      letterSpacing: '0.2px',
+                      fontWeight: '600'
                     }}>
                       {testResults[profile.tag] === 'timeout' ? '超时' : `${testResults[profile.tag]}ms`}
                     </span>
@@ -310,16 +343,22 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
                 fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}>
                 <span style={{ 
                   display: 'inline-block',
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  backgroundColor: getRuleSetTypeColor(ruleSet.format || ruleSet.type)
+                  backgroundColor: getRuleSetTypeColor(ruleSet.format || ruleSet.type),
+                  flexShrink: 0
                 }}></span>
-                {ruleSet.tag}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {ruleSet.tag}
+                </span>
               </div>
               <div style={{ 
                 fontSize: '12px', 
@@ -576,22 +615,25 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
   };
 
   return (
-    <div className="pipeline-stage" style={{ 
+    <div className="node-list" style={{
+      width: '100%',
+      height: '100%',
+      borderRadius: '8px',
+      background: '#fff',
+      padding: '15px',
       overflow: 'hidden',
-      maxHeight: '100%'
+      display: 'flex',
+      flexDirection: 'column'
     }}>
-      <div className="stage-header" style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <div className="node-list-header" style={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '10px',
-        position: 'relative'
+        marginBottom: '20px'
       }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: '24px',
-          alignItems: 'center',
-          position: 'relative'
+        <div className="tabs" style={{
+          display: 'flex',
+          gap: '20px'
         }}>
           <div 
             className={`tab ${selectedTab === 'nodes' ? 'active-tab' : ''}`}
@@ -609,7 +651,7 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
               letterSpacing: '0.5px'
             }}
           >
-            ServiceNodes
+            NodeList
             {selectedTab === 'nodes' && <div style={{
               position: 'absolute',
               bottom: '-2px',
@@ -648,22 +690,34 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
             }}></div>}
           </div>
         </div>
-        <div className="count" style={{
-          background: 'rgba(58, 109, 240, 0.08)',
-          color: '#3a6df0',
-          borderRadius: '20px',
-          padding: '2px 10px',
-          fontSize: '13px',
-          fontWeight: '500',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
+        <div 
+          className="count" 
+          style={{
+            background: 'rgba(58, 109, 240, 0.08)',
+            color: '#3a6df0',
+            borderRadius: '20px',
+            padding: '2px 10px',
+            fontSize: '13px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer'
+          }}
+          onClick={onToggleExpandedView}
+          title={isExpandedView ? "点击返回正常视图" : "点击展开全屏视图"}
+        >
           {selectedTab === 'nodes' 
             ? (profileData && profileData.length || 0) 
             : (ruleSets && ruleSets.length || 0)}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 4V20M12 4L6 10M12 4L18 10" stroke="#3a6df0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            {isExpandedView ? (
+              // 显示收起图标
+              <path d="M12 20V4M12 20L6 14M12 20L18 14" stroke="#3a6df0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            ) : (
+              // 显示展开图标
+              <path d="M12 4V20M12 4L6 10M12 4L18 10" stroke="#3a6df0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            )}
           </svg>
         </div>
       </div>
@@ -671,9 +725,24 @@ const NodeList = ({ profileData, testResults, privateMode }) => {
       {selectedTab === 'nodes' && renderGroupTabs()}
       {selectedTab === 'nodes' && renderSecondaryTabs()}
 
-      <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 160px)' }}>
+      <div style={{ 
+        overflow: 'auto', 
+        maxHeight: isExpandedView ? 'calc(100vh - 100px)' : 'calc(100vh - 300px)',
+        flex: '1 1 auto'
+      }}>
         {selectedTab === 'nodes' ? renderNodes() : renderRuleSets()}
       </div>
+      
+      {/* 节点详情弹窗 */}
+      {showNodeDetail && selectedNode && (
+        <NodeDetailModal 
+          node={selectedNode} 
+          isOpen={showNodeDetail} 
+          onClose={closeNodeDetail}
+          testResult={testResults[selectedNode.tag]}
+          privateMode={privateMode}
+        />
+      )}
     </div>
   );
 };

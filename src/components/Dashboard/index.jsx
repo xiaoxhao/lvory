@@ -22,6 +22,9 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
   const [nodeTypeStats, setNodeTypeStats] = useState({ ss: 0, vm: 0, tr: 0, dir: 0, other: 0 });
   const [privateMode, setPrivateMode] = useState(false);
   
+  // 添加扩展视图状态
+  const [isExpandedView, setIsExpandedView] = useState(false);
+  
   // 添加API地址设置
   const [apiAddress, setApiAddress] = useState('127.0.0.1:9090');
   
@@ -74,62 +77,72 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     setPrivateMode(!privateMode);
   };
 
+  // 添加切换扩展视图的函数
+  const toggleExpandedView = () => {
+    setIsExpandedView(!isExpandedView);
+  };
+
   return (
     <div className="dashboard">
       {activeView === 'dashboard' ? (
         <>
-          <div className="stats-overview" style={{
-            height: 'calc(100vh / 3)', 
-            minHeight: '200px',  // 降低最小高度限制
-            maxHeight: 'none',    // 移除最大高度限制
-            overflow: 'hidden',
-            boxSizing: 'border-box',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0px'  // 移除内部元素间距
-          }}>
-            {/* 控制面板组件 */}
-            <ControlPanel 
-              isRunning={isRunning}
-              onTogglePrivate={togglePrivateMode}
-              onSpeedTest={handleSpeedTest}
-              onToggleSingBox={toggleSingBox}
-              privateMode={privateMode}
-              isTesting={isTesting}
-              isStarting={isStarting}
-              isStopping={isStopping}
-              isRestarting={isRestarting}
-              onOpenProfileModal={() => setIsModalOpen(true)}
-              onRestartSingBox={restartSingBox}
-              style={{ padding: '5px 0' }}  // 减少控制面板内边距
-            />
-            
-            {/* 监控面板组件 */}
-            <div style={{ 
-              flex: 1,
-              width: '100%',
+          {/* 只有在非扩展视图时显示状态概览 */}
+          {!isExpandedView && (
+            <div className="stats-overview" style={{
+              height: 'calc(100vh / 3)', 
+              minHeight: '200px',
+              maxHeight: 'none',
               overflow: 'hidden',
-              marginTop: '-25px', // 负边距减少与ControlPanel的间距
-              backgroundColor: 'transparent',
-              minHeight: '160px'  // 确保最小可视高度
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0px'
             }}>
-              <StatsOverview apiAddress={apiAddress} />
+              <ControlPanel 
+                isRunning={isRunning}
+                onTogglePrivate={togglePrivateMode}
+                onSpeedTest={handleSpeedTest}
+                onToggleSingBox={toggleSingBox}
+                privateMode={privateMode}
+                isTesting={isTesting}
+                isStarting={isStarting}
+                isStopping={isStopping}
+                isRestarting={isRestarting}
+                onOpenProfileModal={() => setIsModalOpen(true)}
+                onRestartSingBox={restartSingBox}
+                style={{ padding: '5px 0' }}
+              />
+              
+              <div style={{ 
+                flex: 1,
+                width: '100%',
+                overflow: 'hidden',
+                marginTop: '-25px',
+                backgroundColor: 'transparent',
+                minHeight: '160px'
+              }}>
+                <StatsOverview apiAddress={apiAddress} />
+              </div>
+
+              <ProfileModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onDownloadSuccess={handleDownloadSuccess}
+              />
             </div>
+          )}
 
-            {/* 配置文件下载弹窗 */}
-            <ProfileModal 
-              isOpen={isModalOpen} 
-              onClose={() => setIsModalOpen(false)} 
-              onDownloadSuccess={handleDownloadSuccess}
-            />
-          </div>
-
-          <div className="customer-pipeline">
-            {/* 节点列表组件 */}
+          <div className="node-list-container" style={{
+            height: isExpandedView ? 'calc(100vh - 20px)' : 'calc(100vh - calc(100vh / 3) - 20px)',
+            overflow: 'auto',
+            position: 'relative'
+          }}>
             <NodeList 
               profileData={profileData}
               testResults={testResults}
               privateMode={privateMode}
+              isExpandedView={isExpandedView}
+              onToggleExpandedView={toggleExpandedView}
             />
           </div>
         </>
@@ -208,6 +221,10 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
             display: block !important;
             opacity: 1 !important;
             pointer-events: auto !important;
+          }
+          
+          .node-list-container {
+            transition: height 0.3s ease;
           }
         `}
       </style>

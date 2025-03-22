@@ -578,17 +578,17 @@ const StatsOverview = ({ apiAddress }) => {
   
   // 格式化流量数据显示
   const formatTraffic = (bytes) => {
-    if (bytes < 1024) return `${bytes.toFixed(0)} B/s`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB/s`;
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB/s`;
+    if (bytes < 1024) return `${Math.round(bytes)} B/s`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB/s`;
+    return `${Math.round(bytes / (1024 * 1024))} MB/s`;
   };
   
   // 格式化累计流量显示
   const formatTotalTraffic = (bytes) => {
-    if (bytes < 1024) return `${bytes.toFixed(0)} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    if (bytes < 1024) return `${Math.round(bytes)} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${Math.round(bytes / (1024 * 1024))} MB`;
+    return `${Math.round(bytes / (1024 * 1024 * 1024))} GB`;
   };
   
   // 组件挂载时初始化
@@ -597,8 +597,8 @@ const StatsOverview = ({ apiAddress }) => {
     initTrafficChart();
     initGaugeChart();
     
-    // 设置延迟测试定时器
-    const latencyTimer = setInterval(testLatency, 5000);
+    // 设置延迟测试定时器（3分钟一次）
+    const latencyTimer = setInterval(testLatency, 180000);
     
     // 首次获取数据
     fetchTrafficData();
@@ -675,7 +675,7 @@ const StatsOverview = ({ apiAddress }) => {
             {/* 丢包率 (原延迟状态) */}
             <div id="latency-metric" className="metric-item">
               <div className="metric-value">
-                {packetLoss}
+                {Math.round(packetLoss)}
                 <span className="metric-unit">%</span>
               </div>
               <div className="metric-label-container">
