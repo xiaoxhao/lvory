@@ -67,19 +67,23 @@
 }
 
 .metric-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 400;
   color: #555;
   font-family: 'Segoe UI', Roboto, Arial, sans-serif;
   line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: flex-end;
 }
 
 .metric-unit {
   font-size: 12px;
   margin-left: 2px;
+  color: #777;
+  font-weight: 400;
+  line-height: 1.5;
+  display: inline-block;
+  margin-bottom: -2px;
 }
 
 .metric-label-container {

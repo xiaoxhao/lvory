@@ -15,58 +15,42 @@ const updateHandlers = require('./update-handlers');
 
 let ipcHandlersRegistered = false;
 
+// 所有需要移除的处理程序列表
+const HANDLERS_TO_REMOVE = [
+  // 配置相关
+  'get-config-path', 'set-config-path', 'open-config-dir',
+  // 配置文件相关
+  'get-profile-data', 'getProfileFiles', 'exportProfile', 'renameProfile', 
+  'deleteProfile', 'openFileInEditor', 'openConfigDir', 'getProfileMetadata', 
+  'updateProfile', 'updateAllProfiles', 'profiles-changed-listen', 
+  'profiles-changed-unlisten',
+  // Singbox相关
+  'singbox-start-core', 'singbox-stop-core', 'singbox-get-status', 
+  'singbox-get-version', 'singbox-check-installed', 'singbox-check-config', 
+  'singbox-format-config', 'singbox-download-core', 'singbox-run', 'singbox-stop',
+  // 下载相关
+  'download-core', 'download-profile',
+  // 窗口相关
+  'show-window', 'quit-app',
+  // 日志相关
+  'get-log-history', 'clear-logs',
+  // 设置相关
+  'set-auto-launch', 'get-auto-launch', 'save-settings', 'get-settings'
+];
+
 /**
  * 移除已存在的IPC处理程序
  */
 const removeExistingHandlers = () => {
   try {
-    // 需要移除的处理程序列表
-    const handlersToRemove = [
-      'get-config-path',
-      'set-config-path',
-      'open-config-dir',
-      'get-profile-data',
-      'singbox-start-core',
-      'singbox-stop-core',
-      'singbox-get-status',
-      'singbox-get-version',
-      'singbox-check-installed',
-      'singbox-check-config',
-      'singbox-format-config',
-      'singbox-download-core',
-      'download-core',
-      'show-window',
-      'quit-app',
-      'get-log-history',
-      'clear-logs',
-      'download-profile',
-      'singbox-run',
-      'singbox-stop',
-      'getProfileFiles',
-      'exportProfile',
-      'renameProfile',
-      'deleteProfile',
-      'openFileInEditor',
-      'openConfigDir',
-      'profiles-changed-listen',
-      'profiles-changed-unlisten',
-      'set-auto-launch',
-      'get-auto-launch',
-      'save-settings',
-      'get-settings',
-      'getProfileMetadata',
-      'updateProfile',
-      'updateAllProfiles'
-    ];
-    
     // 尝试移除每个处理程序
-    for (const handler of handlersToRemove) {
+    HANDLERS_TO_REMOVE.forEach(handler => {
       try {
         ipcMain.removeHandler(handler);
-      } catch (error) {
+      } catch {
         // 忽略错误，因为处理程序可能不存在
       }
-    }
+    });
     
     logger.info('已清理旧的IPC处理程序');
   } catch (error) {

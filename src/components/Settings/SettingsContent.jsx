@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../../context/AppContext';
 
 const styles = {
   container: {
@@ -150,6 +151,7 @@ const styles = {
 };
 
 const SettingsContent = ({ section }) => {
+  const { showAnimations, updateSettings } = useAppContext();
   const [userConfig, setUserConfig] = useState({
     settings: {
       proxy_port: '7890',
@@ -282,6 +284,11 @@ const SettingsContent = ({ section }) => {
     setUserConfig(newUserConfig);
   };
 
+  // 处理动画效果设置改变
+  const handleAnimationChange = (value) => {
+    updateSettings({ showAnimations: value });
+  };
+
   const applySettings = async () => {
     try {
       // 保存用户配置（会触发配置映射）
@@ -363,11 +370,11 @@ const SettingsContent = ({ section }) => {
     }
   };
 
-  const renderToggle = (label, key, value) => (
+  const renderToggle = (label, key, value, onChange) => (
     <div style={styles.toggleContainer}>
       <label style={styles.toggleLabel}>{label}</label>
       <div 
-        onClick={() => handleSettingChange(key, !value)}
+        onClick={() => onChange ? onChange(!value) : handleSettingChange(key, !value)}
         style={{
           ...styles.toggle,
           ...(value ? styles.toggleEnabled : styles.toggleDisabled)
@@ -431,6 +438,59 @@ const SettingsContent = ({ section }) => {
 
                 {/* 自动重启内核开关 */}
                 {renderToggle('Auto Restart Core', 'autoRestart', settings.autoRestart)}
+
+                {/* 修改按钮容器 */}
+                <div style={styles.buttonContainer}>
+                  <button
+                    onClick={resetSettings}
+                    onMouseEnter={() => setIsResetButtonHovered(true)}
+                    onMouseLeave={() => setIsResetButtonHovered(false)}
+                    style={{
+                      ...styles.secondaryButton,
+                      ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
+                    }}
+                  >
+                    Reset
+                  </button>
+                
+                  <button
+                    onClick={applySettings}
+                    onMouseEnter={() => setIsButtonHovered(true)}
+                    onMouseLeave={() => setIsButtonHovered(false)}
+                    style={{
+                      ...styles.button,
+                      ...(isButtonHovered ? styles.buttonHover : {})
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      
+      case 'system':
+        return (
+          <div>
+            <div style={styles.section}>
+              <div>
+                <h1 style={styles.title}>System Settings</h1>
+                <p style={styles.description}>
+                  Configure system-related settings and preferences
+                </p>
+
+                {/* 动画效果开关 */}
+                {renderToggle('Animation effect', null, showAnimations, handleAnimationChange)}
+                <p style={{ 
+                  fontSize: '12px', 
+                  color: '#64748b', 
+                  marginTop: '-12px', 
+                  marginBottom: '20px',
+                  marginLeft: '2px'
+                }}>
+                  Enable or disable animation effects in the interface (e.g. sci-fi background in node details)
+                </p>
 
                 {/* 修改按钮容器 */}
                 <div style={styles.buttonContainer}>

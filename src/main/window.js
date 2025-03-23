@@ -4,6 +4,7 @@
  */
 const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const logger = require('../utils/logger');
 const singbox = require('../utils/sing-box');
 const profileManager = require('./profile-manager');
@@ -13,6 +14,35 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // 主窗口引用
 let mainWindow = null;
+
+/**
+ * 加载应用页面
+ */
+const loadAppContent = () => {
+  if (isDev) {
+    // 开发环境：连接到webpack-dev-server
+    mainWindow.loadURL('http://localhost:3000');
+  } else {
+    // 生产环境：加载打包后的文件
+    try {
+      const indexPath = path.join(__dirname, '../../dist', 'index.html');
+      if (fs.existsSync(indexPath)) {
+        mainWindow.loadFile(indexPath);
+      } else {
+        // 尝试查找可能的替代路径
+        const altPath = path.join(process.resourcesPath, 'app.asar', 'dist', 'index.html');
+        if (fs.existsSync(altPath)) {
+          mainWindow.loadFile(altPath);
+        } else {
+          mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
+        }
+      }
+    } catch (error) {
+      logger.error(`加载HTML文件时出错: ${error.message}`);
+      mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
+    }
+  }
+};
 
 /**
  * 创建主窗口
@@ -65,12 +95,8 @@ const createWindow = () => {
   singbox.setMainWindow(mainWindow);
 
   // 添加错误处理
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    logger.error(`Failed to load: ${errorDescription} (${errorCode})`);
-    // 尝试重新加载
-    setTimeout(() => {
-      mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
-    }, 1000);
+  mainWindow.webContents.on('did-fail-load', () => {
+    setTimeout(() => loadAppContent(), 1000);
   });
 
   mainWindow.webContents.on('did-finish-load', () => {
@@ -88,40 +114,8 @@ const createWindow = () => {
     }
   });
 
-  // 根据环境加载不同的URL或文件
-  if (isDev) {
-    // 开发环境：连接到webpack-dev-server
-    mainWindow.loadURL('http://localhost:3000');
-    // 不自动打开开发者工具，需要时可以通过菜单或快捷键打开
-    // mainWindow.webContents.openDevTools();
-  } else {
-    // 生产环境：加载打包后的文件
-    try {
-      const indexPath = path.join(__dirname, '../../dist', 'index.html');
-      logger.info(`尝试加载HTML文件: ${indexPath}`);
-      
-      // 检查文件是否存在
-      if (!require('fs').existsSync(indexPath)) {
-        logger.error(`HTML文件不存在: ${indexPath}`);
-        
-        // 尝试查找可能的替代路径
-        const altPath = path.join(process.resourcesPath, 'app.asar', 'dist', 'index.html');
-        if (require('fs').existsSync(altPath)) {
-          logger.info(`找到替代HTML文件: ${altPath}`);
-          mainWindow.loadFile(altPath);
-        } else {
-          logger.error(`替代HTML文件也不存在: ${altPath}`);
-          mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
-        }
-      } else {
-        mainWindow.loadFile(indexPath);
-      }
-    } catch (error) {
-      logger.error(`加载HTML文件时出错: ${error.message}`);
-      // 备用方案
-      mainWindow.loadFile(path.join(__dirname, '../../dist', 'index.html'));
-    }
-  }
+  // 加载应用内容
+  loadAppContent();
 
   // 添加IPC事件监听器处理窗口控制
   ipcMain.on('window-minimize', () => {

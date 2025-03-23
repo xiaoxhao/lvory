@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Profiles from './components/Profiles';
@@ -6,6 +7,7 @@ import Settings from './components/Settings/Settings';
 import { initMessageBox } from './utils/messageBox';
 import './assets/css/global.css';
 import './assets/css/app.css';
+import { AppProvider } from './context/AppContext';
 
 const App = () => {
   // 添加活动项状态
@@ -124,40 +126,49 @@ const App = () => {
   };
 
   return (
-    <div className="app-container">
-      {/* 添加可拖动区域 */}
-      <div className="window-draggable-area"></div>
-      
-      {/* 添加窗口控制按钮 */}
-      <div className="window-controls">
-        <button className="control-button minimize" onClick={handleMinimize} title="最小化">—</button>
-        <button className="control-button maximize" onClick={handleMaximize} title="最大化">□</button>
-        <button className="control-button close" onClick={handleClose} title="关闭">×</button>
-      </div>
-      
-      {/* 顶部控制区域 */}
-      <div className="top-controls">
-        {/* 顶部为空，只用于拖动和控制按钮 */}
-      </div>
+    <AppProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={
+            <div className="app-container">
+              {/* 添加可拖动区域 */}
+              <div className="window-draggable-area"></div>
+              
+              {/* 添加窗口控制按钮 */}
+              <div className="window-controls">
+                <button className="control-button minimize" onClick={handleMinimize} title="最小化">—</button>
+                <button className="control-button maximize" onClick={handleMaximize} title="最大化">□</button>
+                <button className="control-button close" onClick={handleClose} title="关闭">×</button>
+              </div>
+              
+              {/* 顶部控制区域 */}
+              <div className="top-controls">
+                {/* 顶部为空，只用于拖动和控制按钮 */}
+              </div>
 
-      {/* 横线 */}
-      <div className="horizontal-line"></div>
-      
-      {/* 内容区域 */}
-      <div className="content-container">
-        <Sidebar 
-          activeItem={activeItem} 
-          onItemClick={handleItemClick} 
-          profilesCount={profilesCount}
-        />
-        <div className="main-content">
-          {activeItem === 'dashboard' && <Dashboard activeView="dashboard" />}
-          {activeItem === 'activity' && <Dashboard activeView="activity" />}
-          {activeItem === 'profiles' && <Profiles />}
-          {activeItem === 'settings' && <Settings />}
-        </div>
-      </div>
-    </div>
+              {/* 横线 */}
+              <div className="horizontal-line"></div>
+              
+              {/* 内容区域 */}
+              <div className="content-container">
+                <Sidebar 
+                  activeItem={activeItem} 
+                  onItemClick={handleItemClick} 
+                  profilesCount={profilesCount}
+                />
+                <div className="main-content">
+                  {activeItem === 'dashboard' && <Dashboard activeView="dashboard" />}
+                  {activeItem === 'activity' && <Dashboard activeView="activity" />}
+                  {activeItem === 'profiles' && <Profiles />}
+                  {activeItem === 'settings' && <Settings />}
+                </div>
+              </div>
+            </div>
+          } />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </Router>
+    </AppProvider>
   );
 };
 
