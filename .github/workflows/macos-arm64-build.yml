@@ -12,13 +12,14 @@ permissions:
 jobs:
   build-macos-x64:
     runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
       
       - name: Configuring nodejs
         uses: actions/setup-node@v4
