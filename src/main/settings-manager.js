@@ -9,9 +9,29 @@ class SettingsManager {
     this.settings = {
       proxyPort: '7890',
       apiAddress: '127.0.0.1:9090',
+      allowLan: false,
       tunMode: false,
       autoStart: false,
-      autoRestart: false
+      autoRestart: false,
+      checkUpdateOnBoot: true,
+      
+      // Nodes 相关设置
+      nodeAdvancedMonitoring: false,
+      nodeExitStatusMonitoring: false,
+      nodeExitIPPurity: false,
+      
+      // 多云互联设置
+      cloudInterconnection: false,
+      backendAddress: '',
+      
+      // 高级设置
+      animationEffect: true,
+      gpuAcceleration: false,
+      kernelWatchdog: true,
+      usePrivateProtocol: false,
+      logRotationPeriod: 7,
+      extraLogSaving: false,
+      language: 'zh_CN' // 默认语言：中文
     };
   }
 

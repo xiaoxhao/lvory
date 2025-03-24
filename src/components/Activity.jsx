@@ -112,7 +112,7 @@ const Activity = () => {
   return (
     <div className="activity-container">
       <div className="activity-header">
-        <h2>活动日志</h2>
+        <h2>Logging</h2>
         <div className="activity-controls">
           <div className="search-filter">
             <input
@@ -126,9 +126,9 @@ const Activity = () => {
               onChange={(e) => setFilter(e.target.value)}
             >
               <option value="all">ALL</option>
-              <option value="SYSTEM">系统</option>
+              <option value="SYSTEM">System</option>
               <option value="SINGBOX">SingBox</option>
-              <option value="NETWORK">网络</option>
+              <option value="NETWORK">Network</option>
             </select>
           </div>
           <div className="activity-actions">

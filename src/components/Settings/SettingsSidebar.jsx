@@ -6,7 +6,9 @@ const SettingsSidebar = ({ selectedSection, onSectionChange }) => {
   const sections = {
     GENERAL: [
       { id: 'basic', label: 'Basic' },
-      { id: 'networks', label: 'Networks' },
+      { id: 'nodes', label: 'Nodes' },
+      { id: 'cloudConnection', label: 'Cloud Connection', isExperimental: true },
+      { id: 'advanced', label: 'Advanced' },
       { id: 'system', label: 'System' },
     ],
     LABS: [
