@@ -12,6 +12,8 @@ permissions:
 jobs:
   build-macos-x64:
     runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     
     steps:
       - name: Check out the code
