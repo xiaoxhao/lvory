@@ -23,6 +23,15 @@ class Logger {
     this.logHistory = [];
     this.maxLogHistory = 1000; // 最大保存的日志条数
     
+    // 用于异步批量写入日志的缓冲区
+    this.logBuffer = [];
+    this.bufferSize = 50; // 缓冲区达到这个大小时写入文件
+    this.flushInterval = 2000; // 定时写入间隔 (ms)
+    this.isWriting = false; // 写入状态锁
+    
+    // 设置定时写入
+    this.flushTimer = setInterval(() => this.flushLogBuffer(), this.flushInterval);
+    
     // 初始化消息
     this.info('日志系统初始化完成');
   }
@@ -67,21 +76,58 @@ class Logger {
       data
     };
     
-    this.writeToFile(logEntry);
+    this.addToBuffer(logEntry);
     this.addToHistory(logEntry);
     this.sendToRenderer(logEntry);
   }
   
   /**
-   * 写入日志文件
+   * 添加日志到缓冲区
    * @param {Object} logEntry 日志条目
    */
-  writeToFile(logEntry) {
+  addToBuffer(logEntry) {
+    this.logBuffer.push(logEntry);
+    
+    // 如果缓冲区已满，立即写入文件
+    if (this.logBuffer.length >= this.bufferSize) {
+      this.flushLogBuffer();
+    }
+  }
+  
+  /**
+   * 将缓冲区中的日志写入文件
+   */
+  flushLogBuffer() {
+    if (this.isWriting || this.logBuffer.length === 0) {
+      return;
+    }
+    
+    // 设置写入锁，防止并发写入
+    this.isWriting = true;
+    
+    // 复制当前缓冲区并清空
+    const currentBuffer = [...this.logBuffer];
+    this.logBuffer = [];
+    
     try {
-      const logLine = `[${logEntry.timestamp}] [${logEntry.type}] ${logEntry.message}\n`;
-      fs.appendFileSync(this.logFile, logLine);
+      const logLines = currentBuffer.map(entry => 
+        `[${entry.timestamp}] [${entry.type}] ${entry.message}\n`
+      ).join('');
+      
+      // 异步写入文件
+      fs.appendFile(this.logFile, logLines, (err) => {
+        if (err) {
+          console.error(`写入日志文件失败: ${err.message}`);
+          // 写入失败时，将日志追加回缓冲区前面
+          this.logBuffer = [...currentBuffer, ...this.logBuffer];
+        }
+        this.isWriting = false;
+      });
     } catch (error) {
-      console.error(`写入日志文件失败: ${error.message}`);
+      console.error(`处理日志缓冲区失败: ${error.message}`);
+      // 处理失败时，将日志追加回缓冲区前面
+      this.logBuffer = [...currentBuffer, ...this.logBuffer];
+      this.isWriting = false;
     }
   }
   

@@ -1,0 +1,84 @@
+name: Create Release
+
+on:
+  workflow_run:
+    workflows: ["Windows Build", "macOS Intel Build", "macOS Apple Silicon Build"]
+    types:
+      - completed
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+      
+      - name: Download Windows artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: nightly-build.yml
+          name: windows-build-artifacts
+          path: artifacts/windows
+          if_no_artifact_found: warn
+      
+      - name: Download macOS x64 artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: macos-x64-build.yml
+          name: macos-x64-build-artifacts
+          path: artifacts/macos-x64
+          if_no_artifact_found: warn
+      
+      - name: Download macOS arm64 artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: macos-arm64-build.yml
+          name: macos-arm64-build-artifacts
+          path: artifacts/macos-arm64
+          if_no_artifact_found: warn
+      
+      - name: List downloaded artifacts
+        run: |
+          find artifacts -type f
+      
+      - name: Get the current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+      
+      - name: Create a Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: nightly
+          name: Nightly Build
+          body: |
+            Automatically built nightly version - ${{ steps.date.outputs.date }}
+            This version is built automatically based on the latest master branch code and may contain unstable features.
+            
+            ## 支持平台 / Supported Platforms
+            - Windows Portable & Setup
+            - macOS DMG (Intel x64 & Apple Silicon arm64)
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/windows/*.exe
+            artifacts/macos-x64/*.dmg
+            artifacts/macos-arm64/*.dmg 

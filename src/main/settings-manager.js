@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
 const { getAppDataDir } = require('../utils/paths');
+const nodeHistoryManager = require('./data-managers/node-history-manager');
 
 class SettingsManager {
   constructor() {
@@ -19,6 +20,7 @@ class SettingsManager {
       nodeAdvancedMonitoring: false,
       nodeExitStatusMonitoring: false,
       nodeExitIPPurity: false,
+      keepNodeTrafficHistory: false, // 新增保留节点流量历史数据设置
       
       // 多云互联设置
       cloudInterconnection: false,
@@ -57,6 +59,9 @@ class SettingsManager {
       // 同步开机自启动状态
       await this.syncAutoLaunch();
       
+      // 同步节点历史数据设置
+      nodeHistoryManager.setEnabled(this.settings.keepNodeTrafficHistory);
+      
       logger.info('设置已加载');
       return this.settings;
     } catch (error) {
@@ -83,6 +88,11 @@ class SettingsManager {
       // 如果设置中包含autoStart，同步开机自启动状态
       if ('autoStart' in settings) {
         await this.setAutoLaunch(settings.autoStart);
+      }
+      
+      // 如果设置中包含keepNodeTrafficHistory，更新节点历史数据管理器的设置
+      if ('keepNodeTrafficHistory' in settings) {
+        nodeHistoryManager.setEnabled(settings.keepNodeTrafficHistory);
       }
       
       logger.info('设置已保存');

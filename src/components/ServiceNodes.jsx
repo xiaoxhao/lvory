@@ -8,6 +8,8 @@ const ServiceNodes = () => {
   const [testResults, setTestResults] = useState({});
   const [apiAddress, setApiAddress] = useState('127.0.0.1:9090');
   const [selectedTab, setSelectedTab] = useState('nodes'); // 'nodes' 或 'rules'
+  const [totalTraffic, setTotalTraffic] = useState({}); // 存储节点累计流量数据
+  const [isHistoryEnabled, setIsHistoryEnabled] = useState(false); // 是否启用历史数据功能
 
   useEffect(() => {
     const handleProfileData = (event, data) => {
@@ -23,6 +25,7 @@ const ServiceNodes = () => {
           const result = await window.electron.getSettings();
           if (result.success) {
             setApiAddress(result.settings.apiAddress || '127.0.0.1:9090');
+            setIsHistoryEnabled(result.settings.keepNodeTrafficHistory || false);
           }
         } catch (error) {
           console.error('获取设置失败:', error);
@@ -58,6 +61,24 @@ const ServiceNodes = () => {
       }
     };
 
+    // 加载节点累计流量数据
+    const loadTotalTraffic = async () => {
+      if (window.electron) {
+        try {
+          // 检查是否启用历史数据功能
+          const historyEnabled = await window.electron.isNodeHistoryEnabled();
+          if (historyEnabled && historyEnabled.success && historyEnabled.enabled) {
+            const result = await window.electron.getAllNodesTotalTraffic();
+            if (result && result.success && result.trafficData) {
+              setTotalTraffic(result.trafficData);
+            }
+          }
+        } catch (error) {
+          console.error('加载节点累计流量数据失败:', error);
+        }
+      }
+    };
+
     if (window.electron) {
       window.electron.onProfileData(handleProfileData);
       window.electron.getProfileData().then((data) => {
@@ -75,6 +96,9 @@ const ServiceNodes = () => {
       
       // 加载规则集数据
       loadRuleSets();
+      
+      // 加载节点累计流量数据
+      loadTotalTraffic();
     }
 
     return () => {
@@ -101,6 +125,20 @@ const ServiceNodes = () => {
   };
 
   const handleTestAll = async () => {
+    // 检查内核是否运行
+    if (window.electron && window.electron.singbox && window.electron.singbox.getStatus) {
+      try {
+        const status = await window.electron.singbox.getStatus();
+        if (!status.isRunning) {
+          console.log('内核未运行，不执行节点测速');
+          return;
+        }
+      } catch (error) {
+        console.error('获取内核状态失败:', error);
+        return;
+      }
+    }
+    
     setIsTesting(true);
     setTestResults({});
     
@@ -131,24 +169,53 @@ const ServiceNodes = () => {
     }
   };
 
+  // 格式化流量显示
+  const formatTraffic = (bytes) => {
+    if (bytes === undefined || bytes === null) return '0 B';
+    if (bytes < 1024) return `${Math.round(bytes)} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
   // 渲染节点卡片
   const renderNodes = () => (
     <div className="nodes-grid">
       {nodes.map((node) => {
         const nodeKey = node.tag || node.name;
+        const nodeTraffic = totalTraffic[nodeKey] || { upload: 0, download: 0, total: 0 };
+        
         return (
           <div key={nodeKey} className="node-card">
             <div className="node-name">{nodeKey}</div>
             <div className="node-type">{node.type}</div>
-            <div className="node-delay">
-              {testResults[nodeKey] !== undefined ? (
-                testResults[nodeKey] === 'timeout' ? (
-                  <span className="timeout">超时</span>
+            <div className="node-stats">
+              <div className="node-delay">
+                {testResults[nodeKey] !== undefined ? (
+                  testResults[nodeKey] === 'timeout' ? (
+                    <span className="timeout">超时</span>
+                  ) : (
+                    <span>{testResults[nodeKey]}ms</span>
+                  )
                 ) : (
-                  <span>{testResults[nodeKey]}ms</span>
-                )
-              ) : (
-                <span>-</span>
+                  <span>-</span>
+                )}
+              </div>
+              {isHistoryEnabled && (
+                <div className="node-traffic">
+                  <div className="traffic-item">
+                    <span className="traffic-label">↑:</span>
+                    <span className="traffic-value">{formatTraffic(nodeTraffic.upload)}</span>
+                  </div>
+                  <div className="traffic-item">
+                    <span className="traffic-label">↓:</span>
+                    <span className="traffic-value">{formatTraffic(nodeTraffic.download)}</span>
+                  </div>
+                  <div className="traffic-item total">
+                    <span className="traffic-label">Total:</span>
+                    <span className="traffic-value">{formatTraffic(nodeTraffic.total)}</span>
+                  </div>
+                </div>
               )}
             </div>
           </div>

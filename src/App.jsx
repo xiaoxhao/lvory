@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Profiles from './components/Profiles';
@@ -127,7 +127,7 @@ const App = () => {
 
   return (
     <AppProvider>
-      <Router>
+      <Router basename="/">
         <Routes>
           <Route path="/" element={
             <div className="app-container">

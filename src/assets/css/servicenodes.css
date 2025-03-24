@@ -116,6 +116,12 @@
   margin-bottom: 8px;
 }
 
+.node-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .node-delay {
   font-size: 0.9em;
   color: #4CAF50;
@@ -123,6 +129,36 @@
 
 .node-delay .timeout {
   color: #f44336;
+}
+
+.node-traffic {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85em;
+}
+
+.traffic-item {
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+}
+
+.traffic-item.total {
+  margin-top: 2px;
+  font-weight: bold;
+  color: #333;
+  border-top: 1px dashed #ddd;
+  padding-top: 4px;
+}
+
+.traffic-label {
+  margin-right: 8px;
+}
+
+.traffic-value {
+  font-family: monospace;
 }
 
 .tabs {

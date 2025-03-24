@@ -201,4 +201,14 @@ contextBridge.exposeInMainWorld('electron', {
       }
     }
   },
+
+  // 节点历史数据相关API
+  getNodeHistory: (nodeTag) => ipcRenderer.invoke('get-node-history', nodeTag),
+  isNodeHistoryEnabled: () => ipcRenderer.invoke('is-node-history-enabled'),
+  loadAllNodeHistory: () => ipcRenderer.invoke('load-all-node-history'),
+  
+  // 节点累计流量相关API
+  getNodeTotalTraffic: (nodeTag) => ipcRenderer.invoke('get-node-total-traffic', nodeTag),
+  getAllNodesTotalTraffic: () => ipcRenderer.invoke('get-all-nodes-total-traffic'),
+  resetNodeTotalTraffic: (nodeTag) => ipcRenderer.invoke('reset-node-total-traffic', nodeTag),
 }); 

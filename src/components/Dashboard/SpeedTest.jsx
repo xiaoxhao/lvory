@@ -7,6 +7,20 @@ const useSpeedTest = (profileData, apiAddress) => {
   const handleSpeedTest = async () => {
     if (!profileData || profileData.length === 0 || isTesting) return;
     
+    // 检查内核是否运行
+    if (window.electron && window.electron.singbox && window.electron.singbox.getStatus) {
+      try {
+        const status = await window.electron.singbox.getStatus();
+        if (!status.isRunning) {
+          console.log('内核未运行，不执行节点测速');
+          return;
+        }
+      } catch (error) {
+        console.error('获取内核状态失败:', error);
+        return;
+      }
+    }
+    
     setIsTesting(true);
     setTestResults({});
     

@@ -94,6 +94,20 @@ const StatsOverview = ({ apiAddress }) => {
   
   // 前端简单的延迟测试函数
   const testLatency = async () => {
+    // 检查内核是否运行
+    if (window.electron && window.electron.singbox && window.electron.singbox.getStatus) {
+      try {
+        const status = await window.electron.singbox.getStatus();
+        if (!status.isRunning) {
+          console.log('内核未运行，不执行延迟测试');
+          return;
+        }
+      } catch (error) {
+        console.error('获取内核状态失败:', error);
+        return;
+      }
+    }
+    
     // 更新全局计数器
     pingCounter.current.total++;
     

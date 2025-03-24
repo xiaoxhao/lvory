@@ -9,20 +9,35 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const systemProxy = require('./system-proxy');
 const logger = require('./logger');
+const os = require('os');
 
 /**
  * 获取应用数据目录
  * @returns {String} 应用数据目录路径
  */
 function getAppDataDir() {
-  // 使用LOCALAPPDATA目录作为数据存储位置
-  const appDataDir = process.env.LOCALAPPDATA || '';
-  const appDir = path.join(appDataDir, 'lvory');
+  let appDir;
+  
+  // 根据不同平台获取合适的数据目录
+  if (process.platform === 'win32') {
+    // Windows平台 - 使用LOCALAPPDATA目录
+    const appDataDir = process.env.LOCALAPPDATA || '';
+    appDir = path.join(appDataDir, 'lvory');
+  } else if (process.platform === 'darwin') {
+    // macOS平台 - 使用Library/Application Support目录
+    const homeDir = os.homedir();
+    appDir = path.join(homeDir, 'Library', 'Application Support', 'lvory');
+  } else {
+    // Linux平台 - 使用~/.config目录
+    const homeDir = os.homedir();
+    appDir = path.join(homeDir, '.config', 'lvory');
+  }
   
   // 确保目录存在
   if (!fs.existsSync(appDir)) {
     try {
       fs.mkdirSync(appDir, { recursive: true });
+      logger.info(`创建应用数据目录: ${appDir}`);
     } catch (error) {
       logger.error(`[SingBox] 创建应用数据目录失败: ${error.message}`);
     }
@@ -56,7 +71,7 @@ class SingBox {
   init(options = {}) {
     if (this.initialized) return this.checkInstalled();
     
-    // 使用Windows推荐的应用数据目录
+    // 使用推荐的应用数据目录
     this.appDataDir = getAppDataDir();
     
     // 创建bin目录
@@ -69,7 +84,14 @@ class SingBox {
       }
     }
     
-    this.binPath = path.join(binDir, 'sing-box.exe');
+    // 根据不同平台设置二进制文件路径
+    if (process.platform === 'win32') {
+      this.binPath = path.join(binDir, 'sing-box.exe');
+    } else if (process.platform === 'darwin') {
+      this.binPath = path.join(binDir, 'sing-box');
+    } else {
+      this.binPath = path.join(binDir, 'sing-box');
+    }
     
     // 合并代理配置
     if (options.proxyConfig) {

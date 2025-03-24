@@ -1,4 +1,4 @@
-name: Windows Build
+name: macOS Apple Silicon Build
 
 on:
   push:
@@ -10,8 +10,8 @@ permissions:
   packages: write
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build-macos-arm64:
+    runs-on: macos-latest
     
     steps:
       - name: Check out the code
@@ -29,7 +29,7 @@ jobs:
         run: npm install
       
       - name: Build
-        run: npm run build:win
+        run: npm run build:mac-arm64
       
       - name: Get the current date
         id: date
@@ -38,13 +38,13 @@ jobs:
       
       - name: List build directory contents
         run: |
-          dir build
-          echo "Portable EXE files:"
-          Get-ChildItem -Path build -Filter "*.exe" -Recurse
-        shell: pwsh
+          ls -la build
+          echo "macOS DMG files:"
+          find build -name "*.dmg" -type f
+        shell: bash
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build-artifacts
-          path: build/*.exe
+          name: macos-arm64-build-artifacts
+          path: build/*.dmg 

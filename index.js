@@ -3,25 +3,35 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const logger = require('./src/utils/logger');
-const singbox = require('./src/utils/sing-box');
 
 // 导入拆分后的模块
 const windowManager = require('./src/main/window');
 const trayManager = require('./src/main/tray');
-const ipcHandlers = require('./src/main/ipc-handlers');
-const profileManager = require('./src/main/profile-manager');
+
+// 初始化IPC处理程序和配置管理器，这些是必须优先加载的模块
+let ipcHandlers = require('./src/main/ipc-handlers');
+let profileManager = require('./src/main/profile-manager');
+// 懒加载其他非核心模块
+let singbox;
 
 // 启用V8特性
 app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=4096 --optimize-for-size --enable-experimental-webassembly-features');
 app.commandLine.appendSwitch('enable-features', 'V8Runtime,V8PerContextHeaps,PartitionedFullCodeCache,V8VmFuture,V8LiftoffForAll');
 app.commandLine.appendSwitch('enable-blink-features', 'JSHeavyAdThrottling');
 
+// 懒加载 AdmZip
 let AdmZip;
-try {
-  AdmZip = require('adm-zip');
-} catch (error) {
-  logger.warn('AdmZip库未安装，解压功能将不可用');
-}
+const loadAdmZip = () => {
+  try {
+    if (!AdmZip) {
+      AdmZip = require('adm-zip');
+    }
+    return AdmZip;
+  } catch (error) {
+    logger.warn('AdmZip库未安装，解压功能将不可用');
+    return null;
+  }
+};
 
 try {
   if (require('electron-squirrel-startup')) {
@@ -39,31 +49,53 @@ logger.logStartup();
 
 global.isQuitting = false;
 
-ipcHandlers.setupIpcHandlers();
+// 初始化SingBox模块
+const initSingBox = () => {
+  if (!singbox) {
+    singbox = require('./src/utils/sing-box');
+  }
+  
+  if (!singbox.initialized) {
+    logger.info('初始化SingBox模块');
+    singbox.init();
+  }
+  
+  return singbox;
+};
+
+// 初始化主要模块
+const setupApp = () => {
+  // 设置IPC处理程序
+  ipcHandlers.setupHandlers();
+  
+  // 初始化配置管理器
+  profileManager.getConfigPath();
+  
+  // 预加载singbox，确保核心功能正常
+  initSingBox();
+};
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', () => {
-  // 设置进程标题
   process.title = 'LVORY';
-  
+
   // 创建主窗口
   windowManager.createWindow();
   
   // 初始创建托盘
   trayManager.createTray();
   
-  // 确保加载用户配置
-  profileManager.getConfigPath();
+  // 初始化主要模块
+  setupApp();
   
-  logger.info('初始化SingBox模块');
-  singbox.init();
-  
-  // 为了确保正确注册处理程序，等待应用初始化完成后延迟注册
+  // 延迟获取版本信息
   setTimeout(() => {
-    if (singbox.checkInstalled()) {
+    const sb = initSingBox();
+    
+    if (sb.checkInstalled()) {
       logger.info('sing-box已安装，正在获取版本信息');
-      singbox.getVersion().then(result => {
+      sb.getVersion().then(result => {
         logger.info('sing-box版本获取结果:', result);
         const mainWindow = windowManager.getMainWindow();
         if (result.success && mainWindow && !mainWindow.isDestroyed()) {
@@ -83,6 +115,9 @@ app.on('ready', () => {
     } else {
       logger.info('sing-box未安装，不获取版本信息');
     }
+    
+    // 应用初始化完成
+    logger.info('应用初始化完成');
   }, 1000);
 });
 

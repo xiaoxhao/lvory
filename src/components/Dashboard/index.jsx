@@ -73,6 +73,50 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     }
   }, []);
 
+  // 监听activeView变化，当切换到dashboard时重新获取配置文件数据
+  useEffect(() => {
+    if (activeView === 'dashboard' && window.electron && window.electron.getProfileData) {
+      window.electron.getProfileData().catch(err => {
+        console.error('获取配置文件数据失败:', err);
+      });
+    }
+  }, [activeView]);
+
+  useEffect(() => {
+    if (activeView === 'dashboard' && window.electron) {
+      window.electron.getProfileData().then((data) => {
+        if (data && data.success && Array.isArray(data.profiles)) {
+          setProfileData(data.profiles);
+          
+          // 计算各类型节点数量
+          if (data.profiles.length > 0) {
+            const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
+            
+            data.profiles.forEach(node => {
+              const type = node.type ? node.type.toLowerCase() : '';
+              
+              if (type.includes('shadowsocks')) {
+                stats.ss++;
+              } else if (type.includes('vmess')) {
+                stats.vm++;
+              } else if (type.includes('trojan')) {
+                stats.tr++;
+              } else if (type.includes('direct')) {
+                stats.dir++;
+              } else {
+                stats.other++;
+              }
+            });
+            
+            setNodeTypeStats(stats);
+          }
+        }
+      }).catch(err => {
+        console.error('获取配置文件数据失败:', err);
+      });
+    }
+  }, [activeView]);
+
   const togglePrivateMode = () => {
     setPrivateMode(!privateMode);
   };

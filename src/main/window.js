@@ -2,7 +2,7 @@
  * 窗口管理模块
  * 负责创建和管理应用的主窗口
  */
-const { BrowserWindow, ipcMain } = require('electron');
+const { BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
@@ -20,10 +20,8 @@ let mainWindow = null;
  */
 const loadAppContent = () => {
   if (isDev) {
-    // 开发环境：连接到webpack-dev-server
     mainWindow.loadURL('http://localhost:3000');
   } else {
-    // 生产环境：加载打包后的文件
     try {
       const indexPath = path.join(__dirname, '../../dist', 'index.html');
       if (fs.existsSync(indexPath)) {
@@ -62,14 +60,34 @@ const createWindow = () => {
       backgroundThrottling: false,
       enableBlinkFeatures: 'JSHeavyAdThrottling',
       enablePreferredSizeMode: true,
-      spellcheck: false
+      spellcheck: false,
+      devTools: true,
+      webSecurity: true,
     },
     resizable: true,
     frame: false,
     titleBarStyle: 'hidden',
-    show: false, // 初始隐藏窗口，待内容加载完成后再显示
+    show: false,
   });
 
+  // 设置主窗口到logger
+  logger.setMainWindow(mainWindow);
+  
+  // 设置主窗口到SingBox模块
+  singbox.setMainWindow(mainWindow);
+
+  // 设置CSP策略，允许eval执行（开发模式需要）
+  if (isDev) {
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': ["script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"]
+        }
+      });
+    });
+  }
+  
   // 强制应用最小尺寸限制
   mainWindow.setMinimumSize(800, 600);
   
@@ -88,9 +106,12 @@ const createWindow = () => {
     }
   });
 
-  // 设置主窗口到logger
-  logger.setMainWindow(mainWindow);
-  
+  // 添加错误处理
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    logger.error(`页面加载失败: ${errorCode} - ${errorDescription}`);
+    setTimeout(() => loadAppContent(), 1000);
+  });
+
   // 设置主窗口到SingBox模块
   singbox.setMainWindow(mainWindow);
 
@@ -102,7 +123,7 @@ const createWindow = () => {
   mainWindow.webContents.on('did-finish-load', () => {
     logger.info('Page loaded successfully');
     
-    // 页面加载完成后显示窗口
+      // 页面加载完成后显示窗口
     if (!mainWindow.isVisible()) {
       mainWindow.show();
     }
@@ -152,6 +173,18 @@ const createWindow = () => {
     return true;
   });
 
+  // 添加开发者工具快捷键
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' || (input.control && input.key.toLowerCase() === 'i')) {
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+      } else {
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+      }
+      event.preventDefault();
+    }
+  });
+  
   return mainWindow;
 };
 

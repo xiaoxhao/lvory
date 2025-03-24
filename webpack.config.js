@@ -1,26 +1,14 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-
-const isProd = process.env.NODE_ENV === 'production';
-
-const getStyleLoaders = () => {
-  return [
-    isProd ? MiniCssExtractPlugin.loader : 'style-loader',
-    'css-loader'
-  ];
-};
 
 module.exports = {
-  mode: isProd ? 'production' : 'development',
+  mode: 'development',
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: isProd ? '[name].[contenthash].js' : 'bundle.js',
-    publicPath: isProd ? './' : '/',
-    clean: true
+    filename: 'bundle.js',
+    publicPath: process.env.NODE_ENV === 'production' ? './' : '/'
   },
   module: {
     rules: [
@@ -36,90 +24,52 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: getStyleLoaders()
+        use: [
+          process.env.NODE_ENV === 'development' 
+            ? 'style-loader' 
+            : MiniCssExtractPlugin.loader,
+          'css-loader'
+        ]
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: 'asset/resource',
-        generator: {
-          filename: 'assets/images/[name].[hash][ext]'
-        }
       }
     ]
   },
   resolve: {
-    extensions: ['.js', '.jsx'],
-    fallback: {
-      "util": require.resolve("util/"),
-      "stream": require.resolve("stream-browserify")
-    }
+    extensions: ['.js', '.jsx']
   },
   plugins: [
     new HtmlWebpackPlugin({
       template: './public/index.html',
-      filename: 'index.html',
-      minify: isProd ? {
-        removeComments: true,
-        collapseWhitespace: true,
-        removeRedundantAttributes: true,
-        useShortDoctype: true,
-        removeEmptyAttributes: true,
-        removeStyleLinkTypeAttributes: true,
-        keepClosingSlash: true,
-        minifyJS: true,
-        minifyCSS: true,
-        minifyURLs: true,
-      } : false
+      filename: 'index.html'
     }),
-    isProd && new MiniCssExtractPlugin({
-      filename: 'styles.[contenthash].css'
+    new MiniCssExtractPlugin({
+      filename: 'styles.css'
     })
-  ].filter(Boolean),
-  target: isProd ? 'electron-renderer' : 'web',
-  ...(isProd ? {} : {
-    devServer: {
-      static: './dist',
-      hot: true,
-      port: 3000,
-      historyApiFallback: true,
-      compress: true,
-      open: false
+  ],
+  target: process.env.NODE_ENV === 'development' 
+    ? 'web'
+    : 'electron-renderer',
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'public'),
+      watch: true,
+      publicPath: '/',
+      serveIndex: true
     },
-    devtool: 'eval-source-map'
-  }),
-  ...(isProd ? {
-    optimization: {
-      minimize: true,
-      minimizer: [
-        new TerserPlugin({
-          terserOptions: {
-            format: {
-              comments: false,
-            },
-            compress: {
-              drop_console: true,
-            },
-          },
-          extractComments: false,
-        }),
-        new CssMinimizerPlugin(),
-      ],
-      splitChunks: {
-        chunks: 'all',
-        name: false,
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
-          },
-        },
-      },
-    },
-    performance: {
-      maxEntrypointSize: 512000,
-      maxAssetSize: 512000,
-    },
-    devtool: false
-  } : {})
+    port: 3000,
+    hot: true,
+    historyApiFallback: true,
+    compress: true,
+    open: false,
+    setupMiddlewares: (middlewares, devServer) => {
+      if (!devServer) {
+        throw new Error('webpack-dev-server is not defined');
+      }
+      return middlewares;
+    }
+  },
+  devtool: 'eval-source-map'
 }; 
