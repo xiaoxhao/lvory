@@ -593,10 +593,9 @@ class SingBox {
   async enableSystemProxy() {
     try {
       const { host, port } = this.proxyConfig;
-      const proxyServer = `${host}:${port}`;
-      logger.info(`[SingBox] 启用系统代理: ${proxyServer}`);
+      logger.info(`[SingBox] 启用系统代理: ${host}:${port}`);
       
-      const result = await systemProxy.enableProxy(proxyServer);
+      const result = await systemProxy.setGlobalProxy({ host, port });
       if (result) {
         logger.info('[SingBox] 系统代理已启用');
       } else {
@@ -618,7 +617,7 @@ class SingBox {
     try {
       logger.info('[SingBox] 禁用系统代理');
       
-      const result = await systemProxy.disableProxy();
+      const result = await systemProxy.removeGlobalProxy();
       if (result) {
         logger.info('[SingBox] 系统代理已禁用');
       } else {
