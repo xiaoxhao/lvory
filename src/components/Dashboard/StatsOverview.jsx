@@ -756,7 +756,7 @@ const StatsOverview = ({ apiAddress }) => {
           {/* IP地理位置信息 */}
           {ipLocation && (
             <div id="ip-location" className="ip-location">
-              <span>IP: {ipLocation}</span>
+              <span>IP：{ipLocation}</span>
             </div>
           )}
           
