@@ -328,39 +328,44 @@ class SingBox {
       this.process = {
         childProcess: child,
         pid: pid,
-        configPath: configPath
+        configPath: configPath // 保存配置文件路径以便状态恢复
       };
       
-      logger.info(`sing-box进程已启动，PID: ${pid}`);
+      // 处理输出和错误
+      if (child.stdout) {
+        child.stdout.on('data', (data) => {
+          try {
+            const output = data.toString();
+            logger.debug(`[SingBox] stdout: ${output}`);
+            
+            // 处理输出回调
+            if (outputCallback && typeof outputCallback === 'function') {
+              outputCallback(output);
+            }
+            
+            // 检查并处理tun设备模式的输出
+            this.handleTunOutput(output);
+          } catch (err) {
+            logger.error(`[SingBox] 处理stdout时出错: ${err.message}`);
+          }
+        });
+      }
       
-      // 添加输出处理
-      child.stdout.on('data', (data) => {
-        const output = data.toString();
-        // 通过日志系统记录SingBox输出
-        logger.singbox(output);
-        // 回调函数传递输出
-        if (outputCallback && typeof outputCallback === 'function') {
-          outputCallback(output);
-        }
-      });
-      
-      child.stderr.on('data', (data) => {
-        const output = data.toString();
-        // 分析输出内容来决定日志类型
-        // sing-box的大多数输出都以时间戳+INFO开头，即使从stderr输出
-        if (output.includes('ERROR') || output.includes('error') || output.includes('Error')) {
-          // 真正的错误日志
-          logger.error(`SingBox错误: ${output}`);
-        } else {
-          // 普通日志
-          logger.singbox(output);
-        }
-        
-        // 回调函数传递输出
-        if (outputCallback && typeof outputCallback === 'function') {
-          outputCallback(output);
-        }
-      });
+      if (child.stderr) {
+        child.stderr.on('data', (data) => {
+          try {
+            const output = data.toString();
+            logger.debug(`[SingBox] stderr: ${output}`);
+            
+            // 处理输出回调
+            if (outputCallback && typeof outputCallback === 'function') {
+              outputCallback(output);
+            }
+          } catch (err) {
+            logger.error(`[SingBox] 处理stderr时出错: ${err.message}`);
+          }
+        });
+      }
       
       // 添加退出处理
       child.on('exit', (code) => {
@@ -531,6 +536,11 @@ class SingBox {
       if (result.success) {
         logger.info('[SingBox] 启动成功');
         
+        // 保存配置文件路径到进程信息中
+        if (this.process) {
+          this.process.configPath = configPath;
+        }
+        
         // 设置系统代理
         if (this.proxyConfig.enableSystemProxy) {
           logger.info(`[SingBox] 正在设置系统代理: ${this.proxyConfig.host}:${this.proxyConfig.port}`);
@@ -553,12 +563,24 @@ class SingBox {
   
   /**
    * 停止内核服务
-   * @returns {Object} 停止结果
+   * @returns {Promise<Boolean>} 成功返回true，失败返回false
    */
   async stopCore() {
     try {
+      // 保存停止状态，确保下次启动不会尝试恢复
+      try {
+        // 修改状态为未运行，然后保存
+        await this.saveState();
+        logger.info('[SingBox] 已保存停止状态');
+      } catch (err) {
+        logger.error('[SingBox] 保存停止状态失败:', err);
+      }
+      
       // 禁用系统代理
-      await this.disableSystemProxy();
+      if (this.proxyConfig.enableSystemProxy) {
+        logger.info('[SingBox] 禁用系统代理');
+        await this.disableSystemProxy();
+      }
       
       // 停止所有sing-box进程
       for (const [pid, handler] of this.processHandlers.entries()) {
@@ -781,6 +803,44 @@ class SingBox {
   setMainWindow(window) {
     this.mainWindow = window;
     logger.info('SingBox模块已连接到主窗口');
+  }
+
+  /**
+   * 处理TUN设备相关的输出
+   * @param {String} output - 进程输出内容
+   */
+  handleTunOutput(output) {
+    // 目前只是一个占位方法，未来可能会处理TUN设备的特殊输出
+    // 比如提取TUN接口信息、路由信息等
+    if (output && output.includes('tun')) {
+      logger.info(`[SingBox] 检测到TUN相关输出: ${output.trim()}`);
+    }
+  }
+
+  // 保存状态
+  async saveState() {
+    const state = {
+      isRunning: this.isRunning(),
+      configPath: this.process?.configPath,
+      proxyConfig: this.proxyConfig,
+      lastRunTime: new Date().toISOString()
+    };
+    // 懒加载store，避免循环依赖
+    const store = require('./store');
+    await store.set('singbox.state', state);
+  }
+
+  // 加载状态
+  async loadState() {
+    try {
+      // 懒加载store，避免循环依赖
+      const store = require('./store');
+      const state = await store.get('singbox.state');
+      return state;
+    } catch (error) {
+      logger.error(`[SingBox] 加载状态失败: ${error.message}`);
+      return null;
+    }
   }
 }
 

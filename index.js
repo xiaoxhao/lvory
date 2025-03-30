@@ -13,6 +13,29 @@ let ipcHandlers = require('./src/main/ipc-handlers');
 let profileManager = require('./src/main/profile-manager');
 // 懒加载其他非核心模块
 let singbox;
+let settingsManager;
+
+// 检查是否为第一个实例
+const isFirstInstance = app.requestSingleInstanceLock();
+const isDev = process.env.NODE_ENV === 'development';
+
+// 如果不是第一个实例且不在开发模式下，则退出
+if (!isFirstInstance && !isDev) {
+  logger.info('已有一个实例正在运行，退出当前实例');
+  app.quit();
+} else {
+  // 处理第二个实例启动时的行为
+  app.on('second-instance', () => {
+    logger.info('检测到第二个实例启动，显示主窗口');
+    // 显示已有窗口
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
 
 // 启用V8特性
 app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=4096 --optimize-for-size --enable-experimental-webassembly-features');
@@ -42,7 +65,6 @@ try {
 }
 
 // 判断是否是开发环境
-const isDev = process.env.NODE_ENV === 'development';
 logger.info(`Running in ${isDev ? 'development' : 'production'} mode`);
 
 logger.logStartup();
@@ -63,6 +85,64 @@ const initSingBox = () => {
   return singbox;
 };
 
+// 初始化设置管理器
+const initSettingsManager = () => {
+  if (!settingsManager) {
+    settingsManager = require('./src/main/settings-manager');
+  }
+  return settingsManager;
+};
+
+// 恢复上次代理状态
+const restoreProxyState = async () => {
+  // 如果不是第一个实例且不在开发模式，不恢复代理状态
+  if (!isFirstInstance && !isDev) return;
+  
+  try {
+    const sb = initSingBox();
+    const settings = initSettingsManager();
+    await settings.loadSettings();
+    
+    // 获取存储的sing-box状态
+    const state = await sb.loadState();
+    
+    if (state && state.isRunning && state.configPath) {
+      logger.info('恢复上次代理状态，配置文件路径:', state.configPath);
+      
+      // 延迟启动代理，确保应用界面已经加载
+      setTimeout(async () => {
+        const mainWindow = windowManager.getMainWindow();
+        
+        // 启动代理核心
+        const result = await sb.startCore({ 
+          configPath: state.configPath,
+          proxyConfig: state.proxyConfig,
+          enableSystemProxy: state.proxyConfig?.enableSystemProxy || false
+        });
+        
+        // 通知UI更新状态
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('proxy-state-restored', {
+            success: result.success,
+            isRunning: result.success,
+            configPath: state.configPath
+          });
+        }
+        
+        if (result.success) {
+          logger.info('代理状态恢复成功');
+        } else {
+          logger.error('代理状态恢复失败:', result.error);
+        }
+      }, 2000);
+    } else {
+      logger.info('没有找到需要恢复的代理状态或上次未运行代理');
+    }
+  } catch (error) {
+    logger.error('恢复代理状态失败:', error);
+  }
+};
+
 // 初始化主要模块
 const setupApp = () => {
   // 设置IPC处理程序
@@ -73,6 +153,12 @@ const setupApp = () => {
   
   // 预加载singbox，确保核心功能正常
   initSingBox();
+  
+  // 加载设置
+  initSettingsManager();
+  
+  // 恢复上次代理状态
+  restoreProxyState();
 };
 
 // This method will be called when Electron has finished

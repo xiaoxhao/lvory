@@ -211,4 +211,12 @@ contextBridge.exposeInMainWorld('electron', {
   getNodeTotalTraffic: (nodeTag) => ipcRenderer.invoke('get-node-total-traffic', nodeTag),
   getAllNodesTotalTraffic: () => ipcRenderer.invoke('get-all-nodes-total-traffic'),
   resetNodeTotalTraffic: (nodeTag) => ipcRenderer.invoke('reset-node-total-traffic', nodeTag),
+
+  // 监听代理状态恢复
+  onProxyStateRestored: (callback) => {
+    ipcRenderer.on('proxy-state-restored', callback);
+  },
+  removeProxyStateRestored: (callback) => {
+    ipcRenderer.removeListener('proxy-state-restored', callback);
+  },
 }); 

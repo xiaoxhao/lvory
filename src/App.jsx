@@ -4,10 +4,10 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Profiles from './components/Profiles';
 import Settings from './components/Settings/Settings';
+import { AppProvider } from './context/AppContext';
 import { initMessageBox } from './utils/messageBox';
 import './assets/css/global.css';
 import './assets/css/app.css';
-import { AppProvider } from './context/AppContext';
 
 const App = () => {
   // 添加活动项状态

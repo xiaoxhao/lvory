@@ -2,12 +2,13 @@
  * 窗口管理模块
  * 负责创建和管理应用的主窗口
  */
-const { BrowserWindow, ipcMain, dialog } = require('electron');
+const { BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
 const singbox = require('../utils/sing-box');
 const profileManager = require('./profile-manager');
+const ipcManager = require('./ipc-manager');
 
 // 判断是否是开发环境
 const isDev = process.env.NODE_ENV === 'development';
@@ -70,12 +71,12 @@ const createWindow = () => {
     show: false,
   });
 
-  // 设置主窗口到logger
+  // 设置主窗口到各个模块
   logger.setMainWindow(mainWindow);
-  
-  // 设置主窗口到SingBox模块
   singbox.setMainWindow(mainWindow);
-
+  ipcManager.setMainWindow(mainWindow);
+  ipcManager.init();
+  
   // 设置CSP策略，允许eval执行（开发模式需要）
   if (isDev) {
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -112,14 +113,6 @@ const createWindow = () => {
     setTimeout(() => loadAppContent(), 1000);
   });
 
-  // 设置主窗口到SingBox模块
-  singbox.setMainWindow(mainWindow);
-
-  // 添加错误处理
-  mainWindow.webContents.on('did-fail-load', () => {
-    setTimeout(() => loadAppContent(), 1000);
-  });
-
   mainWindow.webContents.on('did-finish-load', () => {
     logger.info('Page loaded successfully');
     
@@ -138,38 +131,13 @@ const createWindow = () => {
   // 加载应用内容
   loadAppContent();
 
-  // 添加IPC事件监听器处理窗口控制
-  ipcMain.on('window-minimize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.minimize();
-    }
-  });
-
-  ipcMain.on('window-close', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.hide(); // 隐藏窗口而非关闭
-    }
-  });
-
-  ipcMain.on('window-maximize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMaximized()) {
-        mainWindow.unmaximize();
-      } else {
-        mainWindow.maximize();
-      }
-    }
-  });
-
   // 添加窗口关闭事件处理，防止直接退出
   mainWindow.on('close', (event) => {
-    // 如果不是真正要退出应用，则阻止默认行为
     if (!global.isQuitting) {
       event.preventDefault();
-      mainWindow.hide(); // 隐藏窗口而不是关闭
+      mainWindow.hide();
       return false;
     }
-    
     return true;
   });
 

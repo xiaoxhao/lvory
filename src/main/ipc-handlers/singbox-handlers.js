@@ -94,6 +94,16 @@ function setup() {
         enableSystemProxy: proxyConfig.enableSystemProxy
       });
       
+      // 成功启动后保存状态
+      if (result.success) {
+        try {
+          await singbox.saveState();
+          logger.info('已保存sing-box状态');
+        } catch (err) {
+          logger.error('保存sing-box状态失败:', err);
+        }
+      }
+      
       return result;
     } catch (error) {
       logger.error('启动sing-box内核失败:', error);

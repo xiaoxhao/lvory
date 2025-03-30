@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { showMessage } from '../../utils/messageBox';
 
 const useSingBoxControl = () => {
@@ -6,6 +6,26 @@ const useSingBoxControl = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
+
+  // 监听代理状态恢复的事件
+  useEffect(() => {
+    const handleProxyStateRestored = (event, data) => {
+      if (data.success) {
+        setIsRunning(true);
+        console.log('代理状态已恢复，代理正在运行');
+      }
+    };
+
+    if (window.electron && window.electron.onProxyStateRestored) {
+      window.electron.onProxyStateRestored(handleProxyStateRestored);
+    }
+
+    return () => {
+      if (window.electron && window.electron.removeProxyStateRestored) {
+        window.electron.removeProxyStateRestored(handleProxyStateRestored);
+      }
+    };
+  }, []);
 
   // 启动或停止 singbox
   const toggleSingBox = () => {

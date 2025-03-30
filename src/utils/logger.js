@@ -196,6 +196,15 @@ class Logger {
   }
   
   /**
+   * 记录调试日志
+   * @param {String} message 日志消息
+   * @param {Object} data 额外数据
+   */
+  debug(message, data = {}) {
+    this.log('DEBUG', message, data);
+  }
+  
+  /**
    * 添加日志到历史记录
    * @param {Object} logEntry - 日志条目
    */
