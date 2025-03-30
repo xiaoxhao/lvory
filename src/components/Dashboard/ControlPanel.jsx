@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const customStyles = {
   eyeIcon: {
@@ -27,7 +27,436 @@ const ControlPanel = ({
   onRestartSingBox
 }) => {
   const [showRestartButton, setShowRestartButton] = useState(false);
+  const [showProxyConfigModal, setShowProxyConfigModal] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    powershell: true,
+    git: false,
+    npm: false,
+    curl: false,
+    docker: false
+  });
+  const [copiedState, setCopiedState] = useState({});
+  const [proxyAddress, setProxyAddress] = useState('127.0.0.1:7890');
+  const [showNetworkAddresses, setShowNetworkAddresses] = useState(false);
+  const [networkAddresses, setNetworkAddresses] = useState([
+    { label: '本地回环', address: '127.0.0.1:7890' }
+  ]);
 
+  // 获取网络接口地址
+  useEffect(() => {
+    if (window.electron && window.electron.getNetworkInterfaces) {
+      window.electron.getNetworkInterfaces().then(interfaces => {
+        if (interfaces && interfaces.length > 0) {
+          const formattedAddresses = [
+            { label: '本地回环', address: '127.0.0.1:7890' },
+            ...interfaces.map(iface => ({
+              label: `${iface.name || 'Unknown'} (${iface.address})`,
+              address: `${iface.address}:7890`
+            }))
+          ];
+          setNetworkAddresses(formattedAddresses);
+        }
+      }).catch(err => {
+        console.error('获取网络接口信息失败:', err);
+      });
+    }
+  }, []);
+
+  // 复制到剪贴板函数
+  const copyToClipboard = (text, id, section) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        // 设置复制成功状态
+        setCopiedState({
+          ...copiedState,
+          [`${id}-${section}`]: true
+        });
+        
+        // 3秒后重置复制状态
+        setTimeout(() => {
+          setCopiedState(prevState => ({
+            ...prevState,
+            [`${id}-${section}`]: false
+          }));
+        }, 3000);
+      })
+      .catch(err => console.error('复制失败:', err));
+  };
+
+  // 切换折叠状态
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // 获取代码中使用当前选择的代理地址
+  const getCodeWithAddress = (codeTemplate) => {
+    return codeTemplate.replace(/127\.0\.0\.1:7890/g, proxyAddress);
+  };
+
+  // 渲染终端图标
+  const renderTerminalIcon = () => {
+    return (
+      <div 
+        style={{
+          ...customStyles.eyeIcon,
+          backgroundColor: showProxyConfigModal ? '#f5f7f9' : 'transparent'
+        }}
+        onClick={() => setShowProxyConfigModal(true)}
+        title="查看代理配置方式"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+      </div>
+    );
+  };
+
+  // 代理配置对话框
+  const renderProxyConfigModal = () => {
+    if (!showProxyConfigModal) return null;
+
+    const proxyConfigSections = [
+      {
+        id: 'powershell',
+        title: 'PowerShell',
+        sections: [
+          {
+            title: '设置HTTP代理',
+            code: `$env:http_proxy="http://${proxyAddress}"
+$env:https_proxy="http://${proxyAddress}"`
+          },
+          {
+            title: '查看当前代理设置',
+            code: `$env:http_proxy
+$env:https_proxy`
+          },
+          {
+            title: '取消代理设置',
+            code: `$env:http_proxy=""
+$env:https_proxy=""`
+          }
+        ]
+      },
+      {
+        id: 'git',
+        title: 'Git',
+        sections: [
+          {
+            title: '设置HTTP代理',
+            code: `git config --global http.proxy http://${proxyAddress}
+git config --global https.proxy http://${proxyAddress}`
+          },
+          {
+            title: '查看当前代理设置',
+            code: `git config --global --get http.proxy
+git config --global --get https.proxy`
+          },
+          {
+            title: '取消代理设置',
+            code: `git config --global --unset http.proxy
+git config --global --unset https.proxy`
+          }
+        ]
+      },
+      {
+        id: 'npm',
+        title: 'npm',
+        sections: [
+          {
+            title: '设置HTTP代理',
+            code: `npm config set proxy http://${proxyAddress}
+npm config set https-proxy http://${proxyAddress}`
+          },
+          {
+            title: '查看当前代理设置',
+            code: `npm config get proxy
+npm config get https-proxy`
+          },
+          {
+            title: '取消代理设置',
+            code: `npm config delete proxy
+npm config delete https-proxy`
+          }
+        ]
+      },
+      {
+        id: 'curl',
+        title: 'curl',
+        sections: [
+          {
+            title: '使用代理',
+            code: `curl -x http://${proxyAddress} https://www.google.com`
+          }
+        ]
+      },
+      {
+        id: 'docker',
+        title: 'Docker',
+        sections: [
+          {
+            title: 'Windows 修改 ~/.docker/config.json',
+            code: `{
+  "proxies": {
+    "default": {
+      "httpProxy": "http://${proxyAddress}",
+      "httpsProxy": "http://${proxyAddress}",
+      "noProxy": "localhost,127.0.0.1"
+    }
+  }
+}`
+          }
+        ]
+      }
+    ];
+
+    // 渲染地址选择下拉框
+    const renderAddressSelector = () => {
+      return (
+        <div style={{
+          marginBottom: '16px',
+          border: '1px solid #eee',
+          borderRadius: '8px',
+          padding: '16px'
+        }}>
+          <div style={{ marginBottom: '12px', fontWeight: '600', fontSize: '15px' }}>
+            选择代理地址
+          </div>
+          
+          <div style={{ position: 'relative' }}>
+            <div 
+              onClick={() => setShowNetworkAddresses(!showNetworkAddresses)}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '10px 12px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                backgroundColor: '#fff'
+              }}
+            >
+              <span>{proxyAddress}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
+                   fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" 
+                   strokeLinejoin="round" style={{ 
+                     transform: showNetworkAddresses ? 'rotate(180deg)' : 'rotate(0)', 
+                     transition: 'transform 0.3s' 
+                   }}>
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            
+            {showNetworkAddresses && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                zIndex: 10,
+                backgroundColor: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                marginTop: '4px',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                maxHeight: '200px',
+                overflowY: 'auto'
+              }}>
+                {networkAddresses.map((address, index) => (
+                  <div 
+                    key={index}
+                    onClick={() => {
+                      setProxyAddress(address.address);
+                      setShowNetworkAddresses(false);
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: index < networkAddresses.length - 1 ? '1px solid #eee' : 'none',
+                      cursor: 'pointer',
+                      backgroundColor: proxyAddress === address.address ? '#f0f4ff' : '#fff',
+                      transition: 'background-color 0.2s',
+                      hover: {
+                        backgroundColor: '#f5f5f5'
+                      }
+                    }}
+                  >
+                    {address.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          width: '80%',
+          maxWidth: '800px',
+          maxHeight: '85vh',
+          overflow: 'auto',
+          padding: '24px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: '24px',
+            borderBottom: '1px solid #eee',
+            paddingBottom: '16px'
+          }}>
+            <h2 style={{ margin: 0, color: '#333', fontSize: '22px', fontWeight: '600' }}>常用软件代理配置方式</h2>
+            <div 
+              onClick={() => setShowProxyConfigModal(false)}
+              style={{ 
+                cursor: 'pointer', 
+                padding: '8px',
+                borderRadius: '50%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: '#f5f5f5',
+                transition: 'background-color 0.2s',
+                hover: {
+                  backgroundColor: '#e0e0e0'
+                }
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </div>
+          </div>
+
+          {renderAddressSelector()}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {proxyConfigSections.map((config) => (
+              <div key={config.id} style={{ 
+                border: '1px solid #eee', 
+                borderRadius: '8px',
+                overflow: 'hidden',
+                transition: 'all 0.3s ease'
+              }}>
+                <div 
+                  onClick={() => toggleSection(config.id)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '14px 18px',
+                    backgroundColor: '#f9f9f9',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    borderBottom: expandedSections[config.id] ? '1px solid #eee' : 'none'
+                  }}
+                >
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#444' }}>{config.title}</h3>
+                  <div style={{ transform: expandedSections[config.id] ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s ease' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                
+                {expandedSections[config.id] && (
+                  <div style={{ padding: '16px' }}>
+                    {config.sections.map((section, idx) => (
+                      <div key={idx} style={{ 
+                        marginBottom: idx < config.sections.length - 1 ? '24px' : 0,
+                        backgroundColor: '#fff',
+                        borderRadius: '6px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '10px'
+                        }}>
+                          <h4 style={{ 
+                            margin: 0, 
+                            fontSize: '15px', 
+                            fontWeight: '500', 
+                            color: '#333',
+                            paddingLeft: '4px'
+                          }}>
+                            {section.title}
+                          </h4>
+                          <div 
+                            className="copy-button"
+                            onClick={() => copyToClipboard(section.code, config.id, idx)}
+                            style={{
+                              padding: '5px 10px',
+                              backgroundColor: copiedState[`${config.id}-${idx}`] ? '#e1f5e1' : '#f0f0f0',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontSize: '12px',
+                              color: copiedState[`${config.id}-${idx}`] ? '#2e7d32' : '#505a6b',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {copiedState[`${config.id}-${idx}`] ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                              </svg>
+                            )}
+                            {copiedState[`${config.id}-${idx}`] ? '已复制' : '复制'}
+                          </div>
+                        </div>
+                        <pre style={{ 
+                          margin: 0,
+                          backgroundColor: '#f9f9f9', 
+                          padding: '16px', 
+                          borderRadius: '4px',
+                          overflowX: 'auto',
+                          fontSize: '14px',
+                          lineHeight: '1.5'
+                        }}>
+                          <code>{section.code}</code>
+                        </pre>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
   // 渲染眼睛图标
   const renderEyeIcon = () => {
     return (
@@ -243,6 +672,7 @@ const ControlPanel = ({
       </div>
       <div className="header-actions" style={{ background: 'transparent', boxShadow: 'none' }}>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+          {renderTerminalIcon()}
           {renderEyeIcon()}
           {renderSpeedTestIcon()}
           {renderFolderIcon()}
@@ -258,6 +688,8 @@ const ControlPanel = ({
           </div>
         </div>
       </div>
+
+      {renderProxyConfigModal()}
 
       <style>{`
         @keyframes loading-shimmer {
