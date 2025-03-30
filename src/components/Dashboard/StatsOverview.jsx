@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
 import '../../assets/css/stats-overview.css';
+import IPService from '../../services/ip/IPService';
 
 // 流量数据缓存
 const trafficData = {
@@ -38,6 +39,7 @@ const StatsOverview = ({ apiAddress }) => {
   const [appTraffic, setAppTraffic] = useState([]);
   const [totalTraffic, setTotalTraffic] = useState({ up: 0, down: 0 });
   const [cumulativeTraffic, setCumulativeTraffic] = useState({ up: 0, down: 0 });
+  const [ipLocation, setIpLocation] = useState(''); // 添加IP地理位置状态
   
   const trafficChartRef = useRef(null);
   const trafficChartInstance = useRef(null);
@@ -292,6 +294,35 @@ const StatsOverview = ({ apiAddress }) => {
       }
     } catch (error) {
       console.error('获取应用流量数据失败:', error);
+    }
+  };
+  
+  // 获取IP地理位置信息
+  const fetchIpLocation = async (retryCount = 0) => {
+    try {
+      const locationString = await IPService.getLocationString();
+      if (locationString && locationString !== '未知位置' && !locationString.includes('未知')) {
+        setIpLocation(locationString);
+        return;
+      }
+      
+      // 如果获取失败或结果不完整，且重试次数小于3，则重试
+      if (retryCount < 3) {
+        console.log(`IP地理位置信息不完整，${retryCount + 1}秒后重试...`);
+        setTimeout(() => fetchIpLocation(retryCount + 1), (retryCount + 1) * 1000);
+      } else {
+        console.error('多次获取IP地理位置失败');
+        setIpLocation('未能获取出口IP位置信息');
+      }
+    } catch (error) {
+      console.error('获取IP地理位置失败:', error);
+      // 如果获取失败且重试次数小于3，则重试
+      if (retryCount < 3) {
+        console.log(`获取IP地理位置失败，${retryCount + 1}秒后重试...`);
+        setTimeout(() => fetchIpLocation(retryCount + 1), (retryCount + 1) * 1000);
+      } else {
+        setIpLocation('未能获取出口IP位置信息');
+      }
     }
   };
   
@@ -646,6 +677,26 @@ const StatsOverview = ({ apiAddress }) => {
     fetchTrafficData();
     testLatency();
     
+    // 获取IP地理位置信息
+    fetchIpLocation();
+    
+    // 监听内核状态变化
+    let statusListener = null;
+    if (window.electron && window.electron.singbox) {
+      // 监听内核退出事件，内核退出后清空IP地理位置信息
+      statusListener = window.electron.singbox.onExit(() => {
+        setIpLocation('');
+      });
+      
+      // 检查当前内核是否正在运行，如果正在运行则获取IP地理位置
+      window.electron.singbox.getStatus().then(status => {
+        if (status.isRunning) {
+          // 给内核一点时间建立连接后再检查IP
+          setTimeout(fetchIpLocation, 2000);
+        }
+      });
+    }
+    
     // 组件卸载时清理
     return () => {
       clearInterval(latencyTimer);
@@ -657,8 +708,34 @@ const StatsOverview = ({ apiAddress }) => {
       if (gaugeChartInstance.current) {
         gaugeChartInstance.current.dispose();
       }
+      
+      if (statusListener) {
+        statusListener();
+      }
     };
   }, [apiAddress]);
+  
+  // 添加内核启动后的IP检测
+  useEffect(() => {
+    // 监听内核启动事件
+    if (window.electron && window.electron.singbox) {
+      // 订阅内核输出事件，通过检测内核输出判断内核是否启动成功
+      const outputListener = window.electron.singbox.onOutput(data => {
+        // 当内核输出包含启动成功的信息时，获取IP地理位置
+        if (data && typeof data === 'string' && 
+            (data.includes('server started') || data.includes('starting tun interface'))) {
+          // 延迟几秒钟等待连接稳定
+          setTimeout(fetchIpLocation, 3000);
+        }
+      });
+      
+      return () => {
+        if (outputListener) {
+          outputListener();
+        }
+      };
+    }
+  }, []);
   
   return (
     <div id="stats-overview-container" className="stats-overview-container">
@@ -675,6 +752,13 @@ const StatsOverview = ({ apiAddress }) => {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
           </div>
+          
+          {/* IP地理位置信息 */}
+          {ipLocation && (
+            <div id="ip-location" className="ip-location">
+              <span>IP: {ipLocation}</span>
+            </div>
+          )}
           
           {/* 监控指标行 - 水平排列 */}
           <div id="metrics-row" className="metrics-row">

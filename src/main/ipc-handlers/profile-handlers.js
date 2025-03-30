@@ -164,76 +164,6 @@ function setup() {
     }
   });
   
-  // 导出配置文件
-  ipcMain.handle('exportProfile', async (event, fileName) => {
-    try {
-      const configDir = utils.getConfigDir();
-      const filePath = path.join(configDir, fileName);
-      
-      if (!fs.existsSync(filePath)) {
-        return { success: false, error: '文件不存在' };
-      }
-      
-      const { app } = require('electron');
-      const saveDialog = await dialog.showSaveDialog({
-        title: '导出配置文件',
-        defaultPath: path.join(app.getPath('downloads'), fileName),
-        filters: [
-          { name: '配置文件', extensions: ['json', 'yaml', 'yml', 'config'] },
-          { name: '所有文件', extensions: ['*'] }
-        ]
-      });
-      
-      if (saveDialog.canceled) {
-        return { success: false, error: '用户取消' };
-      }
-      
-      fs.copyFileSync(filePath, saveDialog.filePath);
-      return { success: true };
-    } catch (error) {
-      logger.error(`导出配置文件失败: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  });
-  
-  // 重命名配置文件
-  ipcMain.handle('renameProfile', async (event, { oldName, newName }) => {
-    try {
-      const configDir = utils.getConfigDir();
-      const oldPath = path.join(configDir, oldName);
-      const newPath = path.join(configDir, newName);
-      
-      if (!fs.existsSync(oldPath)) {
-        return { success: false, error: '原文件不存在' };
-      }
-      
-      if (fs.existsSync(newPath)) {
-        return { success: false, error: '新文件名已存在' };
-      }
-      
-      fs.renameSync(oldPath, newPath);
-      
-      // 更新meta.cache
-      const metaCache = utils.readMetaCache();
-      if (metaCache[oldName]) {
-        metaCache[newName] = metaCache[oldName];
-        delete metaCache[oldName];
-        utils.writeMetaCache(metaCache);
-      }
-      
-      // 触发配置文件变更事件
-      const mainWindow = utils.getMainWindow();
-      if (mainWindow) {
-        mainWindow.webContents.send('profiles-changed');
-      }
-      
-      return { success: true };
-    } catch (error) {
-      logger.error(`重命名配置文件失败: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  });
-  
   // 删除配置文件
   ipcMain.handle('deleteProfile', async (event, fileName) => {
     try {
@@ -302,23 +232,31 @@ function setup() {
   });
   
   // 配置文件变更事件处理
+  const profileChangedHandler = (webContents) => {
+    if (!webContents.isDestroyed()) {
+      webContents.send('profiles-changed');
+    }
+  };
+
   ipcMain.on('profiles-changed-listen', (event) => {
     const webContents = event.sender;
     
-    // 移除旧的监听器，防止重复
-    ipcMain.removeListener('profiles-changed-notify', () => {});
+    // 先移除该 webContents 可能存在的旧监听器
+    ipcMain.removeAllListeners('profiles-changed-notify');
     
     // 添加新的监听器
-    ipcMain.on('profiles-changed-notify', () => {
-      if (!webContents.isDestroyed()) {
-        webContents.send('profiles-changed');
-      }
+    const handler = () => profileChangedHandler(webContents);
+    ipcMain.on('profiles-changed-notify', handler);
+    
+    // 当 webContents 被销毁时自动清理监听器
+    webContents.on('destroyed', () => {
+      ipcMain.removeListener('profiles-changed-notify', handler);
     });
   });
   
   // 移除配置文件变更监听
   ipcMain.on('profiles-changed-unlisten', () => {
-    ipcMain.removeListener('profiles-changed-notify', () => {});
+    ipcMain.removeAllListeners('profiles-changed-notify');
   });
 
   // 获取用户配置

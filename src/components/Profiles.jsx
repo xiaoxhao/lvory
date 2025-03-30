@@ -153,53 +153,6 @@ const Profiles = () => {
     });
   };
 
-  // 处理导出文件
-  const handleExport = (fileName) => {
-    closeDropdown();
-    if (window.electron && window.electron.exportProfile) {
-      window.electron.exportProfile(fileName)
-        .then(result => {
-          if (result.success) {
-            showMessage(`Successfully exported file: ${fileName}`);
-          } else {
-            showMessage(`Export failed: ${result.error || 'Unknown error'}`);
-          }
-        })
-        .catch(error => {
-          showMessage(`Export error: ${error.message || 'Unknown error'}`);
-        });
-    }
-  };
-
-  // 处理重命名文件
-  const handleRename = (oldName) => {
-    closeDropdown();
-    const newName = prompt('Enter new filename:', oldName);
-    if (newName && newName !== oldName) {
-      if (window.electron && window.electron.renameProfile) {
-        window.electron.renameProfile({ oldName, newName })
-          .then(result => {
-            if (result.success) {
-              // 更新文件列表
-              setProfileFiles(prev => 
-                prev.map(file => file.name === oldName ? { ...file, name: newName } : file)
-              );
-              // 如果重命名的是当前活跃的配置文件，更新activeProfile
-              if (activeProfile === oldName) {
-                setActiveProfile(newName);
-              }
-              showMessage(`Successfully renamed file: ${oldName} to ${newName}`);
-            } else {
-              showMessage(`Rename failed: ${result.error || 'Unknown error'}`);
-            }
-          })
-          .catch(error => {
-            showMessage(`Rename error: ${error.message || 'Unknown error'}`);
-          });
-      }
-    }
-  };
-
   // 处理编辑文件
   const handleEdit = (fileName) => {
     closeDropdown();
@@ -357,7 +310,7 @@ const Profiles = () => {
                           borderRadius: '3px',
                           fontWeight: 'normal'
                         }}>
-                          已失效
+                          Expired
                         </span>
                       )}
                       {activeProfile === file.name && <span className="active-label">ACTIVE</span>}
@@ -388,24 +341,10 @@ const Profiles = () => {
                           </button>
                           <button 
                             className="dropdown-item"
-                            onClick={() => handleRename(file.name)}
-                          >
-                            <span className="dropdown-icon rename-icon"></span>
-                            <span>Rename</span>
-                          </button>
-                          <button 
-                            className="dropdown-item"
                             onClick={() => handleEdit(file.name)}
                           >
                             <span className="dropdown-icon edit-icon"></span>
                             <span>Edit</span>
-                          </button>
-                          <button 
-                            className="dropdown-item"
-                            onClick={() => handleExport(file.name)}
-                          >
-                            <span className="dropdown-icon export-icon"></span>
-                            <span>Export</span>
                           </button>
                           <button 
                             className="dropdown-item"

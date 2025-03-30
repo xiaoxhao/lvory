@@ -28,7 +28,6 @@ class SettingsManager {
       
       // 高级设置
       animationEffect: true,
-      gpuAcceleration: false,
       kernelWatchdog: true,
       usePrivateProtocol: false,
       logRotationPeriod: 7,
