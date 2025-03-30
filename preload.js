@@ -1,6 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
+  // 窗口管理 - 新API
+  window: {
+    control: (action) => ipcRenderer.send('window.control', { action }),
+    action: (type) => ipcRenderer.invoke('window.action', { type })
+  },
+  
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
   closeWindow: () => ipcRenderer.send('window-close'),
@@ -79,12 +85,6 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('profile-updated', (event, data) => callback(data));
     return () => ipcRenderer.removeListener('profile-updated', callback);
   },
-  
-  // 导出配置文件
-  exportProfile: (fileName) => ipcRenderer.invoke('exportProfile', fileName),
-  
-  // 重命名配置文件
-  renameProfile: (data) => ipcRenderer.invoke('renameProfile', data),
   
   // 删除配置文件
   deleteProfile: (fileName) => ipcRenderer.invoke('deleteProfile', fileName),

@@ -10,6 +10,8 @@ const trayManager = require('./src/main/tray');
 
 // 初始化IPC处理程序和配置管理器，这些是必须优先加载的模块
 let ipcHandlers = require('./src/main/ipc-handlers');
+// 新的IPC系统
+let newIpcSystem = require('./src/main/ipc');
 let profileManager = require('./src/main/profile-manager');
 // 懒加载其他非核心模块
 let singbox;
@@ -95,8 +97,9 @@ const initSettingsManager = () => {
 
 // 恢复上次代理状态
 const restoreProxyState = async () => {
-  // 如果不是第一个实例且不在开发模式，不恢复代理状态
-  if (!isFirstInstance && !isDev) return;
+  // 如果不是第一个实例不恢复代理状态
+  if (!isFirstInstance) return;
+  if (isDev) return;
   
   try {
     const sb = initSingBox();
@@ -147,6 +150,9 @@ const restoreProxyState = async () => {
 const setupApp = () => {
   // 设置IPC处理程序
   ipcHandlers.setupHandlers();
+  
+  // 设置新的IPC系统
+  newIpcSystem.setup();
   
   // 初始化配置管理器
   profileManager.getConfigPath();
@@ -218,6 +224,10 @@ app.on('window-all-closed', (e) => {
 // 设置退出前清理
 app.on('before-quit', () => {
   global.isQuitting = true;
+  // 清理新的IPC系统
+  if (newIpcSystem) {
+    newIpcSystem.cleanup();
+  }
 });
 
 app.on('activate', () => {

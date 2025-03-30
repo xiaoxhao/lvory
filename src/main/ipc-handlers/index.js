@@ -6,7 +6,6 @@ const { ipcMain } = require('electron');
 const logger = require('../../utils/logger');
 
 // 加载所有处理程序模块
-let windowHandlers;
 let profileHandlers; 
 let singboxHandlers;
 let downloadHandlers;
@@ -21,8 +20,8 @@ const HANDLERS_TO_REMOVE = [
   // 配置相关
   'get-config-path', 'set-config-path', 'open-config-dir',
   // 配置文件相关
-  'get-profile-data', 'getProfileFiles', 'exportProfile', 'renameProfile', 
-  'deleteProfile', 'openFileInEditor', 'openConfigDir', 'getProfileMetadata', 
+  'get-profile-data', 'getProfileFiles', 'deleteProfile', 
+  'openFileInEditor', 'openConfigDir', 'getProfileMetadata', 
   'updateProfile', 'updateAllProfiles', 'profiles-changed-listen', 
   'profiles-changed-unlisten',
   // Singbox相关
@@ -31,8 +30,8 @@ const HANDLERS_TO_REMOVE = [
   'singbox-format-config', 'singbox-download-core', 'singbox-run', 'singbox-stop',
   // 下载相关
   'download-core', 'download-profile',
-  // 窗口相关
-  'show-window', 'quit-app',
+  // 窗口相关 - 已迁移到新的IPC系统
+  'show-window', 'quit-app', 'window-minimize', 'window-maximize', 'window-close',
   // 日志相关
   'get-log-history', 'clear-logs',
   // 设置相关
@@ -75,8 +74,7 @@ function setupHandlers() {
   }
   
   try {
-    // 加载所有处理程序模块
-    windowHandlers = loadHandlerModule('window');
+    // 加载所有处理程序模块 (window-handlers已移除，使用新的IPC系统)
     profileHandlers = loadHandlerModule('profile');
     singboxHandlers = loadHandlerModule('singbox');
     downloadHandlers = loadHandlerModule('download');
@@ -85,7 +83,6 @@ function setupHandlers() {
     nodeHistoryHandlers = loadHandlerModule('node-history');
     
     // 设置所有处理程序
-    if (windowHandlers) windowHandlers.setup();
     if (profileHandlers) profileHandlers.setup();
     if (singboxHandlers) singboxHandlers.setup();
     if (downloadHandlers) downloadHandlers.setup();

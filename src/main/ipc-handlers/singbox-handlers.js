@@ -94,14 +94,16 @@ function setup() {
         enableSystemProxy: proxyConfig.enableSystemProxy
       });
       
-      // 成功启动后保存状态
-      if (result.success) {
+      // 成功启动后保存状态，但在开发模式下不保存
+      if (result.success && process.env.NODE_ENV !== 'development') {
         try {
           await singbox.saveState();
           logger.info('已保存sing-box状态');
         } catch (err) {
           logger.error('保存sing-box状态失败:', err);
         }
+      } else if (result.success) {
+        logger.info('开发模式下不保存sing-box状态');
       }
       
       return result;

@@ -185,7 +185,8 @@ const SettingsContent = ({ section }) => {
     usePrivateProtocol: false,
     logRotationPeriod: 7,
     extraLogSaving: false,
-    language: 'zh_CN'
+    language: 'zh_CN',
+    nodeIPDetailAPI: 'ip.sb',
   });
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const [isResetButtonHovered, setIsResetButtonHovered] = useState(false);
@@ -249,7 +250,8 @@ const SettingsContent = ({ section }) => {
                 usePrivateProtocol: result.config.settings.use_private_protocol || false,
                 logRotationPeriod: result.config.settings.log_rotation_period || 7,
                 extraLogSaving: result.config.settings.extra_log_saving || false,
-                language: result.config.settings.language || 'zh_CN'
+                language: result.config.settings.language || 'zh_CN',
+                nodeIPDetailAPI: result.config.settings.node_ip_detail_api || 'ip.sb',
               }));
             }
           }
@@ -361,6 +363,9 @@ const SettingsContent = ({ section }) => {
       case 'keepNodeTrafficHistory':
         newUserConfig.settings.keep_node_traffic_history = value;
         break;
+      case 'nodeIPDetailAPI':
+        newUserConfig.settings.node_ip_detail_api = value;
+        break;
       // 其他可能的映射...
     }
 
@@ -439,7 +444,8 @@ const SettingsContent = ({ section }) => {
               usePrivateProtocol: result.config.settings.use_private_protocol || false,
               logRotationPeriod: result.config.settings.log_rotation_period || 7,
               extraLogSaving: result.config.settings.extra_log_saving || false,
-              language: result.config.settings.language || 'zh_CN'
+              language: result.config.settings.language || 'zh_CN',
+              nodeIPDetailAPI: result.config.settings.node_ip_detail_api || 'ip.sb',
             }));
           }
           
@@ -596,18 +602,6 @@ const SettingsContent = ({ section }) => {
                   marginLeft: '2px'
                 }}>
                   Enable or disable animation effects in the interface (e.g. sci-fi background in node details)
-                </p>
-
-                {/* GPU硬件加速 */}
-                {renderToggle('GPU Hardware Acceleration', 'gpuAcceleration', settings.gpuAcceleration)}
-                <p style={{ 
-                  fontSize: '12px', 
-                  color: '#64748b', 
-                  marginTop: '-12px', 
-                  marginBottom: '20px',
-                  marginLeft: '2px'
-                }}>
-                  Enable GPU acceleration for better performance (requires restart)
                 </p>
 
                 {/* 语言选择 */}
@@ -772,6 +766,21 @@ const SettingsContent = ({ section }) => {
                 <p style={styles.description}>
                   Configure node monitoring and management settings
                 </p>
+
+                {/* IP Details API Selection */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={styles.label}>IP Details API</label>
+                  <select
+                    value={settings.nodeIPDetailAPI}
+                    onChange={(e) => handleSettingChange('nodeIPDetailAPI', e.target.value)}
+                    style={{
+                      ...styles.input,
+                      height: '36px'
+                    }}
+                  >
+                    <option value="ip.sb">ip.sb</option>
+                  </select>
+                </div>
 
                 {/* 节点高级监控 */}
                 {renderToggle('Advanced Node Monitoring', 'nodeAdvancedMonitoring', settings.nodeAdvancedMonitoring)}

@@ -823,7 +823,8 @@ class SingBox {
       isRunning: this.isRunning(),
       configPath: this.process?.configPath,
       proxyConfig: this.proxyConfig,
-      lastRunTime: new Date().toISOString()
+      lastRunTime: new Date().toISOString(),
+      isDev: process.env.NODE_ENV === 'development'
     };
     // 懒加载store，避免循环依赖
     const store = require('./store');
@@ -833,9 +834,21 @@ class SingBox {
   // 加载状态
   async loadState() {
     try {
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('[SingBox] 开发模式下不加载状态');
+        return null;
+      }
+      
       // 懒加载store，避免循环依赖
       const store = require('./store');
       const state = await store.get('singbox.state');
+      
+      // 检查是否从开发模式切换到生产模式
+      if (state && state.isDev === true && process.env.NODE_ENV !== 'development') {
+        logger.info('[SingBox] 从开发模式切换到生产模式，不加载之前的状态');
+        return null;
+      }
+      
       return state;
     } catch (error) {
       logger.error(`[SingBox] 加载状态失败: ${error.message}`);

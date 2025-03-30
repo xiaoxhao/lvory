@@ -46,6 +46,15 @@
   font-family: 'Segoe UI', Roboto, Arial, sans-serif;
 }
 
+.ip-location {
+  font-size: 12px;
+  color: #666;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  margin-top: -5px;
+  margin-bottom: 5px;
+  padding-left: 1px;
+}
+
 .metrics-row {
   display: flex;
   justify-content: space-between;
