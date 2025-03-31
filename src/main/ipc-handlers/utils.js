@@ -13,7 +13,7 @@ const windowManager = require('../window');
 function getAppDataDir() {
   // 使用LOCALAPPDATA目录作为数据存储位置
   const appDataDir = process.env.LOCALAPPDATA || '';
-  const appDir = path.join(appDataDir, 'LVORY');
+  const appDir = path.join(appDataDir, 'lvory');
   
   // 确保目录存在
   if (!fs.existsSync(appDir)) {

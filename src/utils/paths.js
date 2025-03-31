@@ -9,7 +9,7 @@ const logger = require('./logger');
  */
 function getAppDataDir() {
   const appDataDir = process.env.LOCALAPPDATA || '';
-  const appDir = path.join(appDataDir, 'LVORY');
+  const appDir = path.join(appDataDir, 'lvory');
   
   if (!fs.existsSync(appDir)) {
     try {
