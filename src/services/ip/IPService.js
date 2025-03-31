@@ -28,7 +28,9 @@ class IPService {
         ip: '未知',
         country: '未知',
         city: '',
-        region: ''
+        region: '',
+        asn: '',
+        organization: ''
       };
     }
   }
@@ -67,6 +69,40 @@ class IPService {
     } catch (error) {
       console.error('获取地理位置字符串失败:', error);
       return '未知位置';
+    }
+  }
+
+  /**
+   * 获取IP的ASN组织信息
+   * @returns {Promise<String>} 格式化的ASN和组织信息
+   */
+  static async getAsnString() {
+    try {
+      const ipInfo = await this.getIPInfo();
+      
+      // 组合ASN和组织信息
+      const asnParts = [];
+      
+      if (ipInfo.ip) {
+        asnParts.push(ipInfo.ip);
+      }
+      
+      const asnInfo = [];
+      if (ipInfo.asn) {
+        asnInfo.push(`ASN: ${ipInfo.asn}`);
+      }
+      if (ipInfo.organization) {
+        asnInfo.push(ipInfo.organization);
+      }
+      
+      if (asnInfo.length > 0) {
+        asnParts.push(`(${asnInfo.join(' | ')})`);
+      }
+      
+      return asnParts.join(' ');
+    } catch (error) {
+      console.error('获取ASN信息失败:', error);
+      return '未知ASN信息';
     }
   }
 }

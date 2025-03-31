@@ -114,19 +114,19 @@ const SystemStatus = () => {
 
   return (
     <div className="system-status-card">
-      <h3>系统状态</h3>
+      <h3>Information</h3>
       
       <div className="status-item">
-        <div className="status-label">程序启动时间</div>
+        <div className="status-label">StartTime</div>
         <div className="status-value">{systemStats.startTime}</div>
       </div>
       
       <div className="status-item">
-        <div className="status-label">内核版本</div>
+        <div className="status-label">KernelVersion</div>
         <div className="status-value-row">
           <div className="status-value">
             {systemStats.coreVersion === 'N/A' ? (
-              <span>未安装</span>
+              <span>Not Installed</span>
             ) : (
               systemStats.coreVersion
             )}
@@ -136,7 +136,7 @@ const SystemStatus = () => {
               onClick={handleCoreDownload}
               className="download-core-btn"
             >
-              下载内核
+              Download Core
             </button>
           )}
           {isDownloadingCore && (
@@ -150,12 +150,12 @@ const SystemStatus = () => {
           <div className="download-error">{coreDownloadError}</div>
         )}
         {coreDownloadSuccess && (
-          <div className="download-success">下载成功</div>
+          <div className="download-success">Download Success</div>
         )}
       </div>
       
       <div className="status-item">
-        <div className="status-label">总节点数</div>
+        <div className="status-label">TotalNodes</div>
         <div className="status-value">{profileData.length} 个</div>
       </div>
     </div>

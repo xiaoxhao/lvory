@@ -285,7 +285,7 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .status-text {
           margin: 8px 0;
           font-size: 14px;

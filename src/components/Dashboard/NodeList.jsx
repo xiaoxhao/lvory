@@ -1,6 +1,127 @@
 import React, { useState, useEffect } from 'react';
 import NodeDetailModal from './NodeDetailModal';
 
+// 新增 NodeCard 组件
+const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
+  const getNodeTypeColor = (type) => {
+    switch (type) {
+      case 'direct': return '#47c9a2';
+      case 'shadowsocks': return '#f7b731';
+      case 'vmess': return '#7166f9';
+      case 'trojan': return '#ff5e62';
+      default: return '#abb3c0';
+    }
+  };
+
+  return (
+    <div 
+      className="profile-tag-card" 
+      style={{ 
+        backgroundColor: '#ffffff', 
+        border: '1px solid #d9dde3', 
+        borderRadius: '6px', 
+        padding: '12px', 
+        width: 'calc(25% - 12px)',
+        margin: '0 0 8px 0',
+        display: 'flex', 
+        flexDirection: 'column', 
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+      }}
+      onClick={onClick}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = '#b3b7bd';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#d9dde3';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      {testResults[profile.tag] && (
+        <div style={{
+          position: 'absolute',
+          top: '8px',
+          right: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          fontSize: '11px',
+          fontWeight: '500',
+          backgroundColor: 'rgba(245, 245, 247, 0.85)',
+          padding: '2px 6px',
+          borderRadius: '12px',
+          backdropFilter: 'blur(2px)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          border: '1px solid rgba(230, 230, 235, 0.9)'
+        }}>
+          <span style={{
+            display: 'inline-block',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: testResults[profile.tag] === 'timeout' ? '#e74c3c' : 
+                            (testResults[profile.tag] < 100 ? '#2ecc71' : 
+                             testResults[profile.tag] < 200 ? '#f39c12' : 
+                             testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c')
+          }}></span>
+          <span style={{
+            color: testResults[profile.tag] === 'timeout' ? '#e74c3c' : 
+                   (testResults[profile.tag] < 100 ? '#2ecc71' : 
+                    testResults[profile.tag] < 200 ? '#f39c12' : 
+                    testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c'),
+            fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+            letterSpacing: '0.2px',
+            fontWeight: '600'
+          }}>
+            {testResults[profile.tag] === 'timeout' ? '超时' : `${testResults[profile.tag]}ms`}
+          </span>
+        </div>
+      )}
+      <div style={{ 
+        fontWeight: '600', 
+        fontSize: '14px', 
+        marginBottom: '6px', 
+        color: '#2e3b52',
+        fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+      }}>
+        {privateMode ? '********' : (profile.tag || 'Unknown')}
+      </div>
+      <div style={{ 
+        fontSize: '12px', 
+        color: '#505a6b',
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <span style={{ 
+          display: 'inline-block',
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: getNodeTypeColor(profile.type),
+          marginRight: '6px'
+        }}></span>
+        {profile.type || 'Unknown'}
+      </div>
+      <div style={{
+        fontSize: '11px',
+        color: '#505a6b',
+        marginTop: '4px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
+      }}>
+        {privateMode ? '********' : (profile.server || 'N/A')}
+      </div>
+    </div>
+  );
+};
+
 const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onToggleExpandedView }) => {
   const [ruleSets, setRuleSets] = useState([]);
   const [selectedTab, setSelectedTab] = useState('nodes'); // 'nodes' 或 'rules'
@@ -165,7 +286,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     setShowNodeDetail(false);
   };
 
-  // 渲染节点卡片
+  // 修改 renderNodes 函数
   const renderNodes = () => {
     const filteredNodes = getFilteredNodes();
     
@@ -180,116 +301,13 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             width: '100%'
           }}>
             {filteredNodes.map((profile, index) => (
-              <div 
-                key={index} 
-                className="profile-tag-card" 
-                style={{ 
-                  backgroundColor: '#ffffff', 
-                  border: '1px solid #d9dde3', 
-                  borderRadius: '6px', 
-                  padding: '12px', 
-                  width: 'calc(25% - 12px)',
-                  margin: '0 0 8px 0',
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  transition: 'all 0.2s ease',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-                }}
+              <NodeCard
+                key={index}
+                profile={profile}
+                testResults={testResults}
+                privateMode={privateMode}
                 onClick={() => openNodeDetail(profile)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#b3b7bd';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#d9dde3';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                {/* 测速结果 - 右上角显示 */}
-                {testResults[profile.tag] && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '11px',
-                    fontWeight: '500',
-                    backgroundColor: 'rgba(245, 245, 247, 0.85)',
-                    padding: '2px 6px',
-                    borderRadius: '12px',
-                    backdropFilter: 'blur(2px)',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                    border: '1px solid rgba(230, 230, 235, 0.9)'
-                  }}>
-                    <span style={{
-                      display: 'inline-block',
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: testResults[profile.tag] === 'timeout' ? '#e74c3c' : 
-                                      (testResults[profile.tag] < 100 ? '#2ecc71' : 
-                                       testResults[profile.tag] < 200 ? '#f39c12' : 
-                                       testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c')
-                    }}></span>
-                    <span style={{
-                      color: testResults[profile.tag] === 'timeout' ? '#e74c3c' : 
-                             (testResults[profile.tag] < 100 ? '#2ecc71' : 
-                              testResults[profile.tag] < 200 ? '#f39c12' : 
-                              testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c'),
-                      fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
-                      letterSpacing: '0.2px',
-                      fontWeight: '600'
-                    }}>
-                      {testResults[profile.tag] === 'timeout' ? '超时' : `${testResults[profile.tag]}ms`}
-                    </span>
-                  </div>
-                )}
-                <div style={{ 
-                  fontWeight: '600', 
-                  fontSize: '14px', 
-                  marginBottom: '6px', 
-                  color: '#2e3b52',
-                  fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-                }}>
-                  {privateMode ? '********' : (profile.tag || 'Unknown')}
-                </div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#505a6b',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  <span style={{ 
-                    display: 'inline-block',
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: profile.type === 'direct' ? '#47c9a2' : 
-                                     profile.type === 'shadowsocks' ? '#f7b731' : 
-                                     profile.type === 'vmess' ? '#7166f9' : 
-                                     profile.type === 'trojan' ? '#ff5e62' : '#abb3c0',
-                    marginRight: '6px'
-                  }}></span>
-                  {profile.type || 'Unknown'}
-                </div>
-                <div style={{
-                  fontSize: '11px',
-                  color: '#505a6b',
-                  marginTop: '4px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {privateMode ? '********' : (profile.server || 'N/A')}
-                </div>
-              </div>
+              />
             ))}
           </div>
         ) : (

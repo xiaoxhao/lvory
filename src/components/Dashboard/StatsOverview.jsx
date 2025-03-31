@@ -32,18 +32,30 @@ const currentMinuteData = {
   lastUpdate: null
 };
 
+// 使用ref来存储持久化数据
+const persistentData = {
+  trafficData,
+  latencyData,
+  aggregatedLatencyData,
+  currentMinuteData,
+  cumulativeTraffic: { up: 0, down: 0 }
+};
+
 const StatsOverview = ({ apiAddress }) => {
   const [latency, setLatency] = useState(0);
-  const [packetLoss, setPacketLoss] = useState(0); // 添加丢包率状态
+  const [packetLoss, setPacketLoss] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState('connected');
   const [totalTraffic, setTotalTraffic] = useState({ up: 0, down: 0 });
-  const [cumulativeTraffic, setCumulativeTraffic] = useState({ up: 0, down: 0 });
-  const [ipLocation, setIpLocation] = useState(''); // 添加IP地理位置状态
+  const [cumulativeTraffic, setCumulativeTraffic] = useState(persistentData.cumulativeTraffic);
+  const [ipLocation, setIpLocation] = useState('');
+  const [showAsnInfo, setShowAsnInfo] = useState(false);
+  const [asnInfo, setAsnInfo] = useState('');
   
   const trafficChartRef = useRef(null);
   const trafficChartInstance = useRef(null);
   const gaugeChartRef = useRef(null);
   const gaugeChartInstance = useRef(null);
+  const isInitialized = useRef(false);
   
   // 使用一个计数器来记录成功和失败次数，计算丢包率
   const pingCounter = useRef({ total: 0, failed: 0 });
@@ -204,14 +216,13 @@ const StatsOverview = ({ apiAddress }) => {
               const data = JSON.parse(chunk);
               
               // 更新流量数据数组 (FIFO)
-              trafficData.upload.shift();
-              trafficData.download.shift();
-              trafficData.timestamps.shift();
+              persistentData.trafficData.upload.shift();
+              persistentData.trafficData.download.shift();
+              persistentData.trafficData.timestamps.shift();
               
-              // 添加新数据
-              trafficData.upload.push(data.up / 1024); // 转换为KB
-              trafficData.download.push(data.down / 1024); // 转换为KB
-              trafficData.timestamps.push(new Date().toLocaleTimeString('en-US', { hour12: false }));
+              persistentData.trafficData.upload.push(data.up / 1024);
+              persistentData.trafficData.download.push(data.down / 1024);
+              persistentData.trafficData.timestamps.push(new Date().toLocaleTimeString('en-US', { hour12: false }));
               
               // 更新总流量
               setTotalTraffic({
@@ -220,10 +231,12 @@ const StatsOverview = ({ apiAddress }) => {
               });
               
               // 更新累计流量
-              setCumulativeTraffic(prev => ({
-                up: prev.up + data.up,
-                down: prev.down + data.down
-              }));
+              persistentData.cumulativeTraffic.up += data.up;
+              persistentData.cumulativeTraffic.down += data.down;
+              setCumulativeTraffic({
+                up: persistentData.cumulativeTraffic.up,
+                down: persistentData.cumulativeTraffic.down
+              });
               
               // 更新图表
               updateTrafficChart();
@@ -239,14 +252,11 @@ const StatsOverview = ({ apiAddress }) => {
         }
       };
       
-      // 开始处理流
       processStream();
       
     } catch (error) {
-      console.error('获取流量数据失败:', error);
-      // 如果获取失败，设置断开连接状态
+      console.error('Get traffic data failed:', error);
       setConnectionStatus('disconnected');
-      // 尝试重新连接
       setTimeout(fetchTrafficData, 3000);
     }
   };
@@ -255,27 +265,36 @@ const StatsOverview = ({ apiAddress }) => {
   const fetchIpLocation = async (retryCount = 0) => {
     try {
       const locationString = await IPService.getLocationString();
-      if (locationString && locationString !== '未知位置' && !locationString.includes('未知')) {
+      const asnString = await IPService.getAsnString();
+      
+      // 检查返回的位置信息是否有效
+      const isValidLocation = locationString && 
+                            locationString !== 'Unknown' && 
+                            !locationString.includes('Unknown');
+      
+      if (isValidLocation) {
         setIpLocation(locationString);
+        setAsnInfo(asnString);
         return;
       }
       
-      // 如果获取失败或结果不完整，且重试次数小于3，则重试
-      if (retryCount < 3) {
-        console.log(`IP地理位置信息不完整，${retryCount + 1}秒后重试...`);
-        setTimeout(() => fetchIpLocation(retryCount + 1), (retryCount + 1) * 1000);
-      } else {
-        console.error('多次获取IP地理位置失败');
-        setIpLocation('未能获取出口IP位置信息');
-      }
+      throw new Error('无效的位置信息');
+      
     } catch (error) {
-      console.error('获取IP地理位置失败:', error);
-      // 如果获取失败且重试次数小于3，则重试
+      const errorMsg = error.message === '无效的位置信息' 
+        ? 'IP地理位置信息不完整' 
+        : 'IP地理位置获取失败';
+      
+      console.error(`${errorMsg}:`, error);
+      
+      // 如果重试次数小于3，则重试
       if (retryCount < 3) {
-        console.log(`获取IP地理位置失败，${retryCount + 1}秒后重试...`);
-        setTimeout(() => fetchIpLocation(retryCount + 1), (retryCount + 1) * 1000);
+        const nextRetryDelay = (retryCount + 1) * 1000;
+        console.log(`${errorMsg}，${retryCount + 1}秒后重试...`);
+        setTimeout(() => fetchIpLocation(retryCount + 1), nextRetryDelay);
       } else {
-        setIpLocation('未能获取出口IP位置信息');
+        setIpLocation('Failed to get exit IP location information');
+        setAsnInfo('');
       }
     }
   };
@@ -618,21 +637,27 @@ const StatsOverview = ({ apiAddress }) => {
     return { value, unit: units[unitIndex] };
   };
   
+  // 处理IP信息点击事件，切换显示内容
+  const handleIpInfoClick = () => {
+    setShowAsnInfo(!showAsnInfo);
+  };
+  
   // 组件挂载时初始化
   useEffect(() => {
-    // 初始化图表
+    // 避免重复初始化
+    if (isInitialized.current) {
+      return;
+    }
+    isInitialized.current = true;
+
     initTrafficChart();
     initGaugeChart();
     
-    // 设置延迟测试定时器（3分钟一次）
     const latencyTimer = setInterval(testLatency, 180000);
     
     // 首次获取数据
     fetchTrafficData();
     testLatency();
-    
-    // 获取IP地理位置信息
-    fetchIpLocation();
     
     // 监听内核状态变化
     let statusListener = null;
@@ -640,11 +665,12 @@ const StatsOverview = ({ apiAddress }) => {
       // 监听内核退出事件，内核退出后清空IP地理位置信息
       statusListener = window.electron.singbox.onExit(() => {
         setIpLocation('');
+        setAsnInfo('');
       });
       
       // 检查当前内核是否正在运行，如果正在运行则获取IP地理位置
       window.electron.singbox.getStatus().then(status => {
-        if (status.isRunning) {
+        if (status.isRunning && !ipLocation) {
           // 给内核一点时间建立连接后再检查IP
           setTimeout(fetchIpLocation, 2000);
         }
@@ -673,20 +699,29 @@ const StatsOverview = ({ apiAddress }) => {
   useEffect(() => {
     // 监听内核启动事件
     if (window.electron && window.electron.singbox) {
-      // 订阅内核输出事件，通过检测内核输出判断内核是否启动成功
-      const outputListener = window.electron.singbox.onOutput(data => {
-        // 当内核输出包含启动成功的信息时，获取IP地理位置
-        if (data && typeof data === 'string' && 
-            (data.includes('server started') || data.includes('starting tun interface'))) {
-          // 延迟几秒钟等待连接稳定
-          setTimeout(fetchIpLocation, 3000);
+      let prevStatus = false;
+      
+      // 定期检查内核状态
+      const checkStatus = async () => {
+        try {
+          const status = await window.electron.singbox.getStatus();
+          if (!prevStatus && status.isRunning) {
+            setTimeout(fetchIpLocation, 3000);
+          }
+          prevStatus = status.isRunning;
+        } catch (error) {
+          console.error('获取内核状态失败:', error);
         }
-      });
+      };
+
+      // 每5秒检查一次状态
+      const statusInterval = setInterval(checkStatus, 5000);
+      
+      // 初始检查一次
+      checkStatus();
       
       return () => {
-        if (outputListener) {
-          outputListener();
-        }
+        clearInterval(statusInterval);
       };
     }
   }, []);
@@ -708,9 +743,14 @@ const StatsOverview = ({ apiAddress }) => {
           </div>
           
           {/* IP地理位置信息 */}
-          {ipLocation && (
-            <div id="ip-location" className="ip-location">
-              <span>IP：{ipLocation}</span>
+          {(ipLocation || asnInfo) && (
+            <div 
+              id="ip-location" 
+              className="ip-location" 
+              onClick={handleIpInfoClick}
+              style={{ cursor: 'pointer' }}
+            >
+              <span>IP：{showAsnInfo && asnInfo ? asnInfo : ipLocation}</span>
             </div>
           )}
           

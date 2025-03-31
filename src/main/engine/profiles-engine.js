@@ -289,11 +289,10 @@ function createOrUpdatePath(config, path, value, options = {}) {
       if (lastToken) parent[lastToken] = current;
     }
     
-    // 查找或创建符合条件的元素
+    // 查找符合条件的元素
     let matchingElement = current.find(item => item[condition.field] === condition.value);
     if (!matchingElement) {
-      matchingElement = { [condition.field]: condition.value };
-      current.push(matchingElement);
+      return config; // 如果找不到匹配元素，返回原始配置
     }
     
     // 根据 conflict_strategy 处理冲突
@@ -304,6 +303,7 @@ function createOrUpdatePath(config, path, value, options = {}) {
       Object.keys(value).forEach(key => {
         matchingElement[key] = value[key];
       });
+      
     }
     
     return config;
