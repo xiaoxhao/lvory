@@ -101,6 +101,7 @@
   background-color: #fdfdfd;
   font-family: monospace;
   font-size: 13px;
+  user-select: text;
 }
 
 .no-logs {
@@ -118,6 +119,7 @@
   border-bottom: 1px solid #f0f2f5;
   line-height: 1.4;
   align-items: baseline;
+  user-select: text;
 }
 
 .log-item:last-child {
@@ -132,24 +134,28 @@
   flex: 0 0 100px;
   color: #6e7781;
   font-size: 12px;
+  user-select: text;
 }
 
 .log-level {
   flex: 0 0 60px;
   font-weight: 600;
   margin-right: 8px;
+  user-select: text;
 }
 
 .log-type {
   flex: 0 0 100px;
   color: #24292e;
   margin-right: 12px;
+  user-select: text;
 }
 
 .log-message {
   flex: 1;
   word-break: break-word;
   color: #24292e;
+  user-select: text;
 }
 
 /* 日志级别样式 */

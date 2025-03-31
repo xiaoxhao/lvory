@@ -36,7 +36,6 @@ const StatsOverview = ({ apiAddress }) => {
   const [latency, setLatency] = useState(0);
   const [packetLoss, setPacketLoss] = useState(0); // 添加丢包率状态
   const [connectionStatus, setConnectionStatus] = useState('connected');
-  const [appTraffic, setAppTraffic] = useState([]);
   const [totalTraffic, setTotalTraffic] = useState({ up: 0, down: 0 });
   const [cumulativeTraffic, setCumulativeTraffic] = useState({ up: 0, down: 0 });
   const [ipLocation, setIpLocation] = useState(''); // 添加IP地理位置状态
@@ -228,9 +227,6 @@ const StatsOverview = ({ apiAddress }) => {
               
               // 更新图表
               updateTrafficChart();
-              
-              // 获取应用流量数据
-              fetchAppTrafficData();
             } catch (parseError) {
               console.error('JSON解析错误:', parseError);
             }
@@ -252,48 +248,6 @@ const StatsOverview = ({ apiAddress }) => {
       setConnectionStatus('disconnected');
       // 尝试重新连接
       setTimeout(fetchTrafficData, 3000);
-    }
-  };
-  
-  // 获取应用流量数据
-  const fetchAppTrafficData = async () => {
-    try {
-      const response = await fetch(`http://${apiAddress}/connections`);
-      const data = await response.json();
-      
-      if (data && Array.isArray(data.connections)) {
-        // 处理应用流量数据
-        const appMap = new Map();
-        
-        data.connections.forEach(conn => {
-          const processName = conn.process || 'unknown';
-          const traffic = conn.upload + conn.download || 0;
-          
-          if (appMap.has(processName)) {
-            const existing = appMap.get(processName);
-            appMap.set(processName, {
-              name: processName,
-              value: existing.value + traffic,
-              totalValue: existing.totalValue + traffic
-            });
-          } else {
-            appMap.set(processName, {
-              name: processName,
-              value: traffic,
-              totalValue: traffic
-            });
-          }
-        });
-        
-        // 转换为数组并排序
-        const appTrafficArray = Array.from(appMap.values());
-        appTrafficArray.sort((a, b) => b.totalValue - a.totalValue);
-        
-        // 更新状态
-        setAppTraffic(appTrafficArray.slice(0, 5)); // 只显示前5个
-      }
-    } catch (error) {
-      console.error('获取应用流量数据失败:', error);
     }
   };
   

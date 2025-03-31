@@ -20,9 +20,9 @@ function getAppDataDir() {
     const appDataDir = process.env.LOCALAPPDATA || '';
     appDir = path.join(appDataDir, 'lvory');
   } else if (process.platform === 'darwin') {
-    // macOS平台 - 使用Library/Application Support目录
+    // macOS平台 - 使用Documents目录
     const homeDir = os.homedir();
-    appDir = path.join(homeDir, 'Library', 'Application Support', 'lvory');
+    appDir = path.join(homeDir, 'Documents', 'lvory');
   } else {
     // Linux平台 - 使用~/.config目录
     const homeDir = os.homedir();
