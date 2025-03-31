@@ -1,3 +1,9 @@
+/* 为 macOS 平台添加特殊样式 */
+.mac-os .window-draggable-area {
+  /* macOS 的拖动区域应避开系统控制按钮 */
+  left: 80px; /* 留出足够的空间给系统控制按钮 */
+}
+
 .app-container {
   display: flex;
   flex-direction: column;

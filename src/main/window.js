@@ -48,7 +48,9 @@ const loadAppContent = () => {
  * @returns {BrowserWindow} 创建的主窗口
  */
 const createWindow = () => {
-  mainWindow = new BrowserWindow({
+  // 确定窗口配置，macOS 下使用系统原生按钮
+  const isMacOS = process.platform === 'darwin';
+  const windowOptions = {
     width: 1080,
     height: 780,
     minWidth: 800,  // 最小宽度限制
@@ -67,9 +69,12 @@ const createWindow = () => {
     },
     resizable: true,
     frame: false,
-    titleBarStyle: 'hidden',
+    titleBarStyle: isMacOS ? 'hiddenInset' : 'hidden', // macOS 使用 hiddenInset 显示原生控制按钮
+    trafficLightPosition: isMacOS ? { x: 10, y: 10 } : undefined, // 调整控制按钮位置
     show: false,
-  });
+  };
+
+  mainWindow = new BrowserWindow(windowOptions);
 
   // 设置主窗口到各个模块
   logger.setMainWindow(mainWindow);
