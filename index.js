@@ -40,7 +40,7 @@ if (!isFirstInstance && !isDev) {
 }
 
 // 启用V8特性
-app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=4096 --optimize-for-size --enable-experimental-webassembly-features');
+app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=4096 --optimize-for-size');
 app.commandLine.appendSwitch('enable-features', 'V8Runtime,V8PerContextHeaps,PartitionedFullCodeCache,V8VmFuture,V8LiftoffForAll');
 app.commandLine.appendSwitch('enable-blink-features', 'JSHeavyAdThrottling');
 
