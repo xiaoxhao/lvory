@@ -46,7 +46,9 @@ const HANDLERS_TO_REMOVE = [
   // 映射引擎相关
   'get-mapping-definition', 'save-mapping-definition', 'apply-config-mapping',
   'get-mapping-definition-path', 'get-default-mapping-definition',
-  'get-protocol-template', 'create-protocol-mapping'
+  'get-protocol-template', 'create-protocol-mapping',
+  // 网络接口相关
+  'get-network-interfaces'
 ];
 
 /**
@@ -82,6 +84,9 @@ function setupHandlers() {
     updateHandlers = loadHandlerModule('update');
     nodeHistoryHandlers = loadHandlerModule('node-history');
     
+    // 导入工具模块
+    const utils = require('./utils');
+    
     // 设置所有处理程序
     if (profileHandlers) profileHandlers.setup();
     if (singboxHandlers) singboxHandlers.setup();
@@ -89,6 +94,9 @@ function setupHandlers() {
     if (settingsHandlers) settingsHandlers.setup();
     if (updateHandlers) updateHandlers.setup();
     if (nodeHistoryHandlers) nodeHistoryHandlers.setup();
+    
+    // 设置网络接口处理程序
+    utils.getNetworkInterfaces();
     
     ipcHandlersRegistered = true;
     logger.info('所有IPC处理程序注册成功');

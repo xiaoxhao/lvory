@@ -179,7 +179,6 @@ const SettingsContent = ({ section }) => {
     backendAddress: '',
     
     // 高级设置
-    animationEffect: true,
     gpuAcceleration: false,
     kernelWatchdog: true,
     usePrivateProtocol: false,
@@ -244,7 +243,6 @@ const SettingsContent = ({ section }) => {
                 backendAddress: result.config.settings.backend_address || '',
                 
                 // 高级设置
-                animationEffect: result.config.settings.animation_effect !== undefined ? result.config.settings.animation_effect : prev.animationEffect,
                 gpuAcceleration: result.config.settings.gpu_acceleration || false,
                 kernelWatchdog: result.config.settings.kernel_watchdog !== undefined ? result.config.settings.kernel_watchdog : prev.kernelWatchdog,
                 usePrivateProtocol: result.config.settings.use_private_protocol || false,
@@ -338,9 +336,6 @@ const SettingsContent = ({ section }) => {
         break;
       case 'backendAddress':
         newUserConfig.settings.backend_address = value;
-        break;
-      case 'animationEffect':
-        newUserConfig.settings.animation_effect = value;
         break;
       case 'gpuAcceleration':
         newUserConfig.settings.gpu_acceleration = value;
@@ -438,7 +433,6 @@ const SettingsContent = ({ section }) => {
               backendAddress: result.config.settings.backend_address || '',
               
               // 高级设置
-              animationEffect: result.config.settings.animation_effect !== undefined ? result.config.settings.animation_effect : prev.animationEffect,
               gpuAcceleration: result.config.settings.gpu_acceleration || false,
               kernelWatchdog: result.config.settings.kernel_watchdog !== undefined ? result.config.settings.kernel_watchdog : prev.kernelWatchdog,
               usePrivateProtocol: result.config.settings.use_private_protocol || false,

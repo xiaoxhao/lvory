@@ -36,6 +36,7 @@ const ControlPanel = ({
     docker: false
   });
   const [copiedState, setCopiedState] = useState({});
+  const [proxyPort, setProxyPort] = useState('7890');
   const [proxyAddress, setProxyAddress] = useState('127.0.0.1:7890');
   const [showNetworkAddresses, setShowNetworkAddresses] = useState(false);
   const [networkAddresses, setNetworkAddresses] = useState([
@@ -48,10 +49,10 @@ const ControlPanel = ({
       window.electron.getNetworkInterfaces().then(interfaces => {
         if (interfaces && interfaces.length > 0) {
           const formattedAddresses = [
-            { label: '本地回环', address: '127.0.0.1:7890' },
+            { label: '本地回环', address: `127.0.0.1:${proxyPort}` },
             ...interfaces.map(iface => ({
               label: `${iface.name || 'Unknown'} (${iface.address})`,
-              address: `${iface.address}:7890`
+              address: `${iface.address}:${proxyPort}`
             }))
           ];
           setNetworkAddresses(formattedAddresses);
@@ -60,7 +61,7 @@ const ControlPanel = ({
         console.error('获取网络接口信息失败:', err);
       });
     }
-  }, []);
+  }, [proxyPort]);
 
   // 复制到剪贴板函数
   const copyToClipboard = (text, id, section) => {
@@ -222,8 +223,36 @@ npm config delete https-proxy`
           borderRadius: '8px',
           padding: '16px'
         }}>
-          <div style={{ marginBottom: '12px', fontWeight: '600', fontSize: '15px' }}>
-            选择代理地址
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: '12px' 
+          }}>
+            <div style={{ fontWeight: '600', fontSize: '15px' }}>
+              选择代理地址
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ marginRight: '8px', fontSize: '14px' }}>端口:</span>
+              <input
+                type="text"
+                value={proxyPort}
+                onChange={(e) => {
+                  const newPort = e.target.value;
+                  setProxyPort(newPort);
+                  // 更新当前选中的地址，保持IP不变，只更新端口
+                  const currentIp = proxyAddress.split(':')[0];
+                  setProxyAddress(`${currentIp}:${newPort}`);
+                }}
+                style={{
+                  width: '60px',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
           </div>
           
           <div style={{ position: 'relative' }}>
@@ -325,7 +354,7 @@ npm config delete https-proxy`
             borderBottom: '1px solid #eee',
             paddingBottom: '16px'
           }}>
-            <h2 style={{ margin: 0, color: '#333', fontSize: '22px', fontWeight: '600' }}>常用软件代理配置方式</h2>
+            <h2 style={{ margin: 0, color: '#333', fontSize: '22px', fontWeight: '600' }}>Common Software Proxy Configuration Methods</h2>
             <div 
               onClick={() => setShowProxyConfigModal(false)}
               style={{ 
@@ -431,7 +460,7 @@ npm config delete https-proxy`
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                               </svg>
                             )}
-                            {copiedState[`${config.id}-${idx}`] ? '已复制' : '复制'}
+                            {copiedState[`${config.id}-${idx}`] ? 'Copied' : 'Copy'}
                           </div>
                         </div>
                         <pre style={{ 

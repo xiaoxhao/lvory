@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('../../utils/logger');
 const windowManager = require('../window');
+const { ipcMain } = require('electron');
+const os = require('os');
 
 /**
  * 获取应用数据目录
@@ -88,10 +90,42 @@ function writeMetaCache(metaCache) {
   }
 }
 
+// 获取本机所有网络接口
+function getNetworkInterfaces() {
+  ipcMain.handle('get-network-interfaces', async () => {
+    try {
+      const networkInterfaces = os.networkInterfaces();
+      const result = [];
+      
+      // 遍历所有网络接口
+      Object.keys(networkInterfaces).forEach(interfaceName => {
+        // 过滤IPv4地址并排除本地回环
+        const interfaces = networkInterfaces[interfaceName]
+          .filter(iface => iface.family === 'IPv4' && !iface.internal);
+        
+        interfaces.forEach(iface => {
+          result.push({
+            name: interfaceName,
+            address: iface.address,
+            netmask: iface.netmask,
+            mac: iface.mac
+          });
+        });
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('获取网络接口信息失败:', error);
+      return [];
+    }
+  });
+}
+
 module.exports = {
   getAppDataDir,
   getConfigDir,
   getMainWindow,
   readMetaCache,
-  writeMetaCache
+  writeMetaCache,
+  getNetworkInterfaces
 }; 

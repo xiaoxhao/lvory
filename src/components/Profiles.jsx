@@ -174,17 +174,39 @@ const Profiles = () => {
       window.electron.updateProfile(fileName)
         .then(result => {
           if (result.success) {
-            showMessage(`成功更新配置文件: ${fileName}`);
+            showMessage(`Successfully updated profile: ${fileName}`);
             loadProfileFiles(); // 刷新列表
           } else {
-            showMessage(`更新失败: ${result.error || '未知错误'}`);
+            showMessage(`Update failed: ${result.error || 'Unknown error'}`);
           }
         })
         .catch(error => {
-          showMessage(`更新错误: ${error.message || '未知错误'}`);
+          showMessage(`Update error: ${error.message || 'Unknown error'}`);
         });
     } else {
-      showMessage('更新API不可用，请检查应用是否需要升级');
+      showMessage('Update API not available, please check if the application needs an update');
+    }
+  };
+
+  // 处理修复文件
+  const handleFix = (fileName) => {
+    closeDropdown();
+    
+    if (window.electron && window.electron.fixProfile) {
+      window.electron.fixProfile(fileName)
+        .then(result => {
+          if (result.success) {
+            showMessage(`Successfully fixed profile: ${fileName}`);
+            loadProfileFiles(); // 刷新列表
+          } else {
+            showMessage(`Fix failed: ${result.error || 'Unknown error'}`);
+          }
+        })
+        .catch(error => {
+          showMessage(`Fix error: ${error.message || 'Unknown error'}`);
+        });
+    } else {
+      showMessage('Fix API not available, please check if the application needs an update');
     }
   };
 
@@ -313,6 +335,20 @@ const Profiles = () => {
                           Expired
                         </span>
                       )}
+                      {!file.isComplete && (
+                        <span style={{ 
+                          display: 'inline-block',
+                          marginLeft: '8px',
+                          fontSize: '11px',
+                          padding: '2px 6px',
+                          backgroundColor: '#fff8e1',
+                          color: '#ff8f00',
+                          borderRadius: '3px',
+                          fontWeight: 'normal'
+                        }}>
+                          INCOMPLETE
+                        </span>
+                      )}
                       {activeProfile === file.name && <span className="active-label">ACTIVE</span>}
                     </div>
                   </td>
@@ -353,6 +389,15 @@ const Profiles = () => {
                             <span className="dropdown-icon refresh-icon"></span>
                             <span>Update</span>
                           </button>
+                          {!file.isComplete && (
+                            <button 
+                              className="dropdown-item"
+                              onClick={() => handleFix(file.name)}
+                            >
+                              <span className="dropdown-icon refresh-icon"></span>
+                              <span>Fix</span>
+                            </button>
+                          )}
                           <div className="dropdown-divider"></div>
                           <button 
                             className="dropdown-item delete-item"

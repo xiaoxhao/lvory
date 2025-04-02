@@ -27,7 +27,6 @@ class SettingsManager {
       backendAddress: '',
       
       // 高级设置
-      animationEffect: true,
       kernelWatchdog: true,
       usePrivateProtocol: false,
       logRotationPeriod: 7,

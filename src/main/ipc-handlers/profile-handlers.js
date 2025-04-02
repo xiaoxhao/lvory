@@ -112,13 +112,27 @@ function setup() {
             logger.error(`读取文件状态失败: ${err.message}`);
           }
           
+          // 检查文件是否包含inbounds字段
+          let isComplete = true;
+          try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const configObj = JSON.parse(content);
+            if (!configObj.inbounds || configObj.inbounds.length === 0) {
+              isComplete = false;
+            }
+          } catch (err) {
+            logger.error(`检查配置文件结构失败: ${err.message}`);
+            isComplete = false;
+          }
+          
           return {
             name: file,
             path: filePath,
             size: `${Math.round(stats.size / 1024)} KB`,
             createDate: new Date(stats.birthtime).toLocaleDateString(),
             modifiedDate: new Date(stats.mtime).toLocaleDateString(),
-            status: status
+            status: status,
+            isComplete: isComplete
           };
         });
       

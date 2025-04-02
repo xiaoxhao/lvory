@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electron', {
     action: (type) => ipcRenderer.invoke('window.action', { type })
   },
   
+  // 获取网络接口列表
+  getNetworkInterfaces: () => ipcRenderer.invoke('get-network-interfaces'),
+  
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
   closeWindow: () => ipcRenderer.send('window-close'),

@@ -8,7 +8,6 @@ export const AppProvider = ({ children }) => {
   const [state, setState] = useState({
     privateMode: false,
     theme: 'light',
-    showAnimations: true,
     // ... 其他状态
   });
 

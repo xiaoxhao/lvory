@@ -1,12 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { useAppContext } from '../../context/AppContext';
+import React from 'react';
 
 const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => {
   if (!isOpen || !node) return null;
   
-  const { showAnimations } = useAppContext();
-  const canvasRef = useRef(null);
-
   // 获取节点类型对应的颜色
   const getNodeTypeColor = (type) => {
     switch (type) {
@@ -22,94 +18,6 @@ const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => 
         return '#abb3c0';
     }
   };
-
-  // 基于当前小时生成随机种子
-  const getRandomSeed = () => {
-    const hour = new Date().getHours();
-    return hour;
-  };
-
-  // 创建科幻背景动画
-  useEffect(() => {
-    if (!isOpen || !showAnimations) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const seed = getRandomSeed();
-    
-    // 设置canvas大小为窗口大小
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    // 创建线段对象
-    const linesCount = 50 + seed * 2;
-    const lines = [];
-    
-    for (let i = 0; i < linesCount; i++) {
-      const randomFactor = Math.sin(seed * i) * 0.5 + 0.5;
-      lines.push({
-        x1: Math.random() * canvas.width,
-        y1: Math.random() * canvas.height,
-        x2: Math.random() * canvas.width,
-        y2: Math.random() * canvas.height,
-        width: Math.random() * 2 + 0.5,
-        color: `rgba(${80 + randomFactor * 100}, ${150 + randomFactor * 50}, ${200 + randomFactor * 55}, ${0.1 + randomFactor * 0.3})`,
-        speed: {
-          x1: (Math.random() - 0.5) * 0.5,
-          y1: (Math.random() - 0.5) * 0.5,
-          x2: (Math.random() - 0.5) * 0.5,
-          y2: (Math.random() - 0.5) * 0.5
-        }
-      });
-    }
-    
-    // 动画循环
-    const animate = () => {
-      if (!canvas) return;
-      
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // 绘制和更新线段
-      lines.forEach(line => {
-        // 更新位置
-        line.x1 += line.speed.x1;
-        line.y1 += line.speed.y1;
-        line.x2 += line.speed.x2;
-        line.y2 += line.speed.y2;
-        
-        // 边界检测
-        if (line.x1 < 0 || line.x1 > canvas.width) line.speed.x1 *= -1;
-        if (line.y1 < 0 || line.y1 > canvas.height) line.speed.y1 *= -1;
-        if (line.x2 < 0 || line.x2 > canvas.width) line.speed.x2 *= -1;
-        if (line.y2 < 0 || line.y2 > canvas.height) line.speed.y2 *= -1;
-        
-        // 绘制线段
-        ctx.beginPath();
-        ctx.moveTo(line.x1, line.y1);
-        ctx.lineTo(line.x2, line.y2);
-        ctx.lineWidth = line.width;
-        ctx.strokeStyle = line.color;
-        ctx.stroke();
-      });
-      
-      animationId = requestAnimationFrame(animate);
-    };
-    
-    let animationId = requestAnimationFrame(animate);
-    
-    // 清理函数
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      cancelAnimationFrame(animationId);
-    };
-  }, [isOpen, showAnimations]);
 
   // 获取延迟状态颜色
   const getLatencyColor = (latency) => {
@@ -135,21 +43,6 @@ const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => 
       zIndex: 1000,
       animation: 'fadeIn 0.2s ease-out'
     }}>
-      {/* 科幻背景动画 - 只在启用动画时显示 */}
-      {showAnimations && (
-        <canvas 
-          ref={canvasRef} 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: -1
-          }}
-        />
-      )}
-      
       <div className="node-detail-modal" style={{
         backgroundColor: 'rgba(255, 255, 255, 0.85)',
         borderRadius: '3px',
