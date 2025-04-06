@@ -76,14 +76,8 @@ const App = () => {
     setActiveItem(item);
     
     // 如果切换到dashboard，确保使用当前配置文件
-    if (item === 'dashboard' && window.electron && window.electron.getProfileData) {
-      // 延迟让 UI 先切换过去
-      setTimeout(() => {
-        // 刷新配置数据，以便使用最新的配置文件
-        window.electron.getProfileData()
-          .catch(err => console.error('刷新配置数据失败:', err));
-      }, 100);
-    }
+    // 由于Dashboard组件不再重新挂载，这段代码可以去掉
+    // 或者当真正需要刷新数据时，通过自定义事件通知Dashboard组件
   };
 
   // 处理窗口控制按钮的点击事件
@@ -172,11 +166,28 @@ const App = () => {
                   onItemClick={handleItemClick} 
                   profilesCount={profilesCount}
                 />
-                <div className="main-content">
-                  {activeItem === 'dashboard' && <Dashboard activeView="dashboard" />}
-                  {activeItem === 'activity' && <Dashboard activeView="activity" />}
-                  {activeItem === 'profiles' && <Profiles />}
-                  {activeItem === 'settings' && <Settings />}
+                <div className="main-content" style={{ position: 'relative' }}>
+                  <Dashboard activeView={activeItem} />
+                  <div style={{ 
+                    display: activeItem === 'profiles' ? 'block' : 'none', 
+                    width: '100%', 
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0
+                  }}>
+                    {activeItem === 'profiles' && <Profiles />}
+                  </div>
+                  <div style={{ 
+                    display: activeItem === 'settings' ? 'block' : 'none', 
+                    width: '100%', 
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0
+                  }}>
+                    {activeItem === 'settings' && <Settings />}
+                  </div>
                 </div>
               </div>
             </div>

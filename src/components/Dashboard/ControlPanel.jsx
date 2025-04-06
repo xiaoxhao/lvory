@@ -40,7 +40,7 @@ const ControlPanel = ({
   const [proxyAddress, setProxyAddress] = useState('127.0.0.1:7890');
   const [showNetworkAddresses, setShowNetworkAddresses] = useState(false);
   const [networkAddresses, setNetworkAddresses] = useState([
-    { label: '本地回环', address: '127.0.0.1:7890' }
+    { label: 'Local Loopback', address: '127.0.0.1:7890' }
   ]);
 
   // 获取网络接口地址
@@ -49,7 +49,7 @@ const ControlPanel = ({
       window.electron.getNetworkInterfaces().then(interfaces => {
         if (interfaces && interfaces.length > 0) {
           const formattedAddresses = [
-            { label: '本地回环', address: `127.0.0.1:${proxyPort}` },
+            { label: 'Local Loopback', address: `127.0.0.1:${proxyPort}` },
             ...interfaces.map(iface => ({
               label: `${iface.name || 'Unknown'} (${iface.address})`,
               address: `${iface.address}:${proxyPort}`
@@ -58,7 +58,7 @@ const ControlPanel = ({
           setNetworkAddresses(formattedAddresses);
         }
       }).catch(err => {
-        console.error('获取网络接口信息失败:', err);
+        console.error('Failed to get network interfaces:', err);
       });
     }
   }, [proxyPort]);
@@ -103,10 +103,19 @@ const ControlPanel = ({
       <div 
         style={{
           ...customStyles.eyeIcon,
-          backgroundColor: showProxyConfigModal ? '#f5f7f9' : 'transparent'
+          backgroundColor: showProxyConfigModal ? '#f5f7f9' : 'transparent',
+          transition: 'transform 0.2s ease-in-out, background-color 0.2s ease'
         }}
         onClick={() => setShowProxyConfigModal(true)}
-        title="查看代理配置方式"
+        title="View proxy configuration methods"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.backgroundColor = '#f0f4ff';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.backgroundColor = showProxyConfigModal ? '#f5f7f9' : 'transparent';
+        }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="4 17 10 11 4 5"></polyline>
@@ -126,17 +135,17 @@ const ControlPanel = ({
         title: 'PowerShell',
         sections: [
           {
-            title: '设置HTTP代理',
+            title: 'Set HTTP Proxy',
             code: `$env:http_proxy="http://${proxyAddress}"
 $env:https_proxy="http://${proxyAddress}"`
           },
           {
-            title: '查看当前代理设置',
+            title: 'View Current Proxy Settings',
             code: `$env:http_proxy
 $env:https_proxy`
           },
           {
-            title: '取消代理设置',
+            title: 'Remove Proxy Settings',
             code: `$env:http_proxy=""
 $env:https_proxy=""`
           }
@@ -147,17 +156,17 @@ $env:https_proxy=""`
         title: 'Git',
         sections: [
           {
-            title: '设置HTTP代理',
+            title: 'Set HTTP Proxy',
             code: `git config --global http.proxy http://${proxyAddress}
 git config --global https.proxy http://${proxyAddress}`
           },
           {
-            title: '查看当前代理设置',
+            title: 'View Current Proxy Settings',
             code: `git config --global --get http.proxy
 git config --global --get https.proxy`
           },
           {
-            title: '取消代理设置',
+            title: 'Remove Proxy Settings',
             code: `git config --global --unset http.proxy
 git config --global --unset https.proxy`
           }
@@ -168,17 +177,17 @@ git config --global --unset https.proxy`
         title: 'npm',
         sections: [
           {
-            title: '设置HTTP代理',
+            title: 'Set HTTP Proxy',
             code: `npm config set proxy http://${proxyAddress}
 npm config set https-proxy http://${proxyAddress}`
           },
           {
-            title: '查看当前代理设置',
+            title: 'View Current Proxy Settings',
             code: `npm config get proxy
 npm config get https-proxy`
           },
           {
-            title: '取消代理设置',
+            title: 'Remove Proxy Settings',
             code: `npm config delete proxy
 npm config delete https-proxy`
           }
@@ -189,7 +198,7 @@ npm config delete https-proxy`
         title: 'curl',
         sections: [
           {
-            title: '使用代理',
+            title: 'Use Proxy',
             code: `curl -x http://${proxyAddress} https://www.google.com`
           }
         ]
@@ -199,7 +208,7 @@ npm config delete https-proxy`
         title: 'Docker',
         sections: [
           {
-            title: 'Windows 修改 ~/.docker/config.json',
+            title: 'Edit ~/.docker/config.json on Windows',
             code: `{
   "proxies": {
     "default": {
@@ -230,10 +239,10 @@ npm config delete https-proxy`
             marginBottom: '12px' 
           }}>
             <div style={{ fontWeight: '600', fontSize: '15px' }}>
-              选择代理地址
+              Select Proxy Address
             </div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ marginRight: '8px', fontSize: '14px' }}>端口:</span>
+              <div style={{ marginRight: '8px', fontSize: '14px' }}>Port:</div>
               <input
                 type="text"
                 value={proxyPort}
@@ -492,10 +501,19 @@ npm config delete https-proxy`
       <div 
         style={{
           ...customStyles.eyeIcon,
-          backgroundColor: privateMode ? '#f5f7f9' : 'transparent'
+          backgroundColor: privateMode ? '#f5f7f9' : 'transparent',
+          transition: 'transform 0.2s ease-in-out, background-color 0.2s ease'
         }}
         onClick={onTogglePrivate}
-        title={privateMode ? "点击显示敏感信息" : "点击隐藏敏感信息"}
+        title={privateMode ? "Click to show sensitive information" : "Click to hide sensitive information"}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.backgroundColor = privateMode ? '#e9ecf1' : '#f0f4ff';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.backgroundColor = privateMode ? '#f5f7f9' : 'transparent';
+        }}
       >
         {privateMode ? (
           // 闭眼图标
@@ -524,10 +542,23 @@ npm config delete https-proxy`
           ...customStyles.eyeIcon,
           backgroundColor: isTesting ? '#f0f4ff' : 'transparent',
           opacity: isDisabled ? 0.5 : 1,
-          cursor: isDisabled ? 'not-allowed' : (isTesting ? 'default' : 'pointer')
+          cursor: isDisabled ? 'not-allowed' : (isTesting ? 'default' : 'pointer'),
+          transition: 'transform 0.2s ease-in-out, background-color 0.2s ease'
         }}
         onClick={isDisabled || isTesting ? null : onSpeedTest}
-        title={isDisabled ? "请先启动内核以启用测速功能" : "测试节点速度"}
+        title={isDisabled ? "Please start the core to enable speed testing" : "Test node speed"}
+        onMouseEnter={(e) => {
+          if (!isDisabled && !isTesting) {
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.backgroundColor = '#f0f4ff';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isDisabled && !isTesting) {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }
+        }}
       >
         <svg 
           className={isTesting ? "lightning-spinning" : ""} 
@@ -554,7 +585,7 @@ npm config delete https-proxy`
           borderRadius: '4px',
           fontSize: '10px',
           whiteSpace: 'nowrap'
-        }}>测速中...</span>}
+        }}>Testing...</span>}
       </div>
     );
   };
@@ -565,15 +596,24 @@ npm config delete https-proxy`
       <div 
         style={{
           ...customStyles.eyeIcon,
-          backgroundColor: 'transparent'
+          backgroundColor: 'transparent',
+          transition: 'transform 0.2s ease-in-out, background-color 0.2s ease'
         }}
         onClick={() => {
           if (window.electron && window.electron.openConfigDir) {
             window.electron.openConfigDir()
-              .catch(err => console.error('打开配置目录失败:', err));
+              .catch(err => console.error('Failed to open config directory:', err));
           }
         }}
-        title="打开配置文件所在目录"
+        title="Open configuration directory"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.backgroundColor = '#f0f4ff';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -597,9 +637,13 @@ npm config delete https-proxy`
         <button
           onClick={onToggleSingBox}
           disabled={isStarting || isStopping || isRestarting}
-          onMouseEnter={() => {
+          onMouseEnter={(e) => {
             if (isRunning && !isStarting && !isStopping && !isRestarting) {
               setShowRestartButton(true);
+            }
+            if (!isStarting && !isStopping && !isRestarting) {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
             }
           }}
           onMouseLeave={(e) => {
@@ -611,6 +655,11 @@ npm config delete https-proxy`
                                    e.clientX <= rect.right;
             if (!isInRestartArea) {
               setShowRestartButton(false);
+            }
+            
+            if (!isStarting && !isStopping && !isRestarting) {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
             }
           }}
           style={{
@@ -707,7 +756,22 @@ npm config delete https-proxy`
           {renderFolderIcon()}
           <div className="action-separator" style={{ margin: '0 10px' }}></div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <button className="add-customer-btn" onClick={onOpenProfileModal} style={{ padding: '6px 12px', height: '28px' }}>
+            <button className="add-customer-btn" onClick={onOpenProfileModal} style={{ 
+              padding: '6px 12px', 
+              height: '28px',
+              transition: 'all 0.3s ease',
+              transform: 'translateY(0)',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+            }}>
               <span className="plus-icon"></span>
               <span>PROFILE</span>
             </button>

@@ -73,49 +73,60 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     }
   }, []);
 
-  // 监听activeView变化，当切换到dashboard时重新获取配置文件数据
+  // 添加数据更新的事件监听器
   useEffect(() => {
-    if (activeView === 'dashboard' && window.electron && window.electron.getProfileData) {
-      window.electron.getProfileData().catch(err => {
-        console.error('获取配置文件数据失败:', err);
-      });
-    }
-  }, [activeView]);
-
-  useEffect(() => {
-    if (activeView === 'dashboard' && window.electron) {
-      window.electron.getProfileData().then((data) => {
-        if (data && data.success && Array.isArray(data.profiles)) {
-          setProfileData(data.profiles);
-          
-          // 计算各类型节点数量
-          if (data.profiles.length > 0) {
-            const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
+    // 定义更新数据的函数
+    const updateProfileData = () => {
+      if (window.electron) {
+        window.electron.getProfileData().then((data) => {
+          if (data && data.success && Array.isArray(data.profiles)) {
+            setProfileData(data.profiles);
             
-            data.profiles.forEach(node => {
-              const type = node.type ? node.type.toLowerCase() : '';
+            // 计算各类型节点数量
+            if (data.profiles.length > 0) {
+              const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
               
-              if (type.includes('shadowsocks')) {
-                stats.ss++;
-              } else if (type.includes('vmess')) {
-                stats.vm++;
-              } else if (type.includes('trojan')) {
-                stats.tr++;
-              } else if (type.includes('direct')) {
-                stats.dir++;
-              } else {
-                stats.other++;
-              }
-            });
-            
-            setNodeTypeStats(stats);
+              data.profiles.forEach(node => {
+                const type = node.type ? node.type.toLowerCase() : '';
+                
+                if (type.includes('shadowsocks')) {
+                  stats.ss++;
+                } else if (type.includes('vmess')) {
+                  stats.vm++;
+                } else if (type.includes('trojan')) {
+                  stats.tr++;
+                } else if (type.includes('direct')) {
+                  stats.dir++;
+                } else {
+                  stats.other++;
+                }
+              });
+              
+              setNodeTypeStats(stats);
+            }
           }
-        }
-      }).catch(err => {
-        console.error('获取配置文件数据失败:', err);
-      });
+        }).catch(err => {
+          console.error('更新配置文件数据失败:', err);
+        });
+      }
+    };
+
+    // 当activeView切换到dashboard时更新数据
+    if (activeView === 'dashboard') {
+      updateProfileData();
     }
-  }, [activeView]);
+
+    // 设置定期更新
+    const updateInterval = setInterval(() => {
+      if (activeView === 'dashboard') {
+        updateProfileData();
+      }
+    }, 30000); // 每30秒更新一次数据，可以根据需要调整
+
+    return () => {
+      clearInterval(updateInterval);
+    };
+  }, [activeView]); // 当activeView变化时重新设置
 
   const togglePrivateMode = () => {
     setPrivateMode(!privateMode);
@@ -127,9 +138,10 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
   };
 
   return (
-    <div className="dashboard">
-      {activeView === 'dashboard' ? (
-        <>
+    <div className="dashboard" style={{ display: activeView === 'dashboard' || activeView === 'activity' ? 'block' : 'none' }}>
+      <div className="dashboard-content">
+        {/* Dashboard视图内容 */}
+        <div style={{ display: activeView === 'dashboard' ? 'block' : 'none' }}>
           {/* 只有在非扩展视图时显示状态概览 */}
           {!isExpandedView && (
             <div className="stats-overview" style={{
@@ -161,7 +173,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
                 flex: 1,
                 width: '100%',
                 overflow: 'hidden',
-                marginTop: '-25px',
+                marginTop: '-5px',
                 backgroundColor: 'transparent',
                 minHeight: '160px'
               }}>
@@ -189,13 +201,19 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
               onToggleExpandedView={toggleExpandedView}
             />
           </div>
-        </>
-      ) : activeView === 'activity' ? (
-        <div className="activity-view" style={{ width: '100%', padding: '0' }}>
+        </div>
+
+        {/* Activity视图内容 */}
+        <div className="activity-view" style={{ 
+          width: '100%', 
+          padding: '0',
+          display: activeView === 'activity' ? 'block' : 'none' 
+        }}>
           <Activity />
         </div>
-      ) : null}
-          {/* 添加CSS动画 */}
+      </div>
+
+      {/* 添加CSS动画 */}
       <style>
         {`
           @keyframes loading-shimmer {
