@@ -4,6 +4,7 @@
 const { ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const http = require('http');
 const https = require('https');
 const logger = require('../../utils/logger');
@@ -15,6 +16,8 @@ const utils = require('./utils');
 function setup() {
   // 处理下载配置文件请求
   ipcMain.handle('download-profile', async (event, data) => {
+    let customFileName;
+    let configDir;
     try {
       if (!data || typeof data !== 'object') {
         return {
@@ -25,11 +28,9 @@ function setup() {
       }
 
       const fileUrl = data.url;
-      let customFileName = data.fileName;
       const isDefaultConfig = data.isDefaultConfig === true;
       
       logger.info('Starting download:', fileUrl);
-      logger.info('Custom filename:', customFileName);
       logger.info('Set as default config:', isDefaultConfig);
       
       if (!fileUrl || !fileUrl.trim() || typeof fileUrl !== 'string') {
@@ -58,13 +59,15 @@ function setup() {
       }
       
       // 获取配置文件目录
-      const configDir = utils.getConfigDir();
+      configDir = utils.getConfigDir();
       logger.info('Config directory:', configDir);
       
       // 如果没有提供自定义文件名，从URL中提取
-      if (!customFileName) {
+      if (!data.fileName) {
         const parsedUrlObj = new URL(fileUrl);
         customFileName = path.basename(parsedUrlObj.pathname) || 'profile.json';
+      } else {
+        customFileName = data.fileName;
       }
       
       // 如果设置为默认配置，强制文件名为sing-box.json
@@ -82,8 +85,7 @@ function setup() {
       
       // 检查文件夹是否可写
       try {
-        // 检查目录是否可写
-        fs.accessSync(configDir, fs.constants.W_OK);
+        await fsPromises.access(configDir, fs.constants.W_OK);
       } catch (err) {
         return {
           success: false,
@@ -97,68 +99,80 @@ function setup() {
       const protocol = parsedUrlForProtocol.protocol === 'https:' ? https : http;
       const mainWindow = utils.getMainWindow();
       
-      return new Promise((resolve, reject) => {
-        // 创建请求
-        const request = protocol.get(fileUrl, (response) => {
-          // 检查状态码
-          if (response.statusCode !== 200) {
-            let errorMessage = `HTTP Error: ${response.statusCode}`;
-            if (response.statusCode === 404) {
-              errorMessage = 'File not found on server (404)';
-            } else if (response.statusCode === 403) {
-              errorMessage = 'Access forbidden (403)';
-            } else if (response.statusCode === 401) {
-              errorMessage = 'Authentication required (401)';
-            } else if (response.statusCode >= 500) {
-              errorMessage = 'Server error, please try again later';
+      // 使用 await 和 Promise 处理异步下载操作
+      const downloadResult = await new Promise((resolve, reject) => {
+        const request = protocol.get(fileUrl, async (response) => {
+          let filePath;
+          try {
+            // 检查状态码
+            if (response.statusCode !== 200) {
+              let errorMessage = `HTTP Error: ${response.statusCode}`;
+              if (response.statusCode === 404) {
+                errorMessage = 'File not found on server (404)';
+              } else if (response.statusCode === 403) {
+                errorMessage = 'Access forbidden (403)';
+              } else if (response.statusCode === 401) {
+                errorMessage = 'Authentication required (401)';
+              } else if (response.statusCode >= 500) {
+                errorMessage = 'Server error, please try again later';
+              }
+              throw new Error(errorMessage);
             }
             
-            reject(new Error(errorMessage));
-            return;
-          }
-          
-          // 检查内容类型，如果服务器返回了明确的错误页面类型，可能是被重定向了
-          const contentType = response.headers['content-type'];
-          if (contentType && contentType.includes('text/html') && !fileUrl.endsWith('.html')) {
-            reject(new Error('Server returned HTML instead of a file. This URL may be a web page, not a downloadable file.'));
-            return;
-          }
-          
-          // 从响应头中获取文件名
-          if (!customFileName || customFileName === path.basename(new URL(fileUrl).pathname)) {
-            // 优先使用Content-Disposition头
-            const contentDisposition = response.headers['content-disposition'];
-            if (contentDisposition) {
-              const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-              if (filenameMatch && filenameMatch[1]) {
-                customFileName = filenameMatch[1];
-                logger.info(`从Content-Disposition头获取的文件名: ${customFileName}`);
+            // 检查内容类型，如果服务器返回了明确的错误页面类型，可能是被重定向了
+            const contentType = response.headers['content-type'];
+            if (contentType && contentType.includes('text/html') && !fileUrl.endsWith('.html')) {
+              throw new Error('Server returned HTML instead of a file. This URL may be a web page, not a downloadable file.');
+            }
+            
+            // 从响应头中获取文件名
+            if (!data.fileName || customFileName === path.basename(new URL(fileUrl).pathname)) {
+              // 优先使用Content-Disposition头
+              const contentDisposition = response.headers['content-disposition'];
+              if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (filenameMatch && filenameMatch[1]) {
+                  customFileName = filenameMatch[1];
+                  logger.info(`从Content-Disposition头获取的文件名: ${customFileName}`);
+                }
               }
             }
-          }
-          
-          customFileName = customFileName.replace(/[/\\?%*:|"<>]/g, '-');
-          
-          // 如果设置为默认配置，强制文件名为sing-box.json
-          if (isDefaultConfig) {
-            customFileName = 'sing-box.json';
-          }
-          
-          const filePath = path.join(configDir, customFileName);
-          logger.info('File will be saved to:', filePath);
-          
-          const file = fs.createWriteStream(filePath);
-          response.pipe(file);
-          
-          file.on('error', (err) => {
-            file.close();
-            fs.unlink(filePath, () => {}); // 删除失败的文件
-            reject(new Error(`Failed to write file: ${err.message}`));
-          });
-          
-          // 文件写入完成
-          file.on('finish', () => {
-            file.close();
+            
+            customFileName = customFileName.replace(/[/\\?%*:|"<>]/g, '-');
+            
+            // 如果设置为默认配置，强制文件名为sing-box.json
+            if (isDefaultConfig) {
+              customFileName = 'sing-box.json';
+            }
+            
+            // 确定最终文件路径
+            filePath = path.join(configDir, customFileName);
+            logger.info('File will be saved to:', filePath);
+            
+            const file = fs.createWriteStream(filePath);
+            
+            // 使用 Promise 处理 stream 事件
+            await new Promise((resolveFile, rejectFile) => {
+              response.pipe(file);
+              
+              file.on('error', async (err) => {
+                file.close();
+                try {
+                  await fsPromises.unlink(filePath);
+                  logger.warn(`Deleted partially downloaded file due to write error: ${filePath}`);
+                } catch (unlinkErr) {
+                  if (unlinkErr.code !== 'ENOENT') {
+                     logger.error(`Failed to delete partially downloaded file after write error: ${filePath}`, unlinkErr);
+                  }
+                }
+                rejectFile(new Error(`Failed to write file: ${err.message}`));
+              });
+              
+              file.on('finish', () => {
+                file.close();
+                resolveFile();
+              });
+            });
             
             // 创建文件元数据
             const metadata = {
@@ -167,14 +181,12 @@ function setup() {
               lastUpdated: new Date().toISOString(),
               updateCount: 0,
               failCount: 0,
-              status: 'active' // 状态：active, failed
+              status: 'active'
             };
             
             try {
               let metaCache = utils.readMetaCache();
-              
               metaCache[customFileName] = metadata;
-              
               utils.writeMetaCache(metaCache);
               logger.info('The profile metadata has been updated');
             } catch (cacheErr) {
@@ -192,7 +204,6 @@ function setup() {
               });
             }
             
-            // 返回成功信息
             resolve({
               success: true,
               message: `Profile saved to: ${filePath}`,
@@ -200,17 +211,28 @@ function setup() {
               isDefaultConfig: isDefaultConfig,
               url: fileUrl
             });
-          });
+          } catch (responseError) {
+            logger.error('Error during download response processing:', responseError);
+            if (filePath) {
+               fsPromises.unlink(filePath).catch(unlinkErr => {
+                 if (unlinkErr.code !== 'ENOENT') {
+                   logger.error(`Failed to delete file on response error: ${filePath}`, unlinkErr);
+                 }
+               });
+            }
+            reject(responseError);
+          }
         });
         
         // 处理请求错误
         request.on('error', (err) => {
           logger.error('Download request error:', err);
-          try {
-            fs.unlinkSync(filePath);
-          } catch (e) {
-            // 忽略删除错误
-          }
+          const tentativeFilePath = path.join(configDir, customFileName);
+          fsPromises.unlink(tentativeFilePath).catch(unlinkErr => {
+            if (unlinkErr.code !== 'ENOENT') {
+              logger.error(`Failed to delete file on request error: ${tentativeFilePath}`, unlinkErr);
+            }
+          });
           
           let errorMessage = err.message;
           if (err.code === 'ENOTFOUND') {
@@ -229,16 +251,20 @@ function setup() {
         // 设置请求超时
         request.setTimeout(30000, () => {
           request.destroy();
-          try {
-            fs.unlinkSync(filePath);
-          } catch (e) {
-            // 忽略删除错误
-          }
-          reject(new Error('Download request timed out. The server is taking too long to respond.'));
+          const tentativeFilePath = path.join(configDir, customFileName);
+          fsPromises.unlink(tentativeFilePath).catch(unlinkErr => {
+            if (unlinkErr.code !== 'ENOENT') {
+              logger.error(`Failed to delete file on timeout: ${tentativeFilePath}`, unlinkErr);
+            }
+          }).finally(() => {
+            reject(new Error('Download request timed out. The server is taking too long to respond.'));
+          });
         });
       });
+
+      return downloadResult;
     } catch (error) {
-      logger.error('Failed to download profile:', error);
+      logger.error('Failed to download profile (outer catch):', error);
       return {
         success: false,
         message: `Download failed: ${error.message}`,

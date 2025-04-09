@@ -305,7 +305,6 @@ const scanProfileConfig = () => {
     // 优先使用已设置的配置文件路径
     if (currentConfigPath && fs.existsSync(currentConfigPath)) {
       fileToUse = currentConfigPath;
-      logger.info('使用当前已选择的配置文件:', currentConfigPath);
     } else {
       // 如果没有设置或文件不存在，则尝试从用户设置中加载
       const userSettings = loadUserSettings();
@@ -339,7 +338,6 @@ const scanProfileConfig = () => {
     
     // 提取outbounds
     if (config && config.outbounds && Array.isArray(config.outbounds)) {
-      logger.info('解析到的outbound tags:', config.outbounds.length);
       return config.outbounds;
     }
     
