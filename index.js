@@ -39,10 +39,14 @@ if (!isFirstInstance && !isDev) {
   });
 }
 
-// 启用V8特性
-app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=4096 --optimize-for-size');
+// 优化V8内存设置 - 减少初始内存限制以降低资源占用
+app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=512 --optimize-for-size --memory-pressure-threshold=1024');
 app.commandLine.appendSwitch('enable-features', 'V8Runtime,V8PerContextHeaps,PartitionedFullCodeCache,V8VmFuture,V8LiftoffForAll');
 app.commandLine.appendSwitch('enable-blink-features', 'JSHeavyAdThrottling');
+// 垃圾回收相关优化
+app.commandLine.appendSwitch('js-flags', '--expose-gc --gc-interval=2000');
+// 禁用后台节流以减少CPU使用率
+app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 // 懒加载 AdmZip
 let AdmZip;
@@ -73,24 +77,44 @@ logger.logStartup();
 
 global.isQuitting = false;
 
-// 初始化SingBox模块
+// 初始化SingBox模块 - 增加错误处理以防止异常影响主进程
 const initSingBox = () => {
   if (!singbox) {
-    singbox = require('./src/utils/sing-box');
+    try {
+      singbox = require('./src/utils/sing-box');
+    } catch (error) {
+      logger.error('加载SingBox模块失败:', error);
+      return { 
+        initialized: false, 
+        init: () => {}, 
+        loadState: async () => null,
+        checkInstalled: () => false,
+        getVersion: async () => ({ success: false })
+      };
+    }
   }
   
   if (!singbox.initialized) {
     logger.info('初始化SingBox模块');
-    singbox.init();
+    try {
+      singbox.init();
+    } catch (error) {
+      logger.error('初始化SingBox失败:', error);
+    }
   }
   
   return singbox;
 };
 
-// 初始化设置管理器
+// 初始化设置管理器 - 增加错误处理
 const initSettingsManager = () => {
   if (!settingsManager) {
-    settingsManager = require('./src/main/settings-manager');
+    try {
+      settingsManager = require('./src/main/settings-manager');
+    } catch (error) {
+      logger.error('加载设置管理器失败:', error);
+      return { loadSettings: async () => ({}) };
+    }
   }
   return settingsManager;
 };
@@ -148,23 +172,41 @@ const restoreProxyState = async () => {
 
 // 初始化主要模块
 const setupApp = () => {
-  // 设置IPC处理程序
-  ipcHandlers.setupHandlers();
-  
-  // 设置新的IPC系统
-  newIpcSystem.setup();
-  
-  // 初始化配置管理器
-  profileManager.getConfigPath();
-  
-  // 预加载singbox，确保核心功能正常
-  initSingBox();
-  
-  // 加载设置
-  initSettingsManager();
-  
-  // 恢复上次代理状态
-  restoreProxyState();
+  try {
+    // 设置IPC处理程序
+    ipcHandlers.setupHandlers();
+    
+    // 设置新的IPC系统
+    newIpcSystem.setup();
+    
+    // 初始化配置管理器
+    profileManager.getConfigPath();
+    
+    // 预加载singbox，确保核心功能正常
+    initSingBox();
+    
+    // 加载设置
+    initSettingsManager();
+    
+    // 恢复上次代理状态
+    restoreProxyState().catch(err => {
+      logger.error('恢复代理状态过程中出错:', err);
+    });
+  } catch (error) {
+    logger.error('设置应用程序时出错:', error);
+  }
+};
+
+// 优化内存使用的辅助函数
+const optimizeMemory = () => {
+  if (global.gc) {
+    try {
+      global.gc();
+      logger.info('手动执行垃圾回收');
+    } catch (e) {
+      logger.warn('手动垃圾回收失败:', e);
+    }
+  }
 };
 
 // This method will be called when Electron has finished
@@ -210,6 +252,11 @@ app.on('ready', () => {
     
     // 应用初始化完成
     logger.info('应用初始化完成');
+    
+    // 设置定期内存优化
+    if (!isDev) {
+      setInterval(optimizeMemory, 300000); // 每5分钟优化一次内存
+    }
   }, 1000);
 });
 
@@ -228,6 +275,8 @@ app.on('before-quit', () => {
   if (newIpcSystem) {
     newIpcSystem.cleanup();
   }
+  // 执行最后的内存优化
+  optimizeMemory();
 });
 
 app.on('activate', () => {

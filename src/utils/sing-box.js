@@ -338,6 +338,9 @@ class SingBox {
             const output = data.toString();
             logger.debug(`[SingBox] stdout: ${output}`);
             
+            // 使用singbox方法记录到活动日志
+            logger.singbox(output);
+            
             // 处理输出回调
             if (outputCallback && typeof outputCallback === 'function') {
               outputCallback(output);
@@ -356,6 +359,9 @@ class SingBox {
           try {
             const output = data.toString();
             logger.debug(`[SingBox] stderr: ${output}`);
+            
+            // 使用singbox方法记录到活动日志
+            logger.singbox(output);
             
             // 处理输出回调
             if (outputCallback && typeof outputCallback === 'function') {

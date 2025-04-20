@@ -43,9 +43,18 @@ const Activity = () => {
         scrollToBottom();
       }
     });
+    
+    // 订阅activity日志更新
+    const unsubscribeActivity = window.electron.logs.onActivityLog((log) => {
+      setLogs((prevLogs) => [...prevLogs, log]);
+      if (autoScroll) {
+        scrollToBottom();
+      }
+    });
 
     return () => {
       if (unsubscribe) unsubscribe();
+      if (unsubscribeActivity) unsubscribeActivity();
     };
   }, [autoScroll]);
 
