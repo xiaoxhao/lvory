@@ -90,9 +90,16 @@
     "asar": true,
     "compression": "maximum",
     "win": {
-      "target": "portable",
+      "target": "msi",
       "icon": "resource/icon/index256.png",
-      "artifactName": "${productName}-${version}-portable.${ext}"
+      "artifactName": "${productName}-${version}-setup.${ext}"
+    },
+    "msi": {
+      "oneClick": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "lvory",
+      "perMachine": false
     },
     "nsis": {
       "oneClick": false,

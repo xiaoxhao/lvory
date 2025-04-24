@@ -145,10 +145,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
           {/* 只有在非扩展视图时显示状态概览 */}
           {!isExpandedView && (
             <div className="stats-overview" style={{
-              height: 'calc(100vh / 3)', 
-              minHeight: '200px',
-              maxHeight: 'none',
-              overflow: 'hidden',
+              maxHeight: 'calc(100vh / 3)',
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'column',
@@ -189,7 +186,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
           )}
 
           <div className="node-list-container" style={{
-            height: isExpandedView ? 'calc(100vh - 20px)' : 'calc(100vh - calc(100vh / 3) - 20px)',
+            flex: 1,
             overflow: 'auto',
             position: 'relative'
           }}>

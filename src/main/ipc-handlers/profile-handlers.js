@@ -136,7 +136,6 @@ function setup() {
           };
         });
       
-      logger.info(`找到${files.length}个配置文件`);
       return { success: true, files };
     } catch (error) {
       logger.error(`获取配置文件列表失败: ${error.message}`);

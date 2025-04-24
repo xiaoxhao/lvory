@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../assets/css/activity.css';
 
 const Activity = () => {
@@ -7,6 +7,10 @@ const Activity = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const logContainerRef = useRef(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [pageSize] = useState(200); // 每页显示的日志数量
+  const [visibleLogs, setVisibleLogs] = useState([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // 日志类型的颜色映射
   const logColors = {
@@ -22,41 +26,110 @@ const Activity = () => {
     NETWORK: '🌐',
   };
 
+  // 应用过滤和搜索条件
+  const applyFilters = useCallback(() => {
+    if (!logs.length) return [];
+    
+    const filtered = logs.filter((log) => {
+      if (!log) return false;
+      
+      // 应用类型过滤
+      if (filter !== 'all' && log.type !== filter) {
+        return false;
+      }
+
+      // 应用搜索过滤 - 确保message存在
+      if (searchTerm && log.message && typeof log.message === 'string') {
+        return log.message.toLowerCase().includes(searchTerm.toLowerCase());
+      } else if (searchTerm) {
+        return false;
+      }
+
+      return true;
+    });
+
+    return filtered;
+  }, [logs, filter, searchTerm]);
+
+  // 更新可见日志
+  useEffect(() => {
+    const filteredLogs = applyFilters();
+    // 只显示最新的pageSize条日志
+    setVisibleLogs(filteredLogs.slice(-pageSize));
+  }, [logs, filter, searchTerm, pageSize, applyFilters]);
+
   // 组件加载时获取历史日志
   useEffect(() => {
     const fetchLogs = async () => {
       try {
+        setLoading(true);
         const history = await window.electron.logs.getLogHistory();
-        setLogs(history || []);
-        scrollToBottom();
+        
+        // 只加载最新的一批日志
+        if (history && history.length) {
+          const recentLogs = history.slice(-pageSize);
+          setLogs(recentLogs);
+        }
+        
+        setIsInitialLoad(false);
+        setLoading(false);
+        if (autoScroll) {
+          scrollToBottom();
+        }
       } catch (error) {
         console.error('获取日志历史失败:', error);
+        setLoading(false);
+        setIsInitialLoad(false);
       }
     };
 
     fetchLogs();
 
-    // 订阅日志更新
-    const unsubscribe = window.electron.logs.onLogMessage((log) => {
-      setLogs((prevLogs) => [...prevLogs, log]);
-      if (autoScroll) {
-        scrollToBottom();
+    // 订阅日志更新 - 使用批量更新减少渲染次数
+    let newLogs = [];
+    let updateTimer = null;
+
+    const processNewLogs = () => {
+      if (newLogs.length > 0) {
+        setLogs(prevLogs => {
+          // 保持日志数量在合理范围内
+          const combinedLogs = [...prevLogs, ...newLogs];
+          const trimmedLogs = combinedLogs.length > pageSize * 2 
+            ? combinedLogs.slice(-pageSize * 2) 
+            : combinedLogs;
+          return trimmedLogs;
+        });
+        newLogs = [];
+        
+        if (autoScroll) {
+          scrollToBottom();
+        }
       }
-    });
+    };
     
-    // 订阅activity日志更新
-    const unsubscribeActivity = window.electron.logs.onActivityLog((log) => {
-      setLogs((prevLogs) => [...prevLogs, log]);
-      if (autoScroll) {
-        scrollToBottom();
+    const onNewLog = (log) => {
+      newLogs.push(log);
+      
+      // 批量更新，降低渲染频率
+      if (!updateTimer) {
+        updateTimer = setTimeout(() => {
+          processNewLogs();
+          updateTimer = null;
+        }, 300);
       }
-    });
+    };
+    
+    const unsubscribe = window.electron.logs.onLogMessage(onNewLog);
+    const unsubscribeActivity = window.electron.logs.onActivityLog(onNewLog);
 
     return () => {
+      if (updateTimer) {
+        clearTimeout(updateTimer);
+      }
       if (unsubscribe) unsubscribe();
       if (unsubscribeActivity) unsubscribeActivity();
     };
-  }, [autoScroll]);
+  }, [autoScroll, pageSize]);
 
   // 滚动到底部
   const scrollToBottom = () => {
@@ -69,33 +142,60 @@ const Activity = () => {
     }
   };
 
+  // 滚动事件处理 - 加载更多历史日志
+  const handleScroll = useCallback(() => {
+    if (!logContainerRef.current || loading || isInitialLoad) return;
+    
+    const { scrollTop } = logContainerRef.current;
+    
+    // 当滚动到顶部附近时，加载更多历史日志
+    if (scrollTop < 50) {
+      const loadMoreLogs = async () => {
+        try {
+          setLoading(true);
+          const history = await window.electron.logs.getLogHistory();
+          
+          if (history && history.length > logs.length) {
+            // 计算要加载的新日志范围
+            const startIndex = Math.max(0, history.length - logs.length - pageSize);
+            const endIndex = history.length - logs.length;
+            
+            if (endIndex > startIndex) {
+              const olderLogs = history.slice(startIndex, endIndex);
+              setLogs(prevLogs => [...olderLogs, ...prevLogs]);
+            }
+          }
+          
+          setLoading(false);
+        } catch (error) {
+          console.error('加载更多日志失败:', error);
+          setLoading(false);
+        }
+      };
+      
+      loadMoreLogs();
+    }
+  }, [loading, logs.length, pageSize, isInitialLoad]);
+
+  // 添加滚动事件监听
+  useEffect(() => {
+    const container = logContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
+
   // 清除日志
   const handleClearLogs = async () => {
     try {
       await window.electron.logs.clearLogs();
       setLogs([]);
+      setVisibleLogs([]);
     } catch (error) {
       console.error('清除日志失败:', error);
     }
   };
-
-  const filteredLogs = logs.filter((log) => {
-    if (!log) return false;
-    
-    // 应用类型过滤
-    if (filter !== 'all' && log.type !== filter) {
-      return false;
-    }
-
-    // 应用搜索过滤 - 确保message存在
-    if (searchTerm && log.message && typeof log.message === 'string') {
-      return log.message.toLowerCase().includes(searchTerm.toLowerCase());
-    } else if (searchTerm) {
-      return false;
-    }
-
-    return true;
-  });
 
   // 格式化时间戳
   const formatTimestamp = (timestamp) => {
@@ -156,10 +256,11 @@ const Activity = () => {
         </div>
       </div>
       <div className="log-container" ref={logContainerRef}>
-        {filteredLogs.length === 0 ? (
+        {loading && <div className="loading-logs">加载日志中...</div>}
+        {visibleLogs.length === 0 && !loading ? (
           <div className="no-logs">no log recording</div>
         ) : (
-          filteredLogs.map((log, index) => {
+          visibleLogs.map((log, index) => {
             // 确保log存在且包含必要的属性
             if (!log) return null;
             
@@ -168,7 +269,7 @@ const Activity = () => {
             const message = safeString(log.message || '');
             
             return (
-              <div key={index} className={`log-item log-${level}`}>
+              <div key={`${log.timestamp}-${index}`} className={`log-item log-${level}`}>
                 <div className="log-timestamp">{formatTimestamp(log.timestamp)}</div>
                 <div className="log-level" style={{ color: logColors[log.level] || '#000' }}>
                   {log.level || 'INFO'}

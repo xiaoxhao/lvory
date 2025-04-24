@@ -50,6 +50,7 @@ const StatsOverview = ({ apiAddress }) => {
   const [ipLocation, setIpLocation] = useState('');
   const [showAsnInfo, setShowAsnInfo] = useState(false);
   const [asnInfo, setAsnInfo] = useState('');
+  const [kernelRunning, setKernelRunning] = useState(false);
   
   const trafficChartRef = useRef(null);
   const trafficChartInstance = useRef(null);
@@ -417,7 +418,6 @@ const StatsOverview = ({ apiAddress }) => {
         return [index, val, detail]; // [x坐标(索引), y坐标(平均延迟), 详细信息]
       });
       
-      // 设置图表选项 - 散点图
       const option = {
         grid: {
           left: 30,    // 减小左边距
@@ -430,16 +430,18 @@ const StatsOverview = ({ apiAddress }) => {
           trigger: 'item',
           formatter: function(params) {
             const detail = params.data[2];
-            if (!detail || detail.avg === null) return '无数据';
+            if (!detail || detail.avg === null) return 'no data';
             
-            return `
-              时间: ${aggregatedLatencyData.timestamps[params.dataIndex]}<br>
-              平均延迟: ${detail.avg.toFixed(0)} ms<br>
-              最小值: ${detail.min.toFixed(0)} ms<br>
-              最大值: ${detail.max.toFixed(0)} ms<br>
-              丢包率: ${detail.loss.toFixed(1)}%
-            `;
-          }
+            return `delay: ${detail.avg.toFixed(0)}ms\nloss: ${detail.loss.toFixed(1)}%`;
+          },
+          textStyle: {
+            fontSize: 11
+          },
+          padding: [6, 8],
+          backgroundColor: '',
+          borderColor: 'transparent',
+          borderWidth: 0,
+          borderRadius: 4
         },
         xAxis: {
           type: 'category',
@@ -504,14 +506,20 @@ const StatsOverview = ({ apiAddress }) => {
         },
         series: [
           {
-            type: 'scatter',
+            type: 'line',
+            smooth: true,
+            showSymbol: true,
+            symbol: 'circle',
             symbolSize: function(value) {
-              // 缩小点的大小
               const detail = value[2];
               if (!detail || detail.avg === null) return 3;
-              return 5 + Math.min(detail.loss, 50) / 10; // 减小基础大小和增量
+              return 5 + Math.min(detail.loss, 50) / 10;
             },
             data: data,
+            lineStyle: {
+              width: 2,
+              color: '#409eff'
+            },
             itemStyle: {
               color: function(params) {
                 const detail = params.data[2];
@@ -523,20 +531,18 @@ const StatsOverview = ({ apiAddress }) => {
                 if (detail.avg < 70) return '#e6a23c';  // 中等延迟
                 return '#f56c6c';                    // 较差延迟
               }
-            }
-          },
-          // 添加连线
-          {
-            type: 'line',
-            smooth: true,
-            showSymbol: false,
-            data: aggregatedLatencyData.values.map((val, index) => [index, val]),
-            lineStyle: {
-              width: 0.8, // 减小线宽
-              color: '#909399',
-              opacity: 0.5
             },
-            z: 1 // 确保线在散点下面
+            // 添加波浪填充
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(64, 158, 255, 0.4)' },
+                { offset: 1, color: 'rgba(64, 158, 255, 0.1)' }
+              ]),
+              // 加强波浪效果
+              shadowColor: 'rgba(64, 158, 255, 0.2)',
+              shadowBlur: 10
+            },
+            z: 2 // 确保线在最上面
           }
         ]
       };
@@ -558,15 +564,12 @@ const StatsOverview = ({ apiAddress }) => {
         return [index, val, detail]; // [x坐标(索引), y坐标(平均延迟), 详细信息]
       });
       
+      // 更新为波浪图
       gaugeChartInstance.current.setOption({
         series: [
           {
-            type: 'scatter',
-            data: data
-          },
-          {
             type: 'line',
-            data: aggregatedLatencyData.values.map((val, index) => [index, val])
+            data: data
           }
         ]
       });
@@ -659,24 +662,6 @@ const StatsOverview = ({ apiAddress }) => {
     fetchTrafficData();
     testLatency();
     
-    // 监听内核状态变化
-    let statusListener = null;
-    if (window.electron && window.electron.singbox) {
-      // 监听内核退出事件，内核退出后清空IP地理位置信息
-      statusListener = window.electron.singbox.onExit(() => {
-        setIpLocation('');
-        setAsnInfo('');
-      });
-      
-      // 检查当前内核是否正在运行，如果正在运行则获取IP地理位置
-      window.electron.singbox.getStatus().then(status => {
-        if (status.isRunning && !ipLocation) {
-          // 给内核一点时间建立连接后再检查IP
-          setTimeout(fetchIpLocation, 2000);
-        }
-      });
-    }
-    
     // 组件卸载时清理
     return () => {
       clearInterval(latencyTimer);
@@ -688,16 +673,12 @@ const StatsOverview = ({ apiAddress }) => {
       if (gaugeChartInstance.current) {
         gaugeChartInstance.current.dispose();
       }
-      
-      if (statusListener) {
-        statusListener();
-      }
     };
   }, [apiAddress]);
   
-  // 添加内核启动后的IP检测
+  // 监听内核状态变化
   useEffect(() => {
-    // 监听内核启动事件
+    // 监听内核启动和停止事件
     if (window.electron && window.electron.singbox) {
       let prevStatus = false;
       
@@ -705,17 +686,26 @@ const StatsOverview = ({ apiAddress }) => {
       const checkStatus = async () => {
         try {
           const status = await window.electron.singbox.getStatus();
+          // 更新内核运行状态
+          setKernelRunning(status.isRunning);
+          
           if (!prevStatus && status.isRunning) {
+            // 内核从停止到启动，获取IP信息
             setTimeout(fetchIpLocation, 3000);
+          } else if (prevStatus && !status.isRunning) {
+            // 内核从启动到停止，清空IP信息
+            setIpLocation('');
+            setAsnInfo('');
           }
           prevStatus = status.isRunning;
         } catch (error) {
           console.error('获取内核状态失败:', error);
+          setKernelRunning(false);
         }
       };
 
-      // 每5秒检查一次状态
-      const statusInterval = setInterval(checkStatus, 5000);
+      // 每2秒检查一次状态，提高响应速度
+      const statusInterval = setInterval(checkStatus, 2000);
       
       // 初始检查一次
       checkStatus();
@@ -738,21 +728,15 @@ const StatsOverview = ({ apiAddress }) => {
               Network Stats
             </h2>
             <div id="stats-date" className="stats-date">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {kernelRunning && (ipLocation || asnInfo) ? (
+                <span onClick={handleIpInfoClick} style={{ cursor: 'pointer' }}>
+                  {showAsnInfo && asnInfo ? asnInfo : `Node IP: ${ipLocation}`}
+                </span>
+              ) : (
+                new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+              )}
             </div>
           </div>
-          
-          {/* IP地理位置信息 */}
-          {(ipLocation || asnInfo) && (
-            <div 
-              id="ip-location" 
-              className="ip-location" 
-              onClick={handleIpInfoClick}
-              style={{ cursor: 'pointer' }}
-            >
-              <span>IP：{showAsnInfo && asnInfo ? asnInfo : ipLocation}</span>
-            </div>
-          )}
           
           {/* 监控指标行 - 水平排列 */}
           <div id="metrics-row" className="metrics-row">
