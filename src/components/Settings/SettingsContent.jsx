@@ -208,11 +208,15 @@ const SettingsContent = ({ section }) => {
 
         // 加载开机自启动设置
         if (window.electron && window.electron.getAutoLaunch) {
-          const autoLaunch = await window.electron.getAutoLaunch();
-          setSettings(prev => ({
-            ...prev,
-            autoStart: autoLaunch
-          }));
+          const result = await window.electron.getAutoLaunch();
+          if (result.success) {
+            setSettings(prev => ({
+              ...prev,
+              autoStart: result.enabled
+            }));
+          } else {
+            console.error('获取开机自启动设置失败:', result.error);
+          }
         }
 
         // 加载用户配置
@@ -391,7 +395,10 @@ const SettingsContent = ({ section }) => {
 
       // 处理自动启动设置
       if (window.electron && window.electron.setAutoLaunch) {
-        await window.electron.setAutoLaunch(settings.autoStart);
+        const result = await window.electron.setAutoLaunch(settings.autoStart);
+        if (!result.success) {
+          console.error('设置开机自启动失败:', result.error);
+        }
       }
 
       // 同时保存electron设置
@@ -462,11 +469,15 @@ const SettingsContent = ({ section }) => {
       
       // 重新获取开机自启动设置
       if (window.electron && window.electron.getAutoLaunch) {
-        const autoLaunch = await window.electron.getAutoLaunch();
-        setSettings(prev => ({
-          ...prev,
-          autoStart: autoLaunch
-        }));
+        const result = await window.electron.getAutoLaunch();
+        if (result.success) {
+          setSettings(prev => ({
+            ...prev,
+            autoStart: result.enabled
+          }));
+        } else {
+          console.error('获取开机自启动设置失败:', result.error);
+        }
       }
     } catch (error) {
       console.error('重置设置失败:', error);
