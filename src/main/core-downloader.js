@@ -80,15 +80,16 @@ const downloadCore = async (mainWindow) => {
     const arch = process.arch === 'x64' ? 'amd64' : 
                  process.arch === 'arm64' ? 'arm64' : 'amd64';
     
-    // 根据平台获取下载URL
-    const version = '1.7.5'; // 固定版本号，您可以进行配置化
+    const version = '1.11.8';
     let downloadUrl;
+    let githubDownloadUrl;
     let binaryName;
     let archiveName;
     let extractedFolderName;
     
     if (platform === 'win32') {
-      downloadUrl = `https://github.com/SagerNet/sing-box/releases/download/v${version}/sing-box-${version}-windows-${arch}.zip`;
+      downloadUrl = `https://oss.sxueck.com/singbox/sing-box-${version}-windows-${arch}.zip`;
+      githubDownloadUrl = `https://github.com/SagerNet/sing-box/releases/download/v${version}/sing-box-${version}-windows-${arch}.zip`;
       binaryName = 'sing-box.exe';
       archiveName = 'sing-box.zip';
       extractedFolderName = `sing-box-${version}-windows-${arch}`;
@@ -132,7 +133,7 @@ const downloadCore = async (mainWindow) => {
     }
     
     // 创建可写流
-    const fileStream = fs.createWriteStream(archivePath);
+    let fileStream = fs.createWriteStream(archivePath);
     
     // 使用https下载文件 - 创建一个支持重定向的下载函数
     const downloadWithRedirects = async (url, maxRedirects = 5) => {
@@ -204,8 +205,61 @@ const downloadCore = async (mainWindow) => {
       }
     };
     
-    await downloadWithRedirects(downloadUrl);
-    logger.info(`从 ${downloadUrl} 下载成功，准备解压`);
+    // 尝试下载文件，如果Win32平台从OSS下载失败，则从GitHub下载
+    try {
+      if (platform === 'win32') {
+        logger.info(`尝试从OSS下载sing-box: ${downloadUrl}`);
+        
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('core-download-progress', {
+            progress: 0,
+            message: `开始从OSS下载: ${downloadUrl}`
+          });
+        }
+        
+        try {
+          await downloadWithRedirects(downloadUrl);
+          logger.info(`从OSS ${downloadUrl} 下载成功`);
+        } catch (error) {
+          logger.warn(`从OSS下载失败: ${error.message}，尝试从GitHub下载`);
+          
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('core-download-progress', {
+              progress: 0,
+              message: `OSS下载失败，尝试从GitHub下载: ${githubDownloadUrl}`
+            });
+          }
+          
+          // 重新创建文件流
+          if (fs.existsSync(archivePath)) {
+            fs.unlinkSync(archivePath);
+          }
+          
+          const newFileStream = fs.createWriteStream(archivePath);
+          fileStream.close();
+          fileStream = newFileStream;
+          
+          downloadUrl = githubDownloadUrl;
+          await downloadWithRedirects(downloadUrl);
+          logger.info(`从GitHub ${downloadUrl} 下载成功`);
+        }
+      } else {
+        // 非Windows平台直接下载
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('core-download-progress', {
+            progress: 0,
+            message: `开始下载: ${downloadUrl}`
+          });
+        }
+        
+        await downloadWithRedirects(downloadUrl);
+        logger.info(`从 ${downloadUrl} 下载成功`);
+      }
+    } catch (error) {
+      throw new Error(`下载文件失败: ${error.message}`);
+    }
+    
+    logger.info(`下载成功，准备解压`);
     
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('core-download-progress', {

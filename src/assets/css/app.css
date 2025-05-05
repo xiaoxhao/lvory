@@ -93,11 +93,41 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  transition: margin-left 0.3s ease;
 }
 
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px 20px;
+  padding: 0 20px 20px 20px; /* 恢复原有的 padding */
   background-color: #fff;
+  position: relative; /* 确保内部绝对定位的组件正常工作 */
+  transition: padding 0.3s ease; /* 添加过渡效果 */
+}
+
+/* 当 Settings 激活时的特定样式 */
+.app-container.settings-active .main-content {
+  /* Settings 组件有自己的 padding，移除外部的 padding */
+  padding: 0;
+}
+
+/* 设置组件相关规则 */
+.app-container.settings-active .content-container {
+  /* 确保 Settings 视图没有额外空间 */
+  margin: 0;
+}
+
+/* 为简化的侧边栏添加 badge 样式 */
+.minimized-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  padding: 1px 4px;
+  line-height: 1;
+  background-color: #50b2d0; /* 或其他颜色 */
+  color: white;
+  border-radius: 7px; /* 半圆形 */
+  min-width: 14px;
+  text-align: center;
 } 

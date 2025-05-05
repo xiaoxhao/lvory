@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const SettingsSidebar = ({ selectedSection, onSectionChange }) => {
   const [isLabsExpanded, setIsLabsExpanded] = useState(false);
+  const { t } = useTranslation();
   
   const sections = {
     GENERAL: [
-      { id: 'basic', label: 'Basic' },
-      { id: 'nodes', label: 'Nodes' },
-      { id: 'cloudConnection', label: 'Cloud Connection', isExperimental: true },
-      { id: 'advanced', label: 'Advanced' },
-      { id: 'system', label: 'System' },
+      { id: 'basic', label: t('settings.basicSettings') },
+      { id: 'nodes', label: t('settings.nodesSettings') },
+      { id: 'advanced', label: t('settings.advancedSettings') },
     ],
     LABS: [
-      { id: 'ai', label: 'AI Configuration', isExperimental: true },
+      { id: 'ai', label: t('settings.aiConfiguration'), isExperimental: true },
     ],
   };
 
