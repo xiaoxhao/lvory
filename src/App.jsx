@@ -6,6 +6,7 @@ import Profiles from './components/Profiles';
 import Settings from './components/Settings/Settings';
 import { AppProvider } from './context/AppContext';
 import { initMessageBox } from './utils/messageBox';
+import './i18n'; // 引入i18n初始化文件
 import './assets/css/global.css';
 import './assets/css/app.css';
 
@@ -133,12 +134,14 @@ const App = () => {
     }
   };
 
+  const isSettingsActive = activeItem === 'settings';
+
   return (
     <AppProvider>
       <Router basename="/">
         <Routes>
           <Route path="/" element={
-            <div className={`app-container ${isMacOS ? 'mac-os' : ''}`}>
+            <div className={`app-container ${isMacOS ? 'mac-os' : ''} ${isSettingsActive ? 'settings-active' : ''}`}>
               {/* 添加可拖动区域 */}
               <div className="window-draggable-area"></div>
               
@@ -165,6 +168,7 @@ const App = () => {
                   activeItem={activeItem} 
                   onItemClick={handleItemClick} 
                   profilesCount={profilesCount}
+                  isMinimized={isSettingsActive}
                 />
                 <div className="main-content" style={{ position: 'relative' }}>
                   <Dashboard activeView={activeItem} />

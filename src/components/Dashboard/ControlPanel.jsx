@@ -649,9 +649,9 @@ npm config delete https-proxy`
           onMouseLeave={(e) => {
             // 检查鼠标是否真的离开了整个按钮区域
             const rect = e.currentTarget.getBoundingClientRect();
-            const isInRestartArea = e.clientY >= rect.top && 
-                                   e.clientY <= rect.bottom + 20 &&
-                                   e.clientX >= rect.left && 
+            const isInRestartArea = e.clientY >= rect.top &&
+                                   e.clientY <= rect.bottom &&
+                                   e.clientX >= rect.left &&
                                    e.clientX <= rect.right;
             if (!isInRestartArea) {
               setShowRestartButton(false);
@@ -707,6 +707,9 @@ npm config delete https-proxy`
             onClick={(e) => {
               e.stopPropagation();
               onRestartSingBox();
+            }}
+            onMouseLeave={() => {
+              setShowRestartButton(false);
             }}
             style={{
               backgroundColor: '#f39c12',

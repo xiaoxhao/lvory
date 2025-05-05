@@ -31,7 +31,7 @@ class SettingsManager {
       usePrivateProtocol: false,
       logRotationPeriod: 7,
       extraLogSaving: false,
-      language: 'zh_CN' // 默认语言：中文
+      language: 'zh_CN'
     };
   }
 

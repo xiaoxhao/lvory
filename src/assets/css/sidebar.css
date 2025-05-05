@@ -10,6 +10,48 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar.minimized {
+  width: 60px;
+  padding-left: 10px;
+  padding-right: 10px;
+  align-items: center;
+}
+
+.sidebar.minimized .logo {
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.sidebar.minimized .logo-image {
+  width: 28px;
+  height: 28px;
+}
+
+.sidebar.minimized .main-menu ul {
+  align-items: center;
+}
+
+.sidebar.minimized .menu-item {
+  justify-content: center;
+  padding: 10px 0;
+  width: 40px;
+  height: 40px;
+  position: relative;
+}
+
+.sidebar.minimized .menu-item .icon {
+  margin-right: 0;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar.minimized .badge {
+  display: none;
 }
 
 .logo {

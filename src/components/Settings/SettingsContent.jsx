@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { useTranslation } from 'react-i18next';
 
 const styles = {
   container: {
@@ -88,6 +89,32 @@ const styles = {
     transition: 'right 0.2s',
     boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
   },
+  toggleDisabledStyle: {
+    backgroundColor: '#e2e8f0',
+    cursor: 'not-allowed'
+  },
+  toggleButtonDisabled: {
+    backgroundColor: '#cbd5e1'
+  },
+  tooltip: {
+    position: 'absolute',
+    bottom: '100%',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    marginBottom: '5px',
+    whiteSpace: 'nowrap',
+    fontWeight: '600',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    zIndex: 1000,
+    opacity: 1,
+    transition: 'opacity 0.3s ease-in-out, visibility 0.2s ease-in-out',
+    visibility: 'hidden',
+    opacity: 0
+  },
+  tooltipVisible: {
+    visibility: 'visible',
+    opacity: 1
+  },
   betaBadge: {
     fontSize: '12px',
     padding: '2px 8px',
@@ -150,7 +177,44 @@ const styles = {
   }
 };
 
+const ToggleWithTooltip = ({ label, tKey, value, onChange, disabled = false, tooltipText }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleToggleClick = () => {
+    if (!disabled && onChange) {
+      onChange(!value);
+    }
+  };
+
+  return (
+    <div style={styles.toggleContainer} 
+         onMouseEnter={() => setIsHovered(true)} 
+         onMouseLeave={() => setIsHovered(false)}>
+      <label style={{...styles.toggleLabel, color: disabled ? '#94a3b8' : '#1e293b'}}>{label}</label>
+      <div 
+        onClick={handleToggleClick}
+        style={{
+          ...styles.toggle,
+          ...(disabled ? styles.toggleDisabledStyle : (value ? styles.toggleEnabled : styles.toggleDisabled))
+        }}
+      >
+        <div style={{
+          ...styles.toggleButton,
+          right: value ? '2px' : '22px',
+          ...(disabled ? styles.toggleButtonDisabled : {})
+        }} />
+      </div>
+      {disabled && isHovered && tooltipText && (
+        <div style={{...styles.tooltip, ...styles.tooltipVisible, bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '5px', whiteSpace: 'nowrap' }}>
+          {tooltipText}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SettingsContent = ({ section }) => {
+  const { t } = useTranslation();
   const { showAnimations, updateSettings } = useAppContext();
   const [userConfig, setUserConfig] = useState({
     settings: {
@@ -281,8 +345,8 @@ const SettingsContent = ({ section }) => {
     }
   }, []);
 
-  const showNotification = (message) => {
-    setNotification(message);
+  const showNotification = (messageKey) => {
+    setNotification(t(messageKey));
     setTimeout(() => {
       setNotification(null);
     }, 3000);
@@ -358,6 +422,8 @@ const SettingsContent = ({ section }) => {
         break;
       case 'language':
         newUserConfig.settings.language = value;
+        // 立即更新全局状态以切换语言
+        updateSettings({ language: value });
         break;
       case 'keepNodeTrafficHistory':
         newUserConfig.settings.keep_node_traffic_history = value;
@@ -382,7 +448,7 @@ const SettingsContent = ({ section }) => {
       if (window.electron && window.electron.userConfig && window.electron.userConfig.save) {
         const result = await window.electron.userConfig.save(userConfig);
         if (result.success) {
-          showNotification('Settings applied successfully');
+          showNotification('settings.settingsApplied');
           
           // 可选：应用映射到现有配置
           if (window.electron && window.electron.mappingEngine && window.electron.mappingEngine.applyMapping) {
@@ -450,7 +516,7 @@ const SettingsContent = ({ section }) => {
             }));
           }
           
-          showNotification('Settings reset successfully');
+          showNotification('settings.settingsReset');
         } else {
           console.error('重置设置失败:', result.error);
         }
@@ -509,109 +575,70 @@ const SettingsContent = ({ section }) => {
           <div>
             <div style={styles.section}>
               <div>
-                <h1 style={styles.title}>Basic Settings</h1>
+                <h1 style={styles.title}>{t('settings.basicSettings')}</h1>
                 <p style={styles.description}>
-                  Configure basic program settings and behavior.
+                  {t('settings.configureBasic')}
                 </p>
 
                 {/* 代理端口设置 */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>Proxy Port</label>
+                  <label style={styles.label}>{t('settings.proxyPort')}</label>
                   <input
                     type="text"
                     value={settings.proxyPort}
                     onChange={(e) => handleSettingChange('proxyPort', e.target.value)}
                     style={styles.input}
-                    placeholder="Enter proxy port (e.g. 7890)"
+                    placeholder={t('settings.enterProxyPort')}
                   />
                 </div>
 
                 {/* API地址设置 */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>API Address</label>
+                  <label style={styles.label}>{t('settings.apiAddress')}</label>
                   <input
                     type="text"
                     value={settings.apiAddress}
                     onChange={(e) => handleSettingChange('apiAddress', e.target.value)}
                     style={styles.input}
-                    placeholder="Enter API address (e.g. 127.0.0.1:9090)"
+                    placeholder={t('settings.enterApiAddress')}
                   />
                   <p style={styles.warning}>
-                    *Warning: Changing this will require program restart
+                    {t('settings.apiAddressWarning')}
                   </p>
                 </div>
 
                 {/* 允许局域网连接开关 */}
-                {renderToggle('Allow LAN Connections', 'allowLan', settings.allowLan)}
+                {renderToggle(t('settings.allowLan'), 'allowLan', settings.allowLan)}
 
-                {/* TUN模式开关 */}
-                {renderToggle('TUN Mode', 'tunMode', settings.tunMode)}
+                {/* TUN模式开关 - Disabled */}
+                <ToggleWithTooltip
+                  label={t('settings.tunMode')}
+                  tKey="tunMode"
+                  value={settings.tunMode}
+                  onChange={(val) => handleSettingChange('tunMode', val)}
+                  disabled={true}
+                  tooltipText={t('settings.featureUnderDevelopment')}
+                />
 
                 {/* 开机自启动开关 */}
-                {renderToggle('Auto Start on Boot', 'autoStart', settings.autoStart)}
+                {renderToggle(t('settings.autoStart'), 'autoStart', settings.autoStart)}
 
                 {/* 自动重启内核开关 */}
-                {renderToggle('Auto Restart Core', 'autoRestart', settings.autoRestart)}
+                {renderToggle(t('settings.autoRestart'), 'autoRestart', settings.autoRestart)}
                 
-                {/* 开机检查更新 */}
-                {renderToggle('Check for Updates on Startup', 'checkUpdateOnBoot', settings.checkUpdateOnBoot)}
-
-                {/* 修改按钮容器 */}
-                <div style={styles.buttonContainer}>
-                  <button
-                    onClick={resetSettings}
-                    onMouseEnter={() => setIsResetButtonHovered(true)}
-                    onMouseLeave={() => setIsResetButtonHovered(false)}
-                    style={{
-                      ...styles.secondaryButton,
-                      ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
-                    }}
-                  >
-                    Reset
-                  </button>
-                
-                  <button
-                    onClick={applySettings}
-                    onMouseEnter={() => setIsButtonHovered(true)}
-                    onMouseLeave={() => setIsButtonHovered(false)}
-                    style={{
-                      ...styles.button,
-                      ...(isButtonHovered ? styles.buttonHover : {})
-                    }}
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      
-      case 'system':
-        return (
-          <div>
-            <div style={styles.section}>
-              <div>
-                <h1 style={styles.title}>System Settings</h1>
-                <p style={styles.description}>
-                  Configure system-related settings and preferences
-                </p>
-
-                {/* 动画效果开关 */}
-                {renderToggle('Animation effect', 'animationEffect', settings.animationEffect)}
-                <p style={{ 
-                  fontSize: '12px', 
-                  color: '#64748b', 
-                  marginTop: '-12px', 
-                  marginBottom: '20px',
-                  marginLeft: '2px'
-                }}>
-                  Enable or disable animation effects in the interface (e.g. sci-fi background in node details)
-                </p>
+                {/* 开机检查更新 - Disabled */}
+                <ToggleWithTooltip
+                  label={t('settings.checkUpdates')}
+                  tKey="checkUpdateOnBoot"
+                  value={settings.checkUpdateOnBoot}
+                  onChange={(val) => handleSettingChange('checkUpdateOnBoot', val)}
+                  disabled={true}
+                  tooltipText={t('settings.featureUnderDevelopment')}
+                />
 
                 {/* 语言选择 */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>Language</label>
+                  <label style={styles.label}>{t('settings.language')}</label>
                   <select
                     value={settings.language}
                     onChange={(e) => handleSettingChange('language', e.target.value)}
@@ -636,7 +663,7 @@ const SettingsContent = ({ section }) => {
                       ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
                     }}
                   >
-                    Reset
+                    {t('settings.reset')}
                   </button>
                 
                   <button
@@ -648,7 +675,7 @@ const SettingsContent = ({ section }) => {
                       ...(isButtonHovered ? styles.buttonHover : {})
                     }}
                   >
-                    Apply
+                    {t('settings.apply')}
                   </button>
                 </div>
               </div>
@@ -661,13 +688,13 @@ const SettingsContent = ({ section }) => {
           <div>
             <div style={styles.section}>
               <div>
-                <h1 style={styles.title}>Advanced Settings</h1>
+                <h1 style={styles.title}>{t('settings.advancedSettings')}</h1>
                 <p style={styles.description}>
-                  Configure advanced settings and features
+                  {t('settings.configureAdvanced')}
                 </p>
 
                 {/* 内核看门狗 */}
-                {renderToggle('Kernel Watchdog', 'kernelWatchdog', settings.kernelWatchdog)}
+                {renderToggle(t('settings.kernelWatchdog'), 'kernelWatchdog', settings.kernelWatchdog)}
                 <p style={{ 
                   fontSize: '12px', 
                   color: '#64748b', 
@@ -675,11 +702,18 @@ const SettingsContent = ({ section }) => {
                   marginBottom: '15px',
                   marginLeft: '2px'
                 }}>
-                  Automatically restart the core if it crashes or stops responding
+                  {t('settings.kernelWatchdogDesc')}
                 </p>
 
-                {/* 使用lvory私有协议 */}
-                {renderToggle('Use lvory Private Protocol', 'usePrivateProtocol', settings.usePrivateProtocol)}
+                {/* 使用lvory私有协议 - Disabled */}
+                <ToggleWithTooltip
+                  label={t('settings.usePrivateProtocol')}
+                  tKey="usePrivateProtocol"
+                  value={settings.usePrivateProtocol}
+                  onChange={(val) => handleSettingChange('usePrivateProtocol', val)}
+                  disabled={true}
+                  tooltipText={t('settings.featureUnderDevelopment')}
+                />
                 <p style={{ 
                   fontSize: '12px', 
                   color: '#64748b', 
@@ -687,19 +721,19 @@ const SettingsContent = ({ section }) => {
                   marginBottom: '15px',
                   marginLeft: '2px'
                 }}>
-                  Use lvory private protocol for improved security and performance
+                  {t('settings.usePrivateProtocolDesc')}
                 </p>
 
                 {/* 日志设置 */}
                 <div style={{ marginBottom: '5px' }}>
-                  <label style={styles.label}>Log Settings</label>
+                  <label style={styles.label}>{t('settings.logSettings')}</label>
                 </div>
 
                 {/* 日志轮转周期和额外保存放在同一层级，修正行间距 */}
                 <div style={{ marginBottom: '15px' }}>
                   {/* 日志轮转周期 */}
                   <div style={{...styles.toggleContainer, marginBottom: '12px'}}>
-                    <label style={styles.toggleLabel}>Log Rotation Period (Days)</label>
+                    <label style={styles.toggleLabel}>{t('settings.logRotation')}</label>
                     <input
                       type="number"
                       min="1"
@@ -711,7 +745,7 @@ const SettingsContent = ({ section }) => {
                   </div>
 
                   {/* 额外保存 */}
-                  {renderToggle('Extra Log Saving', 'extraLogSaving', settings.extraLogSaving)}
+                  {renderToggle(t('settings.extraLogSaving'), 'extraLogSaving', settings.extraLogSaving)}
                 </div>
 
                 {/* 修改按钮容器 */}
@@ -725,7 +759,7 @@ const SettingsContent = ({ section }) => {
                       ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
                     }}
                   >
-                    Reset
+                    {t('settings.reset')}
                   </button>
                 
                   <button
@@ -737,7 +771,7 @@ const SettingsContent = ({ section }) => {
                       ...(isButtonHovered ? styles.buttonHover : {})
                     }}
                   >
-                    Apply
+                    {t('settings.apply')}
                   </button>
                 </div>
               </div>
@@ -751,9 +785,9 @@ const SettingsContent = ({ section }) => {
             <div style={styles.section}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h1 style={styles.title}>AI Configuration</h1>
+                  <h1 style={styles.title}>{t('settings.aiConfiguration')}</h1>
                   <p style={styles.description}>
-                    Configure AI-powered features and settings.
+                    {t('settings.configureAI')}
                   </p>
                 </div>
                 <span style={styles.betaBadge}>BETA</span>
@@ -767,14 +801,14 @@ const SettingsContent = ({ section }) => {
           <div>
             <div style={styles.section}>
               <div>
-                <h1 style={styles.title}>Nodes Settings</h1>
+                <h1 style={styles.title}>{t('settings.nodesSettings')}</h1>
                 <p style={styles.description}>
-                  Configure node monitoring and management settings
+                  {t('settings.configureNodes')}
                 </p>
 
                 {/* IP Details API Selection */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>IP Details API</label>
+                  <label style={styles.label}>{t('settings.ipDetailsApi')}</label>
                   <select
                     value={settings.nodeIPDetailAPI}
                     onChange={(e) => handleSettingChange('nodeIPDetailAPI', e.target.value)}
@@ -788,10 +822,10 @@ const SettingsContent = ({ section }) => {
                 </div>
 
                 {/* 节点高级监控 */}
-                {renderToggle('Advanced Node Monitoring', 'nodeAdvancedMonitoring', settings.nodeAdvancedMonitoring)}
+                {renderToggle(t('settings.advancedNodeMonitoring'), 'nodeAdvancedMonitoring', settings.nodeAdvancedMonitoring)}
                 
                 {/* 保留节点流量历史数据 */}
-                {renderToggle('Keep Node Traffic History', 'keepNodeTrafficHistory', settings.keepNodeTrafficHistory)}
+                {renderToggle(t('settings.keepNodeTraffic'), 'keepNodeTrafficHistory', settings.keepNodeTrafficHistory)}
                 <p style={{ 
                   fontSize: '12px', 
                   color: '#64748b', 
@@ -799,46 +833,30 @@ const SettingsContent = ({ section }) => {
                   marginBottom: '15px',
                   marginLeft: '2px'
                 }}>
-                  Store node traffic data for up to one month
+                  {t('settings.keepNodeTrafficDesc')}
                 </p>
                 
                 {/* 子选项始终显示，但在未启用高级监控时禁用 */}
-                <div style={{ marginLeft: '0px', marginTop: '0px', opacity: settings.nodeAdvancedMonitoring ? 1 : 0.5 }}>
-                  {/* 节点出口状态监控 */}
-                  <div style={styles.toggleContainer}>
-                    <label style={styles.toggleLabel}>Node Exit Status Monitoring</label>
-                    <div 
-                      onClick={() => settings.nodeAdvancedMonitoring && handleSettingChange('nodeExitStatusMonitoring', !settings.nodeExitStatusMonitoring)}
-                      style={{
-                        ...styles.toggle,
-                        ...(settings.nodeExitStatusMonitoring ? styles.toggleEnabled : styles.toggleDisabled),
-                        cursor: settings.nodeAdvancedMonitoring ? 'pointer' : 'not-allowed'
-                      }}
-                    >
-                      <div style={{
-                        ...styles.toggleButton,
-                        right: settings.nodeExitStatusMonitoring ? '2px' : '22px'
-                      }} />
-                    </div>
-                  </div>
+                <div style={{ marginLeft: '0px', marginTop: '0px', opacity: settings.nodeAdvancedMonitoring ? 1 : 0.5, pointerEvents: settings.nodeAdvancedMonitoring ? 'auto' : 'none' }}>
+                  {/* 节点出口状态监控 - Disabled */}
+                  <ToggleWithTooltip
+                    label={t('settings.nodeExitStatus')}
+                    tKey="nodeExitStatusMonitoring"
+                    value={settings.nodeExitStatusMonitoring}
+                    onChange={(val) => handleSettingChange('nodeExitStatusMonitoring', val)}
+                    disabled={true}
+                    tooltipText={t('settings.featureUnderDevelopment')}
+                  />
                   
-                  {/* 节点出口IP纯净度 */}
-                  <div style={styles.toggleContainer}>
-                    <label style={styles.toggleLabel}>Node Exit IP Purity Check</label>
-                    <div 
-                      onClick={() => settings.nodeAdvancedMonitoring && handleSettingChange('nodeExitIPPurity', !settings.nodeExitIPPurity)}
-                      style={{
-                        ...styles.toggle,
-                        ...(settings.nodeExitIPPurity ? styles.toggleEnabled : styles.toggleDisabled),
-                        cursor: settings.nodeAdvancedMonitoring ? 'pointer' : 'not-allowed'
-                      }}
-                    >
-                      <div style={{
-                        ...styles.toggleButton,
-                        right: settings.nodeExitIPPurity ? '2px' : '22px'
-                      }} />
-                    </div>
-                  </div>
+                  {/* 节点出口IP纯净度 - Disabled */}
+                  <ToggleWithTooltip
+                    label={t('settings.nodeExitIpPurity')}
+                    tKey="nodeExitIPPurity"
+                    value={settings.nodeExitIPPurity}
+                    onChange={(val) => handleSettingChange('nodeExitIPPurity', val)}
+                    disabled={true}
+                    tooltipText={t('settings.featureUnderDevelopment')}
+                  />
                 </div>
 
                 {/* 修改按钮容器 */}
@@ -852,7 +870,7 @@ const SettingsContent = ({ section }) => {
                       ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
                     }}
                   >
-                    Reset
+                    {t('settings.reset')}
                   </button>
                 
                   <button
@@ -864,7 +882,7 @@ const SettingsContent = ({ section }) => {
                       ...(isButtonHovered ? styles.buttonHover : {})
                     }}
                   >
-                    Apply
+                    {t('settings.apply')}
                   </button>
                 </div>
               </div>
@@ -872,69 +890,6 @@ const SettingsContent = ({ section }) => {
           </div>
         );
       
-      case 'cloudConnection':
-        return (
-          <div>
-            <div style={styles.section}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h1 style={styles.title}>Cloud Connection</h1>
-                  <p style={styles.description}>
-                    When multiple clients use the same configuration, data can be saved to the cloud for global monitoring and node optimization
-                  </p>
-                </div>
-              </div>
-              
-              {/* 互联模式开关 */}
-              {renderToggle('Connection Mode', 'cloudInterconnection', settings.cloudInterconnection)}
-              
-              {/* 后端地址始终显示，但在未启用互联模式时禁用 */}
-              <div style={{ opacity: settings.cloudInterconnection ? 1 : 0.5 }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>Backend Address</label>
-                  <input
-                    type="text"
-                    value={settings.backendAddress}
-                    onChange={(e) => settings.cloudInterconnection && handleSettingChange('backendAddress', e.target.value)}
-                    style={{
-                      ...styles.input,
-                      cursor: settings.cloudInterconnection ? 'text' : 'not-allowed'
-                    }}
-                    placeholder="Enter backend service address"
-                    disabled={!settings.cloudInterconnection}
-                  />
-                </div>
-              </div>
-
-              {/* 修改按钮容器 */}
-              <div style={styles.buttonContainer}>
-                <button
-                  onClick={resetSettings}
-                  onMouseEnter={() => setIsResetButtonHovered(true)}
-                  onMouseLeave={() => setIsResetButtonHovered(false)}
-                  style={{
-                    ...styles.secondaryButton,
-                    ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
-                  }}
-                >
-                  Reset
-                </button>
-              
-                <button
-                  onClick={applySettings}
-                  onMouseEnter={() => setIsButtonHovered(true)}
-                  onMouseLeave={() => setIsButtonHovered(false)}
-                  style={{
-                    ...styles.button,
-                    ...(isButtonHovered ? styles.buttonHover : {})
-                  }}
-                >
-                  Apply
-                </button>
-              </div>
-            </div>
-          </div>
-        );
       default:
         return <div>Content for {section}</div>;
     }
