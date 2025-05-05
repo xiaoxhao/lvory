@@ -135,8 +135,8 @@ class SettingsManager {
   // 获取开机自启动状态
   async getAutoLaunch() {
     try {
-      const settings = app.getLoginItemSettings();
-      return { success: true, enabled: settings.openAtLogin };
+      const loginSettings = app.getLoginItemSettings();
+      return { success: true, enabled: loginSettings.openAtLogin };
     } catch (error) {
       logger.error('获取开机自启动状态失败:', error);
       return { success: false, error: error.message };
@@ -146,8 +146,10 @@ class SettingsManager {
   // 同步开机自启动状态
   async syncAutoLaunch() {
     try {
-      const { enabled } = await this.getAutoLaunch();
-      this.settings.autoStart = enabled;
+      const loginSettings = app.getLoginItemSettings();
+      const { openAtLogin } = loginSettings;
+      this.settings.autoStart = openAtLogin;
+      logger.info(`同步开机自启动状态: ${openAtLogin ? '已启用' : '未启用'}`);
     } catch (error) {
       logger.error('同步开机自启动状态失败:', error);
     }
