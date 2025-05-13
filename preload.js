@@ -17,6 +17,12 @@ contextBridge.exposeInMainWorld('electron', {
   showWindow: () => ipcRenderer.invoke('show-window'),
   quitApp: () => ipcRenderer.invoke('quit-app'),
   
+  // 监听窗口可见性变化事件
+  onWindowVisibilityChange: (callback) => {
+    ipcRenderer.on('window-visibility-change', (event, state) => callback(state));
+    return () => ipcRenderer.removeListener('window-visibility-change', callback);
+  },
+  
   downloadProfile: (data) => ipcRenderer.invoke('download-profile', data),
   
   downloadCore: () => ipcRenderer.invoke('download-core'),
