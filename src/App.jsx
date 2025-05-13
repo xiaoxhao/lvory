@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -17,6 +17,12 @@ const App = () => {
   const [profilesCount, setProfilesCount] = useState(0);
   // 检测是否为 macOS 系统
   const [isMacOS, setIsMacOS] = useState(false);
+  // 添加窗口可见性状态
+  const [isWindowVisible, setIsWindowVisible] = useState(true);
+  // 用于存储动画帧请求ID
+  const animationFrameRef = useRef(null);
+  // 用于存储非必要的定时器
+  const timersRef = useRef({});
 
   // 初始化消息框
   useEffect(() => {
@@ -34,6 +40,60 @@ const App = () => {
       setIsMacOS(/macintosh|mac os x/i.test(userAgent));
     }
   }, []);
+
+  // 监听窗口可见性变化事件
+  useEffect(() => {
+    if (window.electron && window.electron.onWindowVisibilityChange) {
+      const handleVisibilityChange = (state) => {
+        setIsWindowVisible(state.isVisible);
+        
+        if (state.isVisible) {
+          // 窗口显示时，恢复正常渲染
+          resumeRendering();
+        } else {
+          // 窗口隐藏时，暂停不必要的渲染
+          pauseRendering();
+        }
+      };
+      
+      // 注册事件监听
+      const unsubscribe = window.electron.onWindowVisibilityChange(handleVisibilityChange);
+      
+      return () => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
+    }
+  }, []);
+
+  const pauseRendering = () => {
+    // 取消所有不必要的requestAnimationFrame
+    if (animationFrameRef.current) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // 暂停所有不必要的定时器
+    Object.values(timersRef.current).forEach(timer => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    });
+    
+    // 调整渲染更新频率
+    if (document.body) {
+      document.body.classList.add('background-throttled');
+    }
+  };
+
+  // 恢复正常渲染和计算
+  const resumeRendering = () => {
+    // 恢复必要的UI更新
+    if (document.body) {
+      document.body.classList.remove('background-throttled');
+    }
+  };
 
   // 获取配置文件数量
   useEffect(() => {
@@ -141,7 +201,7 @@ const App = () => {
       <Router basename="/">
         <Routes>
           <Route path="/" element={
-            <div className={`app-container ${isMacOS ? 'mac-os' : ''} ${isSettingsActive ? 'settings-active' : ''}`}>
+            <div className={`app-container ${isMacOS ? 'mac-os' : ''} ${isSettingsActive ? 'settings-active' : ''} ${!isWindowVisible ? 'window-hidden' : ''}`}>
               {/* 添加可拖动区域 */}
               <div className="window-draggable-area"></div>
               

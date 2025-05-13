@@ -60,7 +60,7 @@ const createWindow = () => {
       contextIsolation: true,
       preload: path.join(__dirname, '../../preload.js'),
       v8CacheOptions: 'code',
-      backgroundThrottling: false,
+      backgroundThrottling: true,
       enableBlinkFeatures: 'JSHeavyAdThrottling',
       enablePreferredSizeMode: true,
       spellcheck: false,
@@ -133,8 +133,23 @@ const createWindow = () => {
     }
   });
 
-  // 加载应用内容
   loadAppContent();
+
+  mainWindow.on('hide', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // 通知渲染进程窗口已隐藏，可以暂停不必要的渲染
+      mainWindow.webContents.send('window-visibility-change', { isVisible: false });
+      logger.info('窗口已隐藏到托盘，优化资源占用');
+    }
+  });
+
+  mainWindow.on('show', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // 通知渲染进程窗口已显示，恢复正常渲染
+      mainWindow.webContents.send('window-visibility-change', { isVisible: true });
+      logger.info('窗口已显示，恢复正常渲染');
+    }
+  });
 
   // 添加窗口关闭事件处理，防止直接退出
   mainWindow.on('close', (event) => {
