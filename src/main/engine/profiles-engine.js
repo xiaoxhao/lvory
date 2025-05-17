@@ -91,6 +91,100 @@ function replacePathVariables(path, data) {
 }
 
 /**
+ * 处理数组索引标记
+ * @param {*} current 当前对象
+ * @param {String} token 标记
+ * @returns {Object} 处理后的对象和是否继续处理
+ */
+function handleArrayIndex(current, token) {
+  const index = parseInt(token.substring(1, token.length - 1));
+  if (!Array.isArray(current) || index >= current.length) {
+    return { result: undefined, continue: false };
+  }
+  return { result: current[index], continue: true };
+}
+
+/**
+ * 处理通配符索引标记
+ * @param {*} current 当前对象 
+ * @param {String} token 标记
+ * @param {Array} tokens 所有标记
+ * @param {Number} i 当前索引
+ * @param {Object} config 配置对象
+ * @returns {Object} 处理结果
+ */
+function handleWildcardIndex(current, token, tokens, i, config) {
+  if (!Array.isArray(current)) {
+    return { result: undefined };
+  }
+  
+  if (i === tokens.length - 1) {
+    return { result: current };
+  }
+  
+  const remainingPath = tokens.slice(i + 1).join('.');
+  return { 
+    result: current.map(item => getValueByPath(item, remainingPath))
+  };
+}
+
+/**
+ * 处理条件筛选标记
+ * @param {*} current 当前对象
+ * @param {String} token 标记
+ * @param {Array} tokens 所有标记
+ * @param {Number} i 当前索引
+ * @param {Object} config 配置对象
+ * @returns {Object} 处理结果
+ */
+function handleConditionToken(current, token, tokens, i, config) {
+  const condition = parseCondition(token);
+  if (!condition) {
+    return { result: undefined };
+  }
+  
+  if (!Array.isArray(current)) {
+    return { result: undefined };
+  }
+  
+  let conditionValue = condition.value;
+  if (condition.isVariable) {
+    const varPath = condition.value.substring(1, condition.value.length - 1);
+    conditionValue = getValueByPath(config, varPath);
+    if (conditionValue === undefined) {
+      return { result: undefined };
+    }
+  }
+  
+  const matchingElements = current.filter(item => {
+    const itemValue = item[condition.field];
+    return condition.value === '*' || itemValue === conditionValue;
+  });
+  
+  if (i === tokens.length - 1) {
+    return { 
+      result: matchingElements.length > 0 ? matchingElements : undefined 
+    };
+  }
+  
+  if (matchingElements.length === 1) {
+    return { 
+      result: matchingElements[0],
+      continue: true 
+    };
+  }
+  
+  if (matchingElements.length > 1) {
+    const remainingPath = tokens.slice(i + 1).join('.');
+    return {
+      result: matchingElements.map(item => getValueByPath(item, remainingPath))
+    };
+  }
+  
+  return { result: undefined };
+}
+
+/**
  * 根据路径表达式从配置中获取值
  * @param {Object} config 配置对象
  * @param {String} path 路径表达式
@@ -109,69 +203,25 @@ function getValueByPath(config, path) {
     
     // 处理数组索引 [0]
     if (token.match(/^\[\d+\]$/)) {
-      const index = parseInt(token.substring(1, token.length - 1));
-      if (!Array.isArray(current) || index >= current.length) {
-        return undefined;
-      }
-      current = current[index];
+      const { result, continue: shouldContinue } = handleArrayIndex(current, token);
+      if (!shouldContinue) return result;
+      current = result;
       continue;
     }
     
     // 处理通配符索引 [*]
     if (token === '[*]') {
-      if (!Array.isArray(current)) {
-        return undefined;
-      }
-      // 如果是通配符且是最后一个标记，返回整个数组
-      if (i === tokens.length - 1) {
-        return current;
-      }
-      // 否则尝试对数组中每个元素递归处理剩余路径，并返回结果数组
-      const remainingPath = tokens.slice(i + 1).join('.');
-      return current.map(item => getValueByPath(item, remainingPath));
+      const { result } = handleWildcardIndex(current, token, tokens, i, config);
+      return result;
     }
     
     // 处理条件筛选 [type=value]
     if (token.startsWith('[') && token.endsWith(']') && token.includes('=')) {
-      const condition = parseCondition(token);
-      if (!condition) return undefined;
-      
-      if (!Array.isArray(current)) {
-        return undefined;
-      }
-      
-      // 处理条件中的变量
-      let conditionValue = condition.value;
-      if (condition.isVariable) {
-        const varPath = condition.value.substring(1, condition.value.length - 1);
-        conditionValue = getValueByPath(config, varPath);
-        if (conditionValue === undefined) return undefined;
-      }
-      
-      // 查找符合条件的元素
-      const matchingElements = current.filter(item => {
-        const itemValue = item[condition.field];
-        return condition.value === '*' || itemValue === conditionValue;
-      });
-      
-      // 如果是最后一个标记，返回所有匹配元素
-      if (i === tokens.length - 1) {
-        return matchingElements.length > 0 ? matchingElements : undefined;
-      }
-      
-      // 如果只有一个匹配元素，继续处理下一个标记
-      if (matchingElements.length === 1) {
-        current = matchingElements[0];
-        continue;
-      }
-      
-      // 如果有多个匹配元素，递归处理剩余路径
-      if (matchingElements.length > 1) {
-        const remainingPath = tokens.slice(i + 1).join('.');
-        return matchingElements.map(item => getValueByPath(item, remainingPath));
-      }
-      
-      return undefined;
+      const { result, continue: shouldContinue } = 
+        handleConditionToken(current, token, tokens, i, config);
+      if (!shouldContinue) return result;
+      current = result;
+      continue;
     }
     
     // 普通属性访问
@@ -503,4 +553,4 @@ module.exports = {
   createOrUpdatePath,
   applyMappings,
   loadMappingDefinition
-}; 
+};
