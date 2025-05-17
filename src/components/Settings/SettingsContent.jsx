@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useTranslation } from 'react-i18next';
+import { getAboutInfo } from '../../utils/version';
 
 const styles = {
   container: {
@@ -253,6 +254,28 @@ const SettingsContent = ({ section }) => {
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const [isResetButtonHovered, setIsResetButtonHovered] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [aboutInfo, setAboutInfo] = useState({
+    APP_VERSION: '-',
+    APP_NAME: 'lvory',
+    APP_DESCRIPTION: '-',
+    COPYRIGHT: '-',
+    WEBSITE: '-',
+    LICENSE: '-',
+    AUTHOR: '-',
+    CORE_VERSION: '-'
+  });
+
+  // 加载关于信息
+  useEffect(() => {
+    const loadAboutInfo = async () => {
+      const info = await getAboutInfo();
+      setAboutInfo(info);
+    };
+    
+    if (section === 'about') {
+      loadAboutInfo();
+    }
+  }, [section]);
 
   // 加载设置和用户配置
   useEffect(() => {
@@ -883,6 +906,104 @@ const SettingsContent = ({ section }) => {
                   >
                     {t('settings.apply')}
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 'about':
+        return (
+          <div>
+            <div style={styles.section}>
+              <div>
+                <h1 style={styles.title}>{t('settings.about')}</h1>
+                <p style={styles.description}>
+                  {t('settings.aboutDescription')}
+                </p>
+                
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
+                  marginTop: '24px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '30px'
+                  }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      backgroundColor: '#818cf8',
+                      borderRadius: '20px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      color: 'white',
+                      fontSize: '36px',
+                      fontWeight: 'bold'
+                    }}>L</div>
+                    <h2 style={{
+                      fontSize: '24px',
+                      fontWeight: '700',
+                      margin: '5px 0 0 0'
+                    }}>{aboutInfo.APP_NAME}</h2>
+                    <p style={{
+                      margin: '0',
+                      color: '#64748b'
+                    }}>{aboutInfo.APP_DESCRIPTION}</p>
+                  </div>
+                  
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '120px 1fr',
+                    gap: '12px',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.appVersion')}</div>
+                    <div>{aboutInfo.APP_VERSION}</div>
+                    
+                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.coreVersion')}</div>
+                    <div>{aboutInfo.CORE_VERSION}</div>
+                    
+                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.license')}</div>
+                    <div>{aboutInfo.LICENSE}</div>
+                    
+                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.projectUrl')}</div>
+                    <div>
+                      <a 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (window.electron && window.electron.openExternal) {
+                            window.electron.openExternal(aboutInfo.WEBSITE);
+                          }
+                        }}
+                        style={{
+                          color: '#818cf8',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        {aboutInfo.WEBSITE}
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    marginTop: '20px',
+                    padding: '12px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <p style={{margin: '0', color: '#64748b', fontSize: '13px', lineHeight: '1.6'}}>
+                      {t('settings.aboutDisclaimer')}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -48,7 +48,9 @@ const HANDLERS_TO_REMOVE = [
   'get-mapping-definition-path', 'get-default-mapping-definition',
   'get-protocol-template', 'create-protocol-mapping',
   // 网络接口相关
-  'get-network-interfaces'
+  'get-network-interfaces',
+  // 应用版本相关
+  'get-app-version'
 ];
 
 /**
@@ -97,6 +99,9 @@ function setupHandlers() {
     
     // 设置网络接口处理程序
     utils.getNetworkInterfaces();
+    
+    // 设置应用版本处理程序
+    utils.getAppVersion();
     
     ipcHandlersRegistered = true;
     logger.info('所有IPC处理程序注册成功');

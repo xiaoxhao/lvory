@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('../../utils/logger');
 const windowManager = require('../window');
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 const os = require('os');
 
 /**
@@ -90,6 +90,20 @@ function writeMetaCache(metaCache) {
   }
 }
 
+// 获取应用版本
+function getAppVersion() {
+  ipcMain.handle('get-app-version', async () => {
+    try {
+      // 使用Electron内置app对象获取版本号
+      return app.getVersion();
+    } catch (error) {
+      console.error('获取应用版本失败:', error);
+      // 返回默认版本号
+      return '0.1.7';
+    }
+  });
+}
+
 // 获取本机所有网络接口
 function getNetworkInterfaces() {
   ipcMain.handle('get-network-interfaces', async () => {
@@ -127,5 +141,6 @@ module.exports = {
   getMainWindow,
   readMetaCache,
   writeMetaCache,
-  getNetworkInterfaces
+  getNetworkInterfaces,
+  getAppVersion
 }; 

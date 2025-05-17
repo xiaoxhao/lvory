@@ -53,6 +53,15 @@ export default {
     aiConfiguration: 'AI Configuration',
     configureAI: 'Configure AI-powered features and settings.',
     
+    // About section
+    about: 'About',
+    aboutDescription: 'lvory application information and version details',
+    appVersion: 'App Version',
+    coreVersion: 'Core Version',
+    license: 'License',
+    projectUrl: 'Project URL',
+    aboutDisclaimer: 'lvory is a universal desktop GUI client based on the Sing-Box core, designed to provide high-performance, flexible and user-friendly network proxy services.',
+    
     // Buttons
     reset: 'Reset',
     apply: 'Apply',
@@ -61,7 +70,9 @@ export default {
     settingsApplied: 'Settings applied successfully',
     settingsReset: 'Settings reset successfully',
 
-    // Tooltips
-    featureUnderDevelopment: 'Feature under development'
+    // Status and tooltips
+    featureUnderDevelopment: 'Feature under development',
+    downloadCore: 'Download Core',
+    coreNotInstalled: 'Core Not Installed'
   }
 }; 

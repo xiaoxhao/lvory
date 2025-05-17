@@ -53,12 +53,26 @@ export default {
     aiConfiguration: 'AI 配置',
     configureAI: '配置 AI 驱动的功能和设置。',
     
+    // 关于部分
+    about: '关于',
+    aboutDescription: 'lvory 应用程序信息及版本详情',
+    appVersion: '应用版本',
+    coreVersion: '内核版本',
+    license: '许可证',
+    projectUrl: '项目地址',
+    aboutDisclaimer: 'lvory 是一个基于 Sing-Box 内核的通用桌面GUI客户端，旨在提供高性能、灵活且易用的网络代理服务。',
+    
     // 按钮
     reset: '重置',
     apply: '应用',
     
     // 通知
     settingsApplied: '设置已成功应用',
-    settingsReset: '设置已成功重置'
+    settingsReset: '设置已成功重置',
+    
+    // 功能状态
+    featureUnderDevelopment: '此功能正在开发中',
+    downloadCore: '下载内核',
+    coreNotInstalled: '内核未安装'
   }
 }; 

@@ -4,7 +4,6 @@ import '../assets/css/systemindicator.css';
 const SystemStatus = () => {
   
   const [systemStats, setSystemStats] = useState({
-    startTime: new Date().toLocaleString(),
     coreVersion: 'N/A',
   });
   const [profileData, setProfileData] = useState([]);
@@ -115,44 +114,6 @@ const SystemStatus = () => {
   return (
     <div className="system-status-card">
       <h3>Information</h3>
-      
-      <div className="status-item">
-        <div className="status-label">StartTime</div>
-        <div className="status-value">{systemStats.startTime}</div>
-      </div>
-      
-      <div className="status-item">
-        <div className="status-label">KernelVersion</div>
-        <div className="status-value-row">
-          <div className="status-value">
-            {systemStats.coreVersion === 'N/A' ? (
-              <span>Not Installed</span>
-            ) : (
-              systemStats.coreVersion
-            )}
-          </div>
-          {systemStats.coreVersion === 'N/A' && !isDownloadingCore && (
-            <button 
-              onClick={handleCoreDownload}
-              className="download-core-btn"
-            >
-              Download Core
-            </button>
-          )}
-          {isDownloadingCore && (
-            <div className="download-progress">
-              <div className="progress-text">{coreDownloadProgress}%</div>
-              <div className="progress-bar" style={{width: `${coreDownloadProgress}%`}}></div>
-            </div>
-          )}
-        </div>
-        {coreDownloadError && (
-          <div className="download-error">{coreDownloadError}</div>
-        )}
-        {coreDownloadSuccess && (
-          <div className="download-success">Download Success</div>
-        )}
-      </div>
       
       <div className="status-item">
         <div className="status-label">TotalNodes</div>

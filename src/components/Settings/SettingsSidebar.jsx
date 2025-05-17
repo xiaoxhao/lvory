@@ -14,6 +14,9 @@ const SettingsSidebar = ({ selectedSection, onSectionChange }) => {
     LABS: [
       { id: 'ai', label: t('settings.aiConfiguration'), isExperimental: true },
     ],
+    OTHERS: [
+      { id: 'about', label: t('settings.about') },
+    ],
   };
 
   return (
