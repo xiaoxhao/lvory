@@ -10,41 +10,39 @@ import './i18n'; // 引入i18n初始化文件
 import './assets/css/global.css';
 import './assets/css/app.css';
 
+// 平台检测工具函数
+const checkIsMacOS = () => {
+  if (window.electron && window.electron.platform) {
+    return window.electron.platform === 'darwin';
+  }
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /macintosh|mac os x/i.test(userAgent);
+};
+
 const App = () => {
   // 添加活动项状态
   const [activeItem, setActiveItem] = useState('dashboard');
   // 添加配置文件数量状态
   const [profilesCount, setProfilesCount] = useState(0);
-  // 检测是否为 macOS 系统
-  const [isMacOS, setIsMacOS] = useState(false);
+  const [isMacOS, setIsMacOS] = useState(checkIsMacOS());
   // 添加窗口可见性状态
   const [isWindowVisible, setIsWindowVisible] = useState(true);
-  // 用于存储动画帧请求ID
-  const animationFrameRef = useRef(null);
+  // 用于存储动画帧请求ID集合
+  const animationFrameRefs = useRef(new Set());
   // 用于存储非必要的定时器
   const timersRef = useRef({});
-
-  // 初始化消息框
+  
   useEffect(() => {
     initMessageBox();
   }, []);
   
-  // 检测操作系统类型
-  useEffect(() => {
-    if (window.electron && window.electron.platform) {
-      // 直接从 electron 获取平台信息
-      setIsMacOS(window.electron.platform === 'darwin');
-    } else {
-      // 浏览器环境下的备用检测方法
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      setIsMacOS(/macintosh|mac os x/i.test(userAgent));
-    }
-  }, []);
 
   // 监听窗口可见性变化事件
   useEffect(() => {
     if (window.electron && window.electron.onWindowVisibilityChange) {
+      let isMounted = true;
       const handleVisibilityChange = (state) => {
+        if (!isMounted) return;
         setIsWindowVisible(state.isVisible);
         
         if (state.isVisible) {
@@ -60,19 +58,20 @@ const App = () => {
       const unsubscribe = window.electron.onWindowVisibilityChange(handleVisibilityChange);
       
       return () => {
+        isMounted = false;
         if (typeof unsubscribe === 'function') {
           unsubscribe();
         }
       };
     }
-  }, []);
+  }, []); // 空依赖数组表示只执行一次
 
   const pauseRendering = () => {
     // 取消所有不必要的requestAnimationFrame
-    if (animationFrameRef.current) {
-      window.cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
+    animationFrameRefs.current.forEach(id => {
+      window.cancelAnimationFrame(id);
+    });
+    animationFrameRefs.current.clear();
 
     // 暂停所有不必要的定时器
     Object.values(timersRef.current).forEach(timer => {
@@ -97,10 +96,14 @@ const App = () => {
 
   // 获取配置文件数量
   useEffect(() => {
+    let isMounted = true;
+    
     const getProfilesCount = async () => {
       if (window.electron && window.electron.getProfileFiles) {
         try {
           const result = await window.electron.getProfileFiles();
+          if (!isMounted) return;
+          
           if (result && result.success && Array.isArray(result.files)) {
             setProfilesCount(result.files.length);
           } else {
@@ -108,6 +111,7 @@ const App = () => {
             setProfilesCount(0);
           }
         } catch (error) {
+          if (!isMounted) return;
           console.error('获取配置文件数量失败:', error);
           setProfilesCount(0);
         }
@@ -118,7 +122,7 @@ const App = () => {
 
     // 添加事件监听器以更新配置文件数量
     const updateProfilesCount = () => {
-      getProfilesCount();
+      if (isMounted) getProfilesCount();
     };
 
     if (window.electron && window.electron.onProfilesChanged) {
@@ -126,73 +130,67 @@ const App = () => {
     }
 
     return () => {
+      isMounted = false;
       if (window.electron && window.electron.offProfilesChanged) {
         window.electron.offProfilesChanged(updateProfilesCount);
       }
     };
-  }, []);
+  }, []); // 空依赖数组表示只执行一次
 
   // 处理侧边栏菜单点击
   const handleItemClick = (item) => {
     setActiveItem(item);
-    
-    // 如果切换到dashboard，确保使用当前配置文件
-    // 由于Dashboard组件不再重新挂载，这段代码可以去掉
-    // 或者当真正需要刷新数据时，通过自定义事件通知Dashboard组件
   };
 
-  // 处理窗口控制按钮的点击事件
-  const handleMinimize = () => {
+  // 窗口控制工具函数
+  const handleWindowAction = (action) => {
     if (window.electron) {
-      window.electron.minimizeWindow();
-    } else {
       try {
-        const { remote } = window.require('electron');
-        if (remote) {
-          remote.getCurrentWindow().minimize();
+        switch(action) {
+          case 'minimize':
+            window.electron.minimizeWindow();
+            break;
+          case 'maximize':
+            window.electron.maximizeWindow();
+            break;
+          case 'close':
+            window.electron.closeWindow();
+            break;
         }
       } catch (error) {
-        console.error('无法最小化窗口:', error);
+        console.error(`窗口${action}操作失败:`, error);
       }
-    }
-  };
-
-  const handleMaximize = () => {
-    // 使用Electron的IPC通信来最大化/还原窗口
-    if (window.electron) {
-      window.electron.maximizeWindow();
     } else {
       try {
         const { remote } = window.require('electron');
         if (remote) {
           const currentWindow = remote.getCurrentWindow();
-          if (currentWindow.isMaximized()) {
-            currentWindow.unmaximize();
-          } else {
-            currentWindow.maximize();
+          switch(action) {
+            case 'minimize':
+              currentWindow.minimize();
+              break;
+            case 'maximize':
+              if (currentWindow.isMaximized()) {
+                currentWindow.unmaximize();
+              } else {
+                currentWindow.maximize();
+              }
+              break;
+            case 'close':
+              currentWindow.close();
+              break;
           }
         }
       } catch (error) {
-        console.error('无法最大化/还原窗口:', error);
+        console.error(`窗口${action}操作失败:`, error);
       }
     }
   };
 
-  const handleClose = () => {
-    // 使用Electron的IPC通信来关闭窗口
-    if (window.electron) {
-      window.electron.closeWindow();
-    } else {
-      try {
-        const { remote } = window.require('electron');
-        if (remote) {
-          remote.getCurrentWindow().close();
-        }
-      } catch (error) {
-        console.error('无法关闭窗口:', error);
-      }
-    }
-  };
+  // 处理窗口控制按钮的点击事件
+  const handleMinimize = () => handleWindowAction('minimize');
+  const handleMaximize = () => handleWindowAction('maximize');
+  const handleClose = () => handleWindowAction('close');
 
   const isSettingsActive = activeItem === 'settings';
 
@@ -232,26 +230,28 @@ const App = () => {
                 />
                 <div className="main-content" style={{ position: 'relative' }}>
                   <Dashboard activeView={activeItem} />
-                  <div style={{ 
-                    display: activeItem === 'profiles' ? 'block' : 'none', 
-                    width: '100%', 
-                    height: '100%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
-                  }}>
-                    {activeItem === 'profiles' && <Profiles />}
-                  </div>
-                  <div style={{ 
-                    display: activeItem === 'settings' ? 'block' : 'none', 
-                    width: '100%', 
-                    height: '100%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
-                  }}>
-                    {activeItem === 'settings' && <Settings />}
-                  </div>
+                  {activeItem === 'profiles' && (
+                    <div style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0
+                    }}>
+                      <Profiles />
+                    </div>
+                  )}
+                  {activeItem === 'settings' && (
+                    <div style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0
+                    }}>
+                      <Settings />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -263,4 +263,4 @@ const App = () => {
   );
 };
 
-export default App; 
+export default App;
