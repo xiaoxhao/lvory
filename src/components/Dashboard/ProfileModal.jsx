@@ -103,43 +103,36 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
           setErrorDetails(error.message || 'Unknown error occurred');
         });
     } else {
-      try {
-        // 尝试使用浏览器的fetch API下载
-        fetch(url)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`Server responded with status: ${response.status}`);
-            }
-            return response.blob();
-          })
-          .then(blob => {
-            // 创建下载链接
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = customFileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            setDownloadStatus('success');
-            // 3秒后关闭弹窗
-            setTimeout(() => {
-              onClose();
-              resetState();
-            }, 3000);
-          })
-          .catch(error => {
-            console.error('Download failed:', error);
-            setDownloadStatus('error');
-            setIsDownloading(false);
-            setErrorDetails(error.message || 'Network request failed');
-          });
-      } catch (error) {
-        console.error('Unable to download file:', error);
+    // 尝试使用浏览器的fetch API下载
+    fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        // 创建下载链接
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = customFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        setDownloadStatus('success');
+        // 3秒后关闭弹窗
+        setTimeout(() => {
+          onClose();
+          resetState();
+        }, 3000);
+      })
+      .catch(error => {
+        console.error('Download failed:', error);
         setDownloadStatus('error');
         setIsDownloading(false);
-        setErrorDetails(error.message || 'Browser download functionality not available');
-      }
+        setErrorDetails(error.message || 'Network request failed');
+      });
     }
   };
 

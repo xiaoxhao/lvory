@@ -112,8 +112,7 @@ const styles = {
     opacity: 0
   },
   tooltipVisible: {
-    visibility: 'visible',
-    opacity: 1
+    visibility: 'visible'
   },
   betaBadge: {
     fontSize: '12px',
@@ -907,4 +906,4 @@ const SettingsContent = ({ section }) => {
   );
 };
 
-export default SettingsContent; 
+export default SettingsContent;
