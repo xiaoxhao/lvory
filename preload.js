@@ -39,6 +39,15 @@ contextBridge.exposeInMainWorld('electron', {
   
   openConfigDir: () => ipcRenderer.invoke('openConfigDir'),
   
+  // 版本更新相关
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  
+  // 打开外部链接
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  
+  // 调用main进程方法
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+  
   singbox: {
     checkInstalled: () => ipcRenderer.invoke('singbox-check-installed'),
     getVersion: () => ipcRenderer.invoke('singbox-get-version'),

@@ -48,7 +48,14 @@ const HANDLERS_TO_REMOVE = [
   'get-mapping-definition-path', 'get-default-mapping-definition',
   'get-protocol-template', 'create-protocol-mapping',
   // 网络接口相关
-  'get-network-interfaces'
+  'get-network-interfaces',
+  // 应用版本相关
+  'get-app-version',
+  'get-build-date',
+  // 版本更新相关
+  'check-for-updates',
+  // 外部链接相关
+  'open-external'
 ];
 
 /**
@@ -97,6 +104,18 @@ function setupHandlers() {
     
     // 设置网络接口处理程序
     utils.getNetworkInterfaces();
+    
+    // 设置应用版本处理程序
+    utils.getAppVersion();
+    
+    // 设置构建日期处理程序
+    utils.getBuildDate();
+    
+    // 设置版本更新检查处理程序
+    utils.checkForUpdates();
+    
+    // 设置打开外部链接处理程序
+    utils.openExternal();
     
     ipcHandlersRegistered = true;
     logger.info('所有IPC处理程序注册成功');
