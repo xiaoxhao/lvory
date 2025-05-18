@@ -5,17 +5,22 @@ const VERSION_INFO = {
   APP_DESCRIPTION: '基于Sing-Box内核的通用桌面GUI客户端',
   LICENSE: 'MIT License',
   WEBSITE: 'https://github.com/sxueck/lvory',
+  BUILD_DATE: '20240101', // 默认构建日期，将被CI替换
 };
 
 // 尝试从Electron环境获取版本信息
 const initVersionInfo = async () => {
-  // 在Electron环境中获取package.json信息
   if (window.electron) {
     try {
-      // 使用新添加的IPC接口获取版本
       const version = await window.electron.invoke('get-app-version');
       if (version) {
         VERSION_INFO.APP_VERSION = version;
+      }
+      
+      // 获取构建日期
+      const buildDate = await window.electron.invoke('get-build-date');
+      if (buildDate) {
+        VERSION_INFO.BUILD_DATE = buildDate;
       }
     } catch (error) {
       console.error('无法获取应用版本信息:', error);
@@ -28,6 +33,9 @@ initVersionInfo();
 
 // 获取应用版本信息
 const getAppVersion = () => VERSION_INFO.APP_VERSION;
+
+// 获取构建日期
+const getBuildDate = () => VERSION_INFO.BUILD_DATE;
 
 // 获取应用名称
 const getAppName = () => VERSION_INFO.APP_NAME;
@@ -62,6 +70,7 @@ const getAboutInfo = async () => {
 
 export {
   getAppVersion,
+  getBuildDate,
   getAppName,
   getVersionInfo,
   getAboutInfo,

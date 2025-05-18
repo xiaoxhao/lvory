@@ -74,5 +74,27 @@ export default {
     featureUnderDevelopment: 'Feature under development',
     downloadCore: 'Download Core',
     coreNotInstalled: 'Core Not Installed'
+  },
+  
+  // Update Related
+  update: {
+    newVersionAvailable: 'New Version Available',
+    newVersionMessage: 'A new version of lvory is available. We recommend updating to get the latest features and fixes.',
+    currentVersion: 'Current Version',
+    newVersion: 'New Version',
+    viewUpdate: 'View Update',
+    later: 'Remind Me Later',
+    downloading: 'Downloading...',
+    downloadComplete: 'Download Complete',
+    downloadFailed: 'Download Failed',
+    developmentBuild: 'Development Build',
+    developmentMessage: 'You are running a development build which may contain unstable features. Visit the GitHub repository for stable releases.',
+    gotIt: 'Got It',
+    version: 'Version',
+    development: 'dev',
+    releaseNotes: 'Release Notes',
+    information: 'Information',
+    skipVersion: 'Skip This Version',
+    remindLater: 'Remind Later'
   }
 }; 

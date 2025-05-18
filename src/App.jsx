@@ -4,7 +4,8 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Profiles from './components/Profiles';
 import Settings from './components/Settings/Settings';
-import { AppProvider } from './context/AppContext';
+import UpdateNotification from './components/UpdateNotification';
+import { AppProvider, useAppContext } from './context/AppContext';
 import { initMessageBox } from './utils/messageBox';
 import './i18n'; // 引入i18n初始化文件
 import './assets/css/global.css';
@@ -31,12 +32,67 @@ const App = () => {
   const animationFrameRefs = useRef(new Set());
   // 用于存储非必要的定时器
   const timersRef = useRef({});
+  // 添加更新通知状态
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  // 添加系统设置状态
+  const [appSettings, setAppSettings] = useState({ checkUpdateOnBoot: true });
   
   useEffect(() => {
     initMessageBox();
   }, []);
   
-
+  // 加载系统设置并检查更新
+  useEffect(() => {
+    const loadSettingsAndCheckUpdates = async () => {
+      try {
+        // 加载系统设置
+        if (window.electron && window.electron.getSettings) {
+          const result = await window.electron.getSettings();
+          if (result.success) {
+            setAppSettings(result.settings);
+            
+            // 如果设置为启动时检查更新，则执行检查
+            if (result.settings.checkUpdateOnBoot) {
+              checkForUpdates();
+            }
+          }
+        } else {
+          // 如果无法获取设置，默认检查更新
+          checkForUpdates();
+        }
+      } catch (error) {
+        console.error('加载设置或检查更新失败:', error);
+      }
+    };
+    
+    loadSettingsAndCheckUpdates();
+  }, []);
+  
+  // 检查更新
+  const checkForUpdates = async () => {
+    if (window.electron && window.electron.checkForUpdates) {
+      try {
+        const result = await window.electron.checkForUpdates();
+        if (result && result.success && result.hasUpdate) {
+          // 检查是否跳过此版本
+          try {
+            const skipVersion = localStorage.getItem('skipVersion');
+            if (skipVersion === result.latestVersion) {
+              console.log('用户已选择跳过此版本:', skipVersion);
+              return;
+            }
+          } catch (error) {
+            console.error('读取跳过版本信息失败:', error);
+          }
+          
+          setShowUpdateNotification(true);
+        }
+      } catch (error) {
+        console.error('检查更新失败:', error);
+      }
+    }
+  };
+  
   // 监听窗口可见性变化事件
   useEffect(() => {
     if (window.electron && window.electron.onWindowVisibilityChange) {
@@ -254,6 +310,11 @@ const App = () => {
                   )}
                 </div>
               </div>
+
+              {/* 添加更新通知组件 */}
+              {showUpdateNotification && (
+                <UpdateNotification onClose={() => setShowUpdateNotification(false)} />
+              )}
             </div>
           } />
           <Route path="/settings" element={<Settings />} />

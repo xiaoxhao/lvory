@@ -177,6 +177,52 @@ const styles = {
   }
 };
 
+// 可复用的文本描述组件
+const DescriptionText = ({ children }) => (
+  <p style={{ 
+    fontSize: '12px', 
+    color: '#64748b', 
+    marginTop: '-12px', 
+    marginBottom: '15px',
+    marginLeft: '2px'
+  }}>{children}</p>
+);
+
+// 可复用的带标签输入框组件
+const InputWithLabel = ({ label, value, onChange, placeholder, type = "text", min, max, style = {} }) => (
+  <div style={{ marginBottom: '20px' }}>
+    <label style={styles.label}>{label}</label>
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      style={{...styles.input, ...style}}
+      placeholder={placeholder}
+      min={min}
+      max={max}
+    />
+  </div>
+);
+
+// 可复用的选择框组件
+const SelectWithLabel = ({ label, value, onChange, options }) => (
+  <div style={{ marginBottom: '20px' }}>
+    <label style={styles.label}>{label}</label>
+    <select
+      value={value}
+      onChange={onChange}
+      style={{
+        ...styles.input,
+        height: '36px'
+      }}
+    >
+      {options.map(option => (
+        <option key={option.value} value={option.value}>{option.label}</option>
+      ))}
+    </select>
+  </div>
+);
+
 const ToggleWithTooltip = ({ label, tKey, value, onChange, disabled = false, tooltipText }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -277,101 +323,47 @@ const SettingsContent = ({ section }) => {
     }
   }, [section]);
 
-  // 加载设置和用户配置
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // 加载持久化的设置
-        if (window.electron && window.electron.getSettings) {
-          const result = await window.electron.getSettings();
-          if (result.success) {
-            setSettings(prev => ({
-              ...prev,
-              ...result.settings
-            }));
-          }
-        }
-
-        // 加载开机自启动设置
-        if (window.electron && window.electron.getAutoLaunch) {
-          const result = await window.electron.getAutoLaunch();
-          if (result.success) {
-            setSettings(prev => ({
-              ...prev,
-              autoStart: result.enabled
-            }));
-          } else {
-            console.error('获取开机自启动设置失败:', result.error);
-          }
-        }
-
-        // 加载用户配置
-        if (window.electron && window.electron.userConfig && window.electron.userConfig.get) {
-          const result = await window.electron.userConfig.get();
-          if (result.success && result.config) {
-            setUserConfig(result.config);
-            
-            // 使用来自用户配置的值更新UI状态
-            if (result.config.settings) {
-              setSettings(prev => ({
-                ...prev,
-                proxyPort: result.config.settings.proxy_port || prev.proxyPort,
-                allowLan: result.config.settings.allow_lan || false,
-                apiAddress: result.config.settings.api_address || prev.apiAddress,
-                tunMode: result.config.settings.tun_mode || false,
-                autoRestart: result.config.settings.auto_restart || false,
-                checkUpdateOnBoot: result.config.settings.check_update_on_boot !== undefined ? result.config.settings.check_update_on_boot : prev.checkUpdateOnBoot,
-                
-                // Nodes设置
-                nodeAdvancedMonitoring: result.config.settings.node_advanced_monitoring || false,
-                nodeExitStatusMonitoring: result.config.settings.node_exit_status_monitoring || false,
-                nodeExitIPPurity: result.config.settings.node_exit_ip_purity || false,
-                keepNodeTrafficHistory: result.config.settings.keep_node_traffic_history || false,
-                
-                // 多云互联设置
-                cloudInterconnection: result.config.settings.cloud_interconnection || false,
-                backendAddress: result.config.settings.backend_address || '',
-                
-                // 高级设置
-                gpuAcceleration: result.config.settings.gpu_acceleration || false,
-                kernelWatchdog: result.config.settings.kernel_watchdog !== undefined ? result.config.settings.kernel_watchdog : prev.kernelWatchdog,
-                usePrivateProtocol: result.config.settings.use_private_protocol || false,
-                logRotationPeriod: result.config.settings.log_rotation_period || 7,
-                extraLogSaving: result.config.settings.extra_log_saving || false,
-                language: result.config.settings.language || 'zh_CN',
-                nodeIPDetailAPI: result.config.settings.node_ip_detail_api || 'ip.sb',
-              }));
-            }
-          }
-        }
-      } catch (error) {
-        console.error('加载设置失败:', error);
-      }
-    };
-    loadData();
-  }, []);
-
-  // 监听用户配置更新
-  useEffect(() => {
-    if (window.electron && window.electron.userConfig && window.electron.userConfig.onUpdated) {
-      const unsubscribe = window.electron.userConfig.onUpdated(() => {
-        // 当用户配置更新时重新加载
-        window.electron.userConfig.get().then(result => {
-          if (result.success && result.config) {
-            setUserConfig(result.config);
-          }
-        });
-      });
-      
-      return unsubscribe;
+  // 将映射逻辑提取为独立函数
+  const mapSettingToUserConfig = (key, value, userConfig) => {
+    // 确保settings对象存在
+    if (!userConfig.settings) {
+      userConfig.settings = {};
     }
-  }, []);
 
-  const showNotification = (messageKey) => {
-    setNotification(t(messageKey));
-    setTimeout(() => {
-      setNotification(null);
-    }, 3000);
+    // 映射关系对象
+    const mappings = {
+      proxyPort: 'proxy_port',
+      allowLan: 'allow_lan',
+      apiAddress: 'api_address',
+      tunMode: 'tun_mode',
+      autoRestart: 'auto_restart',
+      checkUpdateOnBoot: 'check_update_on_boot',
+      nodeAdvancedMonitoring: 'node_advanced_monitoring',
+      nodeExitStatusMonitoring: 'node_exit_status_monitoring',
+      nodeExitIPPurity: 'node_exit_ip_purity',
+      cloudInterconnection: 'cloud_interconnection',
+      backendAddress: 'backend_address',
+      gpuAcceleration: 'gpu_acceleration',
+      kernelWatchdog: 'kernel_watchdog',
+      usePrivateProtocol: 'use_private_protocol',
+      logRotationPeriod: 'log_rotation_period',
+      extraLogSaving: 'extra_log_saving',
+      language: 'language',
+      keepNodeTrafficHistory: 'keep_node_traffic_history',
+      nodeIPDetailAPI: 'node_ip_detail_api',
+    };
+
+    // 如果是autoStart，它是系统级设置，不需要存入用户配置文件
+    if (key === 'autoStart') {
+      return userConfig;
+    }
+
+    // 使用映射表来更新用户配置
+    if (mappings[key]) {
+      userConfig.settings[mappings[key]] = value;
+    }
+
+    return userConfig;
   };
 
   const handleSettingChange = (key, value) => {
@@ -384,79 +376,14 @@ const SettingsContent = ({ section }) => {
     // 同时更新用户配置对象，但不立即保存
     const newUserConfig = { ...userConfig };
     
-    // 确保settings对象存在
-    if (!newUserConfig.settings) {
-      newUserConfig.settings = {};
-    }
+    // 使用映射函数更新用户配置
+    const updatedUserConfig = mapSettingToUserConfig(key, value, newUserConfig);
+    setUserConfig(updatedUserConfig);
 
-    // 根据key更新相应字段
-    switch (key) {
-      case 'proxyPort':
-        newUserConfig.settings.proxy_port = value;
-        break;
-      case 'allowLan':
-        newUserConfig.settings.allow_lan = value;
-        break;
-      case 'apiAddress':
-        newUserConfig.settings.api_address = value;
-        break;
-      case 'tunMode':
-        newUserConfig.settings.tun_mode = value;
-        break;
-      case 'autoStart':
-        // autoStart是系统级设置，不需要存入用户配置文件
-        break;
-      case 'autoRestart':
-        newUserConfig.settings.auto_restart = value;
-        break;
-      case 'checkUpdateOnBoot':
-        newUserConfig.settings.check_update_on_boot = value;
-        break;
-      case 'nodeAdvancedMonitoring':
-        newUserConfig.settings.node_advanced_monitoring = value;
-        break;
-      case 'nodeExitStatusMonitoring':
-        newUserConfig.settings.node_exit_status_monitoring = value;
-        break;
-      case 'nodeExitIPPurity':
-        newUserConfig.settings.node_exit_ip_purity = value;
-        break;
-      case 'cloudInterconnection':
-        newUserConfig.settings.cloud_interconnection = value;
-        break;
-      case 'backendAddress':
-        newUserConfig.settings.backend_address = value;
-        break;
-      case 'gpuAcceleration':
-        newUserConfig.settings.gpu_acceleration = value;
-        break;
-      case 'kernelWatchdog':
-        newUserConfig.settings.kernel_watchdog = value;
-        break;
-      case 'usePrivateProtocol':
-        newUserConfig.settings.use_private_protocol = value;
-        break;
-      case 'logRotationPeriod':
-        newUserConfig.settings.log_rotation_period = value;
-        break;
-      case 'extraLogSaving':
-        newUserConfig.settings.extra_log_saving = value;
-        break;
-      case 'language':
-        newUserConfig.settings.language = value;
-        // 立即更新全局状态以切换语言
-        updateSettings({ language: value });
-        break;
-      case 'keepNodeTrafficHistory':
-        newUserConfig.settings.keep_node_traffic_history = value;
-        break;
-      case 'nodeIPDetailAPI':
-        newUserConfig.settings.node_ip_detail_api = value;
-        break;
-      // 其他可能的映射...
+    // 如果是语言设置，立即更新全局状态以切换语言
+    if (key === 'language') {
+      updateSettings({ language: value });
     }
-
-    setUserConfig(newUserConfig);
   };
 
   // 处理动画效果设置改变
@@ -506,37 +433,8 @@ const SettingsContent = ({ section }) => {
         if (result.success && result.config) {
           setUserConfig(result.config);
           
-          // 使用来自用户配置的值更新UI状态
-          if (result.config.settings) {
-            setSettings(prev => ({
-              ...prev,
-              proxyPort: result.config.settings.proxy_port || prev.proxyPort,
-              allowLan: result.config.settings.allow_lan || false,
-              apiAddress: result.config.settings.api_address || prev.apiAddress,
-              tunMode: result.config.settings.tun_mode || false,
-              autoRestart: result.config.settings.auto_restart || false,
-              checkUpdateOnBoot: result.config.settings.check_update_on_boot !== undefined ? result.config.settings.check_update_on_boot : prev.checkUpdateOnBoot,
-              
-              // Nodes设置
-              nodeAdvancedMonitoring: result.config.settings.node_advanced_monitoring || false,
-              nodeExitStatusMonitoring: result.config.settings.node_exit_status_monitoring || false,
-              nodeExitIPPurity: result.config.settings.node_exit_ip_purity || false,
-              keepNodeTrafficHistory: result.config.settings.keep_node_traffic_history || false,
-              
-              // 多云互联设置
-              cloudInterconnection: result.config.settings.cloud_interconnection || false,
-              backendAddress: result.config.settings.backend_address || '',
-              
-              // 高级设置
-              gpuAcceleration: result.config.settings.gpu_acceleration || false,
-              kernelWatchdog: result.config.settings.kernel_watchdog !== undefined ? result.config.settings.kernel_watchdog : prev.kernelWatchdog,
-              usePrivateProtocol: result.config.settings.use_private_protocol || false,
-              logRotationPeriod: result.config.settings.log_rotation_period || 7,
-              extraLogSaving: result.config.settings.extra_log_saving || false,
-              language: result.config.settings.language || 'zh_CN',
-              nodeIPDetailAPI: result.config.settings.node_ip_detail_api || 'ip.sb',
-            }));
-          }
+          // 使用映射函数更新设置
+          setSettings(prev => createUserConfigMapping(result, prev));
           
           showNotification('settings.settingsReset');
         } else {
@@ -572,6 +470,48 @@ const SettingsContent = ({ section }) => {
     }
   };
 
+  // 辅助函数，用于从配置创建映射
+  const createUserConfigMapping = (result, prevSettings) => {
+    if (!result.config || !result.config.settings) return prevSettings;
+    
+    const config = result.config.settings;
+    return {
+      ...prevSettings,
+      proxyPort: config.proxy_port || prevSettings.proxyPort,
+      allowLan: config.allow_lan || false,
+      apiAddress: config.api_address || prevSettings.apiAddress,
+      tunMode: config.tun_mode || false,
+      autoRestart: config.auto_restart || false,
+      checkUpdateOnBoot: config.check_update_on_boot !== undefined ? config.check_update_on_boot : prevSettings.checkUpdateOnBoot,
+      
+      // Nodes设置
+      nodeAdvancedMonitoring: config.node_advanced_monitoring || false,
+      nodeExitStatusMonitoring: config.node_exit_status_monitoring || false,
+      nodeExitIPPurity: config.node_exit_ip_purity || false,
+      keepNodeTrafficHistory: config.keep_node_traffic_history || false,
+      
+      // 多云互联设置
+      cloudInterconnection: config.cloud_interconnection || false,
+      backendAddress: config.backend_address || '',
+      
+      // 高级设置
+      gpuAcceleration: config.gpu_acceleration || false,
+      kernelWatchdog: config.kernel_watchdog !== undefined ? config.kernel_watchdog : prevSettings.kernelWatchdog,
+      usePrivateProtocol: config.use_private_protocol || false,
+      logRotationPeriod: config.log_rotation_period || 7,
+      extraLogSaving: config.extra_log_saving || false,
+      language: config.language || 'zh_CN',
+      nodeIPDetailAPI: config.node_ip_detail_api || 'ip.sb',
+    };
+  };
+
+  const showNotification = (messageKey) => {
+    setNotification(t(messageKey));
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000);
+  };
+
   const renderToggle = (label, key, value, onChange) => (
     <div style={styles.toggleContainer}>
       <label style={styles.toggleLabel}>{label}</label>
@@ -590,325 +530,222 @@ const SettingsContent = ({ section }) => {
     </div>
   );
 
+  // 创建通用的设置部分组件
+  const SettingsSection = ({ title, description, children, badge }) => (
+    <div style={styles.section}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={styles.title}>{title}</h1>
+            <p style={styles.description}>{description}</p>
+          </div>
+          {badge && <span style={styles.betaBadge}>{badge}</span>}
+        </div>
+        {children}
+        <div style={styles.buttonContainer}>
+          <button
+            onClick={resetSettings}
+            onMouseEnter={() => setIsResetButtonHovered(true)}
+            onMouseLeave={() => setIsResetButtonHovered(false)}
+            style={{
+              ...styles.secondaryButton,
+              ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
+            }}
+          >
+            {t('settings.reset')}
+          </button>
+        
+          <button
+            onClick={applySettings}
+            onMouseEnter={() => setIsButtonHovered(true)}
+            onMouseLeave={() => setIsButtonHovered(false)}
+            style={{
+              ...styles.button,
+              ...(isButtonHovered ? styles.buttonHover : {})
+            }}
+          >
+            {t('settings.apply')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
     switch (section) {
       case 'basic':
         return (
           <div>
-            <div style={styles.section}>
-              <div>
-                <h1 style={styles.title}>{t('settings.basicSettings')}</h1>
-                <p style={styles.description}>
-                  {t('settings.configureBasic')}
+            <SettingsSection 
+              title={t('settings.basicSettings')} 
+              description={t('settings.configureBasic')}
+            >
+              {/* 代理端口设置 */}
+              <InputWithLabel 
+                label={t('settings.proxyPort')} 
+                value={settings.proxyPort}
+                onChange={(e) => handleSettingChange('proxyPort', e.target.value)}
+                placeholder={t('settings.enterProxyPort')}
+              />
+
+              {/* API地址设置 */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={styles.label}>{t('settings.apiAddress')}</label>
+                <input
+                  type="text"
+                  value={settings.apiAddress}
+                  onChange={(e) => handleSettingChange('apiAddress', e.target.value)}
+                  style={styles.input}
+                  placeholder={t('settings.enterApiAddress')}
+                />
+                <p style={styles.warning}>
+                  {t('settings.apiAddressWarning')}
                 </p>
-
-                {/* 代理端口设置 */}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>{t('settings.proxyPort')}</label>
-                  <input
-                    type="text"
-                    value={settings.proxyPort}
-                    onChange={(e) => handleSettingChange('proxyPort', e.target.value)}
-                    style={styles.input}
-                    placeholder={t('settings.enterProxyPort')}
-                  />
-                </div>
-
-                {/* API地址设置 */}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>{t('settings.apiAddress')}</label>
-                  <input
-                    type="text"
-                    value={settings.apiAddress}
-                    onChange={(e) => handleSettingChange('apiAddress', e.target.value)}
-                    style={styles.input}
-                    placeholder={t('settings.enterApiAddress')}
-                  />
-                  <p style={styles.warning}>
-                    {t('settings.apiAddressWarning')}
-                  </p>
-                </div>
-
-                {/* 允许局域网连接开关 */}
-                {renderToggle(t('settings.allowLan'), 'allowLan', settings.allowLan)}
-
-                {/* TUN模式开关 - Disabled */}
-                <ToggleWithTooltip
-                  label={t('settings.tunMode')}
-                  tKey="tunMode"
-                  value={settings.tunMode}
-                  onChange={(val) => handleSettingChange('tunMode', val)}
-                  disabled={true}
-                  tooltipText={t('settings.featureUnderDevelopment')}
-                />
-
-                {/* 开机自启动开关 */}
-                {renderToggle(t('settings.autoStart'), 'autoStart', settings.autoStart)}
-
-                {/* 自动重启内核开关 */}
-                {renderToggle(t('settings.autoRestart'), 'autoRestart', settings.autoRestart)}
-                
-                {/* 开机检查更新 - Disabled */}
-                <ToggleWithTooltip
-                  label={t('settings.checkUpdates')}
-                  tKey="checkUpdateOnBoot"
-                  value={settings.checkUpdateOnBoot}
-                  onChange={(val) => handleSettingChange('checkUpdateOnBoot', val)}
-                  disabled={true}
-                  tooltipText={t('settings.featureUnderDevelopment')}
-                />
-
-                {/* 语言选择 */}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>{t('settings.language')}</label>
-                  <select
-                    value={settings.language}
-                    onChange={(e) => handleSettingChange('language', e.target.value)}
-                    style={{
-                      ...styles.input,
-                      height: '36px'
-                    }}
-                  >
-                    <option value="zh_CN">中文</option>
-                    <option value="en_US">English</option>
-                  </select>
-                </div>
-
-                {/* 修改按钮容器 */}
-                <div style={styles.buttonContainer}>
-                  <button
-                    onClick={resetSettings}
-                    onMouseEnter={() => setIsResetButtonHovered(true)}
-                    onMouseLeave={() => setIsResetButtonHovered(false)}
-                    style={{
-                      ...styles.secondaryButton,
-                      ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
-                    }}
-                  >
-                    {t('settings.reset')}
-                  </button>
-                
-                  <button
-                    onClick={applySettings}
-                    onMouseEnter={() => setIsButtonHovered(true)}
-                    onMouseLeave={() => setIsButtonHovered(false)}
-                    style={{
-                      ...styles.button,
-                      ...(isButtonHovered ? styles.buttonHover : {})
-                    }}
-                  >
-                    {t('settings.apply')}
-                  </button>
-                </div>
               </div>
-            </div>
+
+              {/* 允许局域网连接开关 */}
+              {renderToggle(t('settings.allowLan'), 'allowLan', settings.allowLan)}
+
+              {/* TUN模式开关 - Disabled */}
+              <ToggleWithTooltip
+                label={t('settings.tunMode')}
+                tKey="tunMode"
+                value={settings.tunMode}
+                onChange={(val) => handleSettingChange('tunMode', val)}
+                disabled={true}
+                tooltipText={t('settings.featureUnderDevelopment')}
+              />
+
+              {/* 开机自启动开关 */}
+              {renderToggle(t('settings.autoStart'), 'autoStart', settings.autoStart)}
+
+              {/* 自动重启内核开关 */}
+              {renderToggle(t('settings.autoRestart'), 'autoRestart', settings.autoRestart)}
+              
+              {/* 开机检查更新 */}
+              {renderToggle(t('settings.checkUpdates'), 'checkUpdateOnBoot', settings.checkUpdateOnBoot)}
+
+              {/* 语言选择 */}
+              <SelectWithLabel
+                label={t('settings.language')}
+                value={settings.language}
+                onChange={(e) => handleSettingChange('language', e.target.value)}
+                options={[
+                  { value: 'zh_CN', label: '中文' },
+                  { value: 'en_US', label: 'English' }
+                ]}
+              />
+            </SettingsSection>
           </div>
         );
       
       case 'advanced':
         return (
           <div>
-            <div style={styles.section}>
-              <div>
-                <h1 style={styles.title}>{t('settings.advancedSettings')}</h1>
-                <p style={styles.description}>
-                  {t('settings.configureAdvanced')}
-                </p>
+            <SettingsSection 
+              title={t('settings.advancedSettings')} 
+              description={t('settings.configureAdvanced')}
+            >
+              {/* 内核看门狗 */}
+              {renderToggle(t('settings.kernelWatchdog'), 'kernelWatchdog', settings.kernelWatchdog)}
+              <DescriptionText>{t('settings.kernelWatchdogDesc')}</DescriptionText>
 
-                {/* 内核看门狗 */}
-                {renderToggle(t('settings.kernelWatchdog'), 'kernelWatchdog', settings.kernelWatchdog)}
-                <p style={{ 
-                  fontSize: '12px', 
-                  color: '#64748b', 
-                  marginTop: '-12px', 
-                  marginBottom: '15px',
-                  marginLeft: '2px'
-                }}>
-                  {t('settings.kernelWatchdogDesc')}
-                </p>
+              {/* 使用lvory私有协议 - Disabled */}
+              <ToggleWithTooltip
+                label={t('settings.usePrivateProtocol')}
+                tKey="usePrivateProtocol"
+                value={settings.usePrivateProtocol}
+                onChange={(val) => handleSettingChange('usePrivateProtocol', val)}
+                disabled={true}
+                tooltipText={t('settings.featureUnderDevelopment')}
+              />
+              <DescriptionText>{t('settings.usePrivateProtocolDesc')}</DescriptionText>
 
-                {/* 使用lvory私有协议 - Disabled */}
-                <ToggleWithTooltip
-                  label={t('settings.usePrivateProtocol')}
-                  tKey="usePrivateProtocol"
-                  value={settings.usePrivateProtocol}
-                  onChange={(val) => handleSettingChange('usePrivateProtocol', val)}
-                  disabled={true}
-                  tooltipText={t('settings.featureUnderDevelopment')}
-                />
-                <p style={{ 
-                  fontSize: '12px', 
-                  color: '#64748b', 
-                  marginTop: '-12px', 
-                  marginBottom: '15px',
-                  marginLeft: '2px'
-                }}>
-                  {t('settings.usePrivateProtocolDesc')}
-                </p>
-
-                {/* 日志设置 */}
-                <div style={{ marginBottom: '5px' }}>
-                  <label style={styles.label}>{t('settings.logSettings')}</label>
-                </div>
-
-                {/* 日志轮转周期和额外保存放在同一层级，修正行间距 */}
-                <div style={{ marginBottom: '15px' }}>
-                  {/* 日志轮转周期 */}
-                  <div style={{...styles.toggleContainer, marginBottom: '12px'}}>
-                    <label style={styles.toggleLabel}>{t('settings.logRotation')}</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="90"
-                      value={settings.logRotationPeriod}
-                      onChange={(e) => handleSettingChange('logRotationPeriod', parseInt(e.target.value, 10))}
-                      style={{...styles.input, width: '80px'}}
-                    />
-                  </div>
-
-                  {/* 额外保存 */}
-                  {renderToggle(t('settings.extraLogSaving'), 'extraLogSaving', settings.extraLogSaving)}
-                </div>
-
-                {/* 修改按钮容器 */}
-                <div style={styles.buttonContainer}>
-                  <button
-                    onClick={resetSettings}
-                    onMouseEnter={() => setIsResetButtonHovered(true)}
-                    onMouseLeave={() => setIsResetButtonHovered(false)}
-                    style={{
-                      ...styles.secondaryButton,
-                      ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
-                    }}
-                  >
-                    {t('settings.reset')}
-                  </button>
-                
-                  <button
-                    onClick={applySettings}
-                    onMouseEnter={() => setIsButtonHovered(true)}
-                    onMouseLeave={() => setIsButtonHovered(false)}
-                    style={{
-                      ...styles.button,
-                      ...(isButtonHovered ? styles.buttonHover : {})
-                    }}
-                  >
-                    {t('settings.apply')}
-                  </button>
-                </div>
+              {/* 日志设置 */}
+              <div style={{ marginBottom: '5px' }}>
+                <label style={styles.label}>{t('settings.logSettings')}</label>
               </div>
-            </div>
+
+              {/* 日志轮转周期和额外保存放在同一层级，修正行间距 */}
+              <div style={{ marginBottom: '15px' }}>
+                {/* 日志轮转周期 */}
+                <div style={{...styles.toggleContainer, marginBottom: '12px'}}>
+                  <label style={styles.toggleLabel}>{t('settings.logRotation')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="90"
+                    value={settings.logRotationPeriod}
+                    onChange={(e) => handleSettingChange('logRotationPeriod', parseInt(e.target.value, 10))}
+                    style={{...styles.input, width: '80px'}}
+                  />
+                </div>
+
+                {/* 额外保存 */}
+                {renderToggle(t('settings.extraLogSaving'), 'extraLogSaving', settings.extraLogSaving)}
+              </div>
+            </SettingsSection>
           </div>
         );
       
       case 'ai':
         return (
           <div>
-            <div style={styles.section}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h1 style={styles.title}>{t('settings.aiConfiguration')}</h1>
-                  <p style={styles.description}>
-                    {t('settings.configureAI')}
-                  </p>
-                </div>
-                <span style={styles.betaBadge}>BETA</span>
-              </div>
-            </div>
+            <SettingsSection 
+              title={t('settings.aiConfiguration')} 
+              description={t('settings.configureAI')}
+              badge="BETA"
+            />
           </div>
         );
       
       case 'nodes':
         return (
           <div>
-            <div style={styles.section}>
-              <div>
-                <h1 style={styles.title}>{t('settings.nodesSettings')}</h1>
-                <p style={styles.description}>
-                  {t('settings.configureNodes')}
-                </p>
+            <SettingsSection 
+              title={t('settings.nodesSettings')} 
+              description={t('settings.configureNodes')}
+            >
+              {/* IP Details API Selection */}
+              <SelectWithLabel
+                label={t('settings.ipDetailsApi')}
+                value={settings.nodeIPDetailAPI}
+                onChange={(e) => handleSettingChange('nodeIPDetailAPI', e.target.value)}
+                options={[
+                  { value: 'ip.sb', label: 'ip.sb' }
+                ]}
+              />
 
-                {/* IP Details API Selection */}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={styles.label}>{t('settings.ipDetailsApi')}</label>
-                  <select
-                    value={settings.nodeIPDetailAPI}
-                    onChange={(e) => handleSettingChange('nodeIPDetailAPI', e.target.value)}
-                    style={{
-                      ...styles.input,
-                      height: '36px'
-                    }}
-                  >
-                    <option value="ip.sb">ip.sb</option>
-                  </select>
-                </div>
-
-                {/* 节点高级监控 */}
-                {renderToggle(t('settings.advancedNodeMonitoring'), 'nodeAdvancedMonitoring', settings.nodeAdvancedMonitoring)}
+              {/* 节点高级监控 */}
+              {renderToggle(t('settings.advancedNodeMonitoring'), 'nodeAdvancedMonitoring', settings.nodeAdvancedMonitoring)}
+              
+              {/* 保留节点流量历史数据 */}
+              {renderToggle(t('settings.keepNodeTraffic'), 'keepNodeTrafficHistory', settings.keepNodeTrafficHistory)}
+              <DescriptionText>{t('settings.keepNodeTrafficDesc')}</DescriptionText>
+              
+              {/* 子选项始终显示，但在未启用高级监控时禁用 */}
+              <div style={{ marginLeft: '0px', marginTop: '0px', opacity: settings.nodeAdvancedMonitoring ? 1 : 0.5, pointerEvents: settings.nodeAdvancedMonitoring ? 'auto' : 'none' }}>
+                {/* 节点出口状态监控 - Disabled */}
+                <ToggleWithTooltip
+                  label={t('settings.nodeExitStatus')}
+                  tKey="nodeExitStatusMonitoring"
+                  value={settings.nodeExitStatusMonitoring}
+                  onChange={(val) => handleSettingChange('nodeExitStatusMonitoring', val)}
+                  disabled={true}
+                  tooltipText={t('settings.featureUnderDevelopment')}
+                />
                 
-                {/* 保留节点流量历史数据 */}
-                {renderToggle(t('settings.keepNodeTraffic'), 'keepNodeTrafficHistory', settings.keepNodeTrafficHistory)}
-                <p style={{ 
-                  fontSize: '12px', 
-                  color: '#64748b', 
-                  marginTop: '-12px', 
-                  marginBottom: '15px',
-                  marginLeft: '2px'
-                }}>
-                  {t('settings.keepNodeTrafficDesc')}
-                </p>
-                
-                {/* 子选项始终显示，但在未启用高级监控时禁用 */}
-                <div style={{ marginLeft: '0px', marginTop: '0px', opacity: settings.nodeAdvancedMonitoring ? 1 : 0.5, pointerEvents: settings.nodeAdvancedMonitoring ? 'auto' : 'none' }}>
-                  {/* 节点出口状态监控 - Disabled */}
-                  <ToggleWithTooltip
-                    label={t('settings.nodeExitStatus')}
-                    tKey="nodeExitStatusMonitoring"
-                    value={settings.nodeExitStatusMonitoring}
-                    onChange={(val) => handleSettingChange('nodeExitStatusMonitoring', val)}
-                    disabled={true}
-                    tooltipText={t('settings.featureUnderDevelopment')}
-                  />
-                  
-                  {/* 节点出口IP纯净度 - Disabled */}
-                  <ToggleWithTooltip
-                    label={t('settings.nodeExitIpPurity')}
-                    tKey="nodeExitIPPurity"
-                    value={settings.nodeExitIPPurity}
-                    onChange={(val) => handleSettingChange('nodeExitIPPurity', val)}
-                    disabled={true}
-                    tooltipText={t('settings.featureUnderDevelopment')}
-                  />
-                </div>
-
-                {/* 修改按钮容器 */}
-                <div style={styles.buttonContainer}>
-                  <button
-                    onClick={resetSettings}
-                    onMouseEnter={() => setIsResetButtonHovered(true)}
-                    onMouseLeave={() => setIsResetButtonHovered(false)}
-                    style={{
-                      ...styles.secondaryButton,
-                      ...(isResetButtonHovered ? styles.secondaryButtonHover : {})
-                    }}
-                  >
-                    {t('settings.reset')}
-                  </button>
-                
-                  <button
-                    onClick={applySettings}
-                    onMouseEnter={() => setIsButtonHovered(true)}
-                    onMouseLeave={() => setIsButtonHovered(false)}
-                    style={{
-                      ...styles.button,
-                      ...(isButtonHovered ? styles.buttonHover : {})
-                    }}
-                  >
-                    {t('settings.apply')}
-                  </button>
-                </div>
+                {/* 节点出口IP纯净度 - Disabled */}
+                <ToggleWithTooltip
+                  label={t('settings.nodeExitIpPurity')}
+                  tKey="nodeExitIPPurity"
+                  value={settings.nodeExitIPPurity}
+                  onChange={(val) => handleSettingChange('nodeExitIPPurity', val)}
+                  disabled={true}
+                  tooltipText={t('settings.featureUnderDevelopment')}
+                />
               </div>
-            </div>
+            </SettingsSection>
           </div>
         );
         
@@ -916,7 +753,11 @@ const SettingsContent = ({ section }) => {
         return (
           <div>
             <div style={styles.section}>
-              <div>
+              <div style={{ 
+                minHeight: 'calc(100vh - 150px)', 
+                display: 'flex', 
+                flexDirection: 'column'
+              }}>
                 <h1 style={styles.title}>{t('settings.about')}</h1>
                 <p style={styles.description}>
                   {t('settings.aboutDescription')}
@@ -926,81 +767,92 @@ const SettingsContent = ({ section }) => {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '20px',
-                  marginTop: '24px'
+                  marginTop: '24px',
+                  flex: 1,
+                  justifyContent: 'space-between'
                 }}>
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '10px',
-                    marginBottom: '30px'
-                  }}>
+                  <div>
                     <div style={{
-                      width: '80px',
-                      height: '80px',
-                      backgroundColor: '#818cf8',
-                      borderRadius: '20px',
                       display: 'flex',
-                      justifyContent: 'center',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      color: 'white',
-                      fontSize: '36px',
-                      fontWeight: 'bold'
-                    }}>L</div>
-                    <h2 style={{
-                      fontSize: '24px',
-                      fontWeight: '700',
-                      margin: '5px 0 0 0'
-                    }}>{aboutInfo.APP_NAME}</h2>
-                    <p style={{
-                      margin: '0',
-                      color: '#64748b'
-                    }}>{aboutInfo.APP_DESCRIPTION}</p>
-                  </div>
-                  
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '120px 1fr',
-                    gap: '12px',
-                    alignItems: 'center'
-                  }}>
-                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.appVersion')}</div>
-                    <div>{aboutInfo.APP_VERSION}</div>
+                      gap: '10px',
+                      marginBottom: '40px'
+                    }}>
+                      <div style={{
+                        width: '100px',
+                        height: '100px',
+                        backgroundColor: '#818cf8',
+                        borderRadius: '24px',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        color: 'white',
+                        fontSize: '42px',
+                        fontWeight: 'bold',
+                        boxShadow: '0 10px 15px -3px rgba(129, 140, 248, 0.2)'
+                      }}>L</div>
+                      <h2 style={{
+                        fontSize: '28px',
+                        fontWeight: '700',
+                        margin: '10px 0 0 0'
+                      }}>{aboutInfo.APP_NAME}</h2>
+                      <p style={{
+                        margin: '0',
+                        color: '#64748b',
+                        fontSize: '16px'
+                      }}>{aboutInfo.APP_DESCRIPTION}</p>
+                    </div>
                     
-                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.coreVersion')}</div>
-                    <div>{aboutInfo.CORE_VERSION}</div>
-                    
-                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.license')}</div>
-                    <div>{aboutInfo.LICENSE}</div>
-                    
-                    <div style={{color: '#64748b', fontWeight: '600'}}>{t('settings.projectUrl')}</div>
-                    <div>
-                      <a 
-                        href="#" 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (window.electron && window.electron.openExternal) {
-                            window.electron.openExternal(aboutInfo.WEBSITE);
-                          }
-                        }}
-                        style={{
-                          color: '#818cf8',
-                          textDecoration: 'none'
-                        }}
-                      >
-                        {aboutInfo.WEBSITE}
-                      </a>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '150px 1fr',
+                      gap: '16px',
+                      alignItems: 'center',
+                      maxWidth: '600px',
+                      margin: '0 auto',
+                      marginTop: '40px'
+                    }}>
+                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.appVersion')}</div>
+                      <div style={{fontSize: '15px'}}>{aboutInfo.APP_VERSION}</div>
+                      
+                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.coreVersion')}</div>
+                      <div style={{fontSize: '15px'}}>{aboutInfo.CORE_VERSION}</div>
+                      
+                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.license')}</div>
+                      <div style={{fontSize: '15px'}}>{aboutInfo.LICENSE}</div>
+                      
+                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.projectUrl')}</div>
+                      <div>
+                        <a 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (window.electron && window.electron.openExternal) {
+                              window.electron.openExternal(aboutInfo.WEBSITE);
+                            }
+                          }}
+                          style={{
+                            color: '#818cf8',
+                            textDecoration: 'none',
+                            fontSize: '15px'
+                          }}
+                        >
+                          {aboutInfo.WEBSITE}
+                        </a>
+                      </div>
                     </div>
                   </div>
                   
                   <div style={{
-                    marginTop: '20px',
-                    padding: '12px',
+                    padding: '20px 24px',
                     backgroundColor: '#f8fafc',
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0'
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    marginTop: 'auto',
+                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
                   }}>
-                    <p style={{margin: '0', color: '#64748b', fontSize: '13px', lineHeight: '1.6'}}>
+                    <p style={{margin: '0', color: '#64748b', fontSize: '14px', lineHeight: '1.7'}}>
                       {t('settings.aboutDisclaimer')}
                     </p>
                   </div>

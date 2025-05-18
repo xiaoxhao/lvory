@@ -74,5 +74,27 @@ export default {
     featureUnderDevelopment: '此功能正在开发中',
     downloadCore: '下载内核',
     coreNotInstalled: '内核未安装'
+  },
+  
+  // 更新相关
+  update: {
+    newVersionAvailable: '发现新版本',
+    newVersionMessage: '有新版本的 lvory 可供下载，建议更新以获得最新功能和修复。',
+    currentVersion: '当前版本',
+    newVersion: '新版本',
+    viewUpdate: '查看更新',
+    later: '稍后提醒',
+    downloading: '正在下载...',
+    downloadComplete: '下载完成',
+    downloadFailed: '下载失败',
+    developmentBuild: '开发版本',
+    developmentMessage: '当前运行的是开发版本，可能包含不稳定功能。前往 GitHub 仓库获取正式发布版。',
+    gotIt: '我知道了',
+    version: '版本',
+    development: '开发版',
+    releaseNotes: '更新说明',
+    information: '提示信息',
+    skipVersion: '跳过此版本',
+    remindLater: '下次提醒'
   }
 }; 
