@@ -15,7 +15,7 @@ const fs = require('fs');
 function setup() {
   // 检查sing-box是否安装
   ipcMain.handle('singbox-check-installed', () => {
-    return { installed: singbox.checkInstalled() };
+    return singbox.checkInstalled();
   });
   
   // 获取sing-box版本
