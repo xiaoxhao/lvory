@@ -6,6 +6,58 @@ const useSingBoxControl = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
+  const [coreExists, setCoreExists] = useState(true);
+  const [isDownloadingCore, setIsDownloadingCore] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadMessage, setDownloadMessage] = useState('');
+
+  const checkCoreExists = async () => {
+    if (window.electron && window.electron.singbox && window.electron.singbox.checkInstalled) {
+      try {
+        const result = await window.electron.singbox.checkInstalled();
+        setCoreExists(result);
+        return result;
+      } catch (err) {
+        console.error('检查内核是否存在失败:', err);
+        setCoreExists(false);
+        return false;
+      }
+    } else {
+      setCoreExists(false);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const handleDownloadProgress = (progress) => {
+      setDownloadProgress(progress.progress);
+      setDownloadMessage(progress.message || '');
+      
+      if (progress.progress === 100) {
+        setTimeout(() => {
+          setIsDownloadingCore(false);
+          checkCoreExists();
+        }, 1000);
+      } else if (progress.progress === -1) {
+        setIsDownloadingCore(false);
+        showMessage('下载失败: ' + (progress.message || '未知错误'));
+      }
+    };
+
+    if (window.electron && window.electron.onCoreDownloadProgress) {
+      window.electron.onCoreDownloadProgress(handleDownloadProgress);
+    }
+
+    return () => {
+      if (window.electron && window.electron.removeCoreDownloadProgress) {
+        window.electron.removeCoreDownloadProgress(handleDownloadProgress);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    checkCoreExists();
+  }, []);
 
   // 监听代理状态恢复的事件
   useEffect(() => {
@@ -27,8 +79,37 @@ const useSingBoxControl = () => {
     };
   }, []);
 
-  // 启动或停止 singbox
+  const downloadCore = async () => {
+    if (window.electron && window.electron.singbox && window.electron.singbox.downloadCore) {
+      setIsDownloadingCore(true);
+      setDownloadProgress(0);
+      setDownloadMessage('准备下载...');
+      
+      try {
+        const result = await window.electron.singbox.downloadCore();
+        if (result && result.success) {
+          showMessage('内核下载完成');
+          await checkCoreExists();
+        } else {
+          showMessage('下载失败: ' + (result.error || '未知错误'));
+        }
+        setIsDownloadingCore(false);
+      } catch (err) {
+        setIsDownloadingCore(false);
+        console.error('下载内核错误:', err);
+        showMessage('下载错误: ' + (err.message || '未知错误'));
+      }
+    } else {
+      showMessage('下载功能不可用');
+    }
+  };
+
   const toggleSingBox = () => {
+    if (!coreExists) {
+      downloadCore();
+      return;
+    }
+    
     if (window.electron && window.electron.singbox) {
       if (!isRunning) {
         // 启动 singbox
@@ -189,9 +270,15 @@ const useSingBoxControl = () => {
     isStarting,
     isStopping,
     isRestarting,
+    coreExists,
+    isDownloadingCore,
+    downloadProgress,
+    downloadMessage,
     toggleSingBox,
     restartSingBox,
     fetchSingBoxStatus,
+    downloadCore,
+    checkCoreExists,
     setIsRunning,
     setIsStarting,
     setIsStopping

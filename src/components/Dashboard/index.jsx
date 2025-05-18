@@ -46,7 +46,11 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
     isStopping, 
     isRestarting, 
     toggleSingBox, 
-    restartSingBox 
+    restartSingBox,
+    coreExists,
+    isDownloadingCore,
+    downloadProgress,
+    downloadMessage
   } = singBoxControl;
   
   const { handleDownloadSuccess } = useProfileUpdate(setProfileData);
@@ -163,6 +167,10 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
                 isRestarting={isRestarting}
                 onOpenProfileModal={() => setIsModalOpen(true)}
                 onRestartSingBox={restartSingBox}
+                coreExists={coreExists}
+                isDownloadingCore={isDownloadingCore}
+                downloadProgress={downloadProgress}
+                downloadMessage={downloadMessage}
                 style={{ padding: '5px 0' }}
               />
               

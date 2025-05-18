@@ -24,7 +24,11 @@ const ControlPanel = ({
   isStopping,
   isRestarting,
   onOpenProfileModal,
-  onRestartSingBox
+  onRestartSingBox,
+  coreExists,
+  isDownloadingCore,
+  downloadProgress,
+  downloadMessage
 }) => {
   const [showRestartButton, setShowRestartButton] = useState(false);
   const [showProxyConfigModal, setShowProxyConfigModal] = useState(false);
@@ -638,10 +642,10 @@ npm config delete https-proxy`
           onClick={onToggleSingBox}
           disabled={isStarting || isStopping || isRestarting}
           onMouseEnter={(e) => {
-            if (isRunning && !isStarting && !isStopping && !isRestarting) {
+            if (isRunning && !isStarting && !isStopping && !isRestarting && coreExists) {
               setShowRestartButton(true);
             }
-            if (!isStarting && !isStopping && !isRestarting) {
+            if (!isStarting && !isStopping && !isRestarting && !isDownloadingCore) {
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
             }
@@ -657,20 +661,20 @@ npm config delete https-proxy`
               setShowRestartButton(false);
             }
             
-            if (!isStarting && !isStopping && !isRestarting) {
+            if (!isStarting && !isStopping && !isRestarting && !isDownloadingCore) {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
             }
           }}
           style={{
-            backgroundColor: isRunning ? '#e74c3c' : '#2ecc71',
+            backgroundColor: !coreExists ? '#3498db' : (isRunning ? '#e74c3c' : '#2ecc71'),
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             padding: '5px 15px',
             fontSize: '13px',
             fontWeight: '500',
-            cursor: (isStarting || isStopping || isRestarting) ? 'not-allowed' : 'pointer',
+            cursor: (isStarting || isStopping || isRestarting || isDownloadingCore) ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
             boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
             position: 'relative',
@@ -683,9 +687,11 @@ npm config delete https-proxy`
             zIndex: 2
           }}
         >
-          {isStarting ? '启动中...' : 
+          {isDownloadingCore ? '下载中...' :
+           isStarting ? '启动中...' : 
            isStopping ? '停止中...' : 
            isRestarting ? '重启中...' :
+           !coreExists ? '安装内核' :
            isRunning ? 'STOP' : 'RUN'}
           
           {(isStarting || isStopping || isRestarting) && (
@@ -699,10 +705,43 @@ npm config delete https-proxy`
               animation: 'loading-shimmer 1.5s infinite',
             }}></div>
           )}
+          
+          {isDownloadingCore && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: `${downloadProgress}%`,
+              height: '100%',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              transition: 'width 0.3s ease'
+            }}></div>
+          )}
         </button>
         
+        {/* 下载进度提示 */}
+        {isDownloadingCore && downloadMessage && (
+          <div style={{
+            position: 'absolute',
+            top: 'calc(100% + 5px)',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            maxWidth: '200px',
+            textAlign: 'center',
+            zIndex: 10,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {downloadMessage} ({downloadProgress}%)
+          </div>
+        )}
+        
         {/* 重启按钮 */}
-        {showRestartButton && isRunning && !isStarting && !isStopping && !isRestarting && (
+        {showRestartButton && isRunning && !isStarting && !isStopping && !isRestarting && coreExists && (
           <button
             onClick={(e) => {
               e.stopPropagation();
