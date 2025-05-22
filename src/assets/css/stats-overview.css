@@ -1,4 +1,4 @@
-/* Stats Overview 组件样式 */
+/* Stats Overview 组件样式 - 基于 Material Design 3 */
 
 .stats-overview-container {
   display: flex;
@@ -8,9 +8,9 @@
   padding: 0px 10px 0 10px;
   box-sizing: border-box;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 16px;
   position: relative;
-  margin-top: 15px;
+  margin-top: 8px;
   line-height: 1.5;
 }
 
@@ -35,19 +35,19 @@
 .stats-title {
   font-size: 32px;
   font-weight: 500;
-  color: #333;
+  color: var(--md-sys-color-on-surface, #1C1B1F); /* MD3 系统颜色 - 在表面上的文字 */
   margin: 0 0 2px 0;
-  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-  letter-spacing: 0.2px;
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif; /* MD3 推荐字体 */
+  letter-spacing: 0;
 }
 
 .stats-date {
   font-size: 12px;
-  color: #7a7878;
-  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--md-sys-color-on-surface-variant, #49454F); /* MD3 系统颜色 - 表面变体上的文字 */
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
   margin-top: 2px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* MD3 标准过渡效果 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -55,13 +55,13 @@
 }
 
 .stats-date:hover {
-  color: #555;
+  color: var(--md-sys-color-primary, #6750A4);
 }
 
 .ip-location {
   font-size: 12px;
-  color: #7a7878;
-  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--md-sys-color-on-surface-variant, #49454F);
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
   margin-top: -7px;
   margin-bottom: 5px;
   padding-left: 1px;
@@ -69,18 +69,15 @@
 
 .metrics-row {
   display: flex;
-  justify-content: space-between;
-  align-items: left;
   padding: 0;
   margin-top: auto;
   margin-bottom: 12px;
-  gap: 6px;
 }
 
 .metric-item {
   text-align: left;
   flex: 1;
-  padding: 2px 0;
+  padding: 8px 0px; /* 增加内边距 */
   display: flex;
   flex-direction: column;
   align-items: left;
@@ -88,10 +85,10 @@
 }
 
 .metric-value {
-  font-size: 22px;
-  font-weight: 400;
-  color: #555;
-  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 24px;
+  font-weight: 500; /* MD3 使用 Medium 字重 */
+  color: var(--md-sys-color-on-surface, #1C1B1F);
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
   line-height: 1.1;
   display: flex;
   align-items: flex-end;
@@ -100,7 +97,7 @@
 .metric-unit {
   font-size: 12px;
   margin-left: 2px;
-  color: #777;
+  color: var(--md-sys-color-on-surface-variant, #49454F);
   font-weight: 400;
   line-height: 1.5;
   display: inline-block;
@@ -132,9 +129,11 @@
 
 .metric-label {
   font-size: 11px;
-  color: #777;
-  font-weight: 400;
-  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--md-sys-color-on-surface-variant, #49454F);
+  font-weight: 500; 
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .gauge-container {
@@ -146,6 +145,12 @@
   justify-content: center;
   padding: 0 5px;
   scale: 0.9;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.gauge-container:hover {
+  transform: translateY(-2px);
 }
 
 .gauge-wrapper {
@@ -155,23 +160,32 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 0 5px;
 }
 
 .gauge-chart {
   width: 100%;
   height: 100%;
   position: relative;
+  border-radius: 8px;
+  transition: all 0.25s ease-in-out;
 }
 
 .gauge-label {
   position: relative;
-  color: #444;
+  color: var(--md-sys-color-primary, #6750A4); /* MD3 系统颜色 - 主色 */
   font-size: 13px;
-  font-weight: 600;
-  font-family: 'Arial', sans-serif;
+  font-weight: 500; /* MD3 使用 Medium 字重 */
+  font-family: 'Roboto', 'Arial', sans-serif;
   text-align: center;
   margin-top: 0;
   letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.gauge-container:hover .gauge-label {
+  transform: scale(1.05);
+  letter-spacing: 0.6px;
 }
 
 .metric-value-wrapper {
@@ -179,3 +193,37 @@
   align-items: center;
   justify-content: center;
 }
+
+#upload-metric .metric-value {
+  color: var(--md-sys-color-primary, #6750A4); /* 主色 */
+}
+
+#download-metric .metric-value {
+  color: var(--md-sys-color-tertiary, #7D5260); /* 第三色 */
+}
+
+#total-metric .metric-value {
+  color: var(--md-sys-color-secondary, #625B71); /* 次要色 */
+}
+
+#latency-metric .metric-value {
+  color: var(--md-sys-color-error, #B3261E); /* 错误色 */
+}
+
+/* 添加动画效果 */
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.99); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.stats-overview-container:hover .gauge-chart {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+/* 删除点的波动动画 */

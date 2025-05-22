@@ -49,9 +49,6 @@ export default {
     backendAddress: 'Backend Address',
     enterBackendAddress: 'Enter backend service address',
     
-    // AI Configuration
-    aiConfiguration: 'AI Configuration',
-    configureAI: 'Configure AI-powered features and settings.',
     
     // About section
     about: 'About',

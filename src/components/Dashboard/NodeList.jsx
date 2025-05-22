@@ -1,117 +1,125 @@
 import React, { useState, useEffect } from 'react';
 import NodeDetailModal from './NodeDetailModal';
 
-// 新增 NodeCard 组件
+// Material 3 风格的节点卡片组件
 const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
   const getNodeTypeColor = (type) => {
     switch (type) {
-      case 'direct': return '#47c9a2';
-      case 'shadowsocks': return '#f7b731';
-      case 'vmess': return '#7166f9';
-      case 'trojan': return '#ff5e62';
-      default: return '#abb3c0';
+      case 'direct': return '#4CAF50'; // Material Green
+      case 'shadowsocks': return '#FF9800'; // Material Orange
+      case 'vmess': return '#673AB7'; // Material Deep Purple
+      case 'trojan': return '#F44336'; // Material Red
+      default: return '#607D8B'; // Material Blue Grey
     }
   };
 
+  // 测试结果状态和颜色
+  const getLatencyStatus = (latency) => {
+    if (latency === 'timeout') return { color: '#F44336', text: '超时' };
+    if (latency < 100) return { color: '#4CAF50', text: `${latency}ms` }; // 很好
+    if (latency < 200) return { color: '#8BC34A', text: `${latency}ms` }; // 好
+    if (latency < 300) return { color: '#FFC107', text: `${latency}ms` }; // 一般
+    return { color: '#F44336', text: `${latency}ms` }; // 差
+  };
+
+  const latencyStatus = testResults[profile.tag] ? getLatencyStatus(testResults[profile.tag]) : null;
+
   return (
     <div 
-      className="profile-tag-card" 
+      className="material-card" 
       style={{ 
         backgroundColor: '#ffffff', 
-        border: '1px solid #d9dde3', 
-        borderRadius: '6px', 
-        padding: '12px', 
+        borderRadius: '12px', 
+        padding: '10px', 
         width: 'calc(25% - 12px)',
-        margin: '0 0 8px 0',
+        margin: '0 0 12px 0',
+        height: '64%',
         display: 'flex', 
         flexDirection: 'column', 
-        transition: 'all 0.2s ease',
+        transition: 'all 0.15s ease',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+        fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+        border: '1px solid rgba(0,0,0,0.12)'
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = '#b3b7bd';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        e.currentTarget.style.transform = 'translateY(-0.5px)';
+        e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = '#d9dde3';
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
       }}
     >
-      {testResults[profile.tag] && (
+      {latencyStatus && (
         <div style={{
           position: 'absolute',
           top: '8px',
-          right: '10px',
+          right: '8px',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: '3px',
           fontSize: '11px',
           fontWeight: '500',
-          backgroundColor: 'rgba(245, 245, 247, 0.85)',
-          padding: '2px 6px',
-          borderRadius: '12px',
-          backdropFilter: 'blur(2px)',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-          border: '1px solid rgba(230, 230, 235, 0.9)'
+          backgroundColor: `${latencyStatus.color}08`,
+          color: latencyStatus.color,
+          padding: '1px 6px',
+          borderRadius: '12px'
         }}>
           <span style={{
             display: 'inline-block',
-            width: '8px',
-            height: '8px',
+            width: '6px',
+            height: '6px',
             borderRadius: '50%',
-            backgroundColor: testResults[profile.tag] === 'timeout' ? '#e74c3c' : 
-                            (testResults[profile.tag] < 100 ? '#2ecc71' : 
-                             testResults[profile.tag] < 200 ? '#f39c12' : 
-                             testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c')
+            backgroundColor: latencyStatus.color
           }}></span>
-          <span style={{
-            color: testResults[profile.tag] === 'timeout' ? '#e74c3c' : 
-                   (testResults[profile.tag] < 100 ? '#2ecc71' : 
-                    testResults[profile.tag] < 200 ? '#f39c12' : 
-                    testResults[profile.tag] < 300 ? '#e67e22' : '#e74c3c'),
-            fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
-            letterSpacing: '0.2px',
-            fontWeight: '600'
-          }}>
-            {testResults[profile.tag] === 'timeout' ? '超时' : `${testResults[profile.tag]}ms`}
-          </span>
+          {latencyStatus.text}
         </div>
       )}
-      <div style={{ 
-        fontWeight: '600', 
-        fontSize: '14px', 
-        marginBottom: '6px', 
-        color: '#2e3b52',
-        fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-      }}>
-        {privateMode ? '********' : (profile.tag || 'Unknown')}
-      </div>
-      <div style={{ 
-        fontSize: '12px', 
-        color: '#505a6b',
+      
+      <div style={{
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginBottom: '8px'
       }}>
-        <span style={{ 
-          display: 'inline-block',
-          width: '8px',
-          height: '8px',
+        <div style={{
+          width: '10px',
+          height: '10px',
           borderRadius: '50%',
           backgroundColor: getNodeTypeColor(profile.type),
           marginRight: '6px'
-        }}></span>
+        }}></div>
+        <div style={{ 
+          fontSize: '13px', 
+          fontWeight: '500', 
+          color: 'rgba(0,0,0,0.78)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {privateMode ? '********' : (profile.tag || 'Unknown')}
+        </div>
+      </div>
+      
+      <div style={{
+        padding: '3px 6px',
+        backgroundColor: 'rgba(0,0,0,0.03)',
+        borderRadius: '3px',
+        fontSize: '11px',
+        fontWeight: '400',
+        color: 'rgba(0,0,0,0.6)',
+        alignSelf: 'flex-start',
+        marginBottom: '6px'
+      }}>
         {profile.type || 'Unknown'}
       </div>
+      
       <div style={{
         fontSize: '11px',
-        color: '#505a6b',
-        marginTop: '4px',
+        color: 'rgba(0,0,0,0.54)',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis'
@@ -286,7 +294,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     setShowNodeDetail(false);
   };
 
-  // 修改 renderNodes 函数
+  // 渲染节点列表函数
   const renderNodes = () => {
     const filteredNodes = getFilteredNodes();
     
@@ -311,7 +319,19 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             ))}
           </div>
         ) : (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#8896ab', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+          <div style={{ 
+            padding: '40px 20px', 
+            textAlign: 'center', 
+            color: 'rgba(0,0,0,0.54)', 
+            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM18 12.5H13.5V17H10.5V12.5H6V9.5H10.5V5H13.5V9.5H18V12.5Z" fill="rgba(0,0,0,0.26)"/>
+            </svg>
             No service nodes found. Please click "+ Profiles" to add configuration file.
           </div>
         )}
@@ -331,45 +351,48 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           width: '100%'
         }}>
           {ruleSets.map((ruleSet, index) => (
-            <div key={index} className="profile-tag-card" style={{ 
+            <div key={index} className="material-rule-card" style={{ 
               backgroundColor: '#ffffff', 
-              border: '1px solid #d9dde3', 
-              borderRadius: '6px', 
-              padding: '12px', 
+              borderRadius: '12px',
+              padding: '10px', 
               width: 'calc(25% - 12px)',
-              margin: '0 0 8px 0',
+              margin: '0 0 12px 0',
+              height: '64%',
               display: 'flex', 
               flexDirection: 'column', 
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease',
               cursor: 'pointer',
               position: 'relative',
               overflow: 'hidden',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              border: '1px solid rgba(0,0,0,0.12)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#b3b7bd';
+              e.currentTarget.style.transform = 'translateY(-0.5px)';
+              e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#d9dde3';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
             }}
             >
               <div style={{ 
-                fontWeight: '600', 
-                fontSize: '14px', 
-                marginBottom: '6px', 
-                color: '#2e3b52',
-                fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                fontWeight: '500', 
+                fontSize: '13px', 
+                marginBottom: '8px', 
+                color: 'rgba(0,0,0,0.78)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
               }}>
                 <span style={{ 
                   display: 'inline-block',
-                  width: '8px',
-                  height: '8px',
+                  width: '10px',
+                  height: '10px',
                   borderRadius: '50%',
                   backgroundColor: getRuleSetTypeColor(ruleSet.format || ruleSet.type),
                   flexShrink: 0
@@ -379,17 +402,17 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
                 </span>
               </div>
               <div style={{ 
-                fontSize: '12px', 
-                color: '#505a6b',
+                fontSize: '11px', 
+                color: 'rgba(0,0,0,0.6)',
                 display: 'flex',
                 alignItems: 'center',
-                marginBottom: '4px'
+                marginBottom: '6px'
               }}>
                 <span style={{
                   display: 'inline-block',
-                  padding: '2px 6px',
-                  backgroundColor: '#f0f0f0',
-                  borderRadius: '4px',
+                  padding: '3px 6px',
+                  backgroundColor: 'rgba(0,0,0,0.03)',
+                  borderRadius: '3px',
                   fontSize: '11px'
                 }}>
                   {ruleSet.format || ruleSet.type}
@@ -398,8 +421,8 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               {ruleSet.url && (
                 <div style={{
                   fontSize: '11px',
-                  color: '#505a6b',
-                  marginTop: '4px',
+                  color: 'rgba(0,0,0,0.54)',
+                  marginTop: '6px',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'
@@ -410,9 +433,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               {ruleSet.update_interval && (
                 <div style={{
                   fontSize: '11px',
-                  color: '#505a6b',
-                  marginTop: '4px'
+                  color: 'rgba(0,0,0,0.54)',
+                  marginTop: '3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px'
                 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.2 16.2L17 14.9L12.5 12.2V7Z" fill="rgba(0,0,0,0.45)"/>
+                  </svg>
                   更新间隔: {ruleSet.update_interval}
                 </div>
               )}
@@ -420,7 +449,19 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           ))}
         </div>
       ) : (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#8896ab', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+        <div style={{ 
+          padding: '40px 20px', 
+          textAlign: 'center', 
+          color: 'rgba(0,0,0,0.54)', 
+          fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15 13H17V16H15V13Z" fill="rgba(0,0,0,0.26)"/>
+          </svg>
           No rule sets found.
         </div>
       )}
@@ -433,38 +474,35 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       display: 'flex', 
       justifyContent: 'center',
       width: '100%',
-      marginTop: '-10px',
-      marginBottom: '10px',
+      marginTop: '0',
       position: 'relative'
     }}>
-      <div className="node-group-tabs" 
+      <div className="material-chip-group" 
         ref={tabsRef}
         style={{
           display: 'flex',
           alignItems: 'center',
           backgroundColor: 'transparent',
-          borderRadius: '0',
-          padding: '0',
-          width: '90%',
+          padding: '4px 0',
+          width: '100%',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          borderBottom: '1px solid #eaeaea',
           position: 'relative'
         }}>
         <div 
-          className={`group-tab ${selectedGroup === 'all' ? 'selected' : ''}`}
+          className={`material-chip ${selectedGroup === 'all' ? 'selected' : ''}`}
           onClick={() => setSelectedGroup('all')}
           style={{
-            padding: '6px 10px',
+            padding: '6px 12px',
             cursor: 'pointer',
             fontSize: '12px',
-            fontWeight: selectedGroup === 'all' ? '600' : '400',
-            color: selectedGroup === 'all' ? '#1677ff' : '#606266',
-            backgroundColor: 'transparent',
+            fontWeight: '500',
+            color: selectedGroup === 'all' ? '#ffffff' : 'rgba(0,0,0,0.4)',
+            backgroundColor: selectedGroup === 'all' ? '#9f94e8' : 'rgba(0,0,0,0.08)',
             marginRight: '8px',
+            borderRadius: '8px',
             transition: 'all 0.2s ease',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-            borderBottom: selectedGroup === 'all' ? '2px solid #1677ff' : 'none'
+            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
           }}
         >
           All
@@ -473,78 +511,78 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         {nodeGroups.slice(0, isOverflow ? 6 : nodeGroups.length).map((group, index) => (
           <div 
             key={index}
-            className={`group-tab ${selectedGroup === group.tag ? 'selected' : ''}`}
+            className={`material-chip ${selectedGroup === group.tag ? 'selected' : ''}`}
             onClick={() => setSelectedGroup(group.tag)}
             style={{
-              padding: '6px 10px',
+              padding: '6px 12px',
               cursor: 'pointer',
               fontSize: '12px',
-              fontWeight: selectedGroup === group.tag ? '600' : '400',
-              color: selectedGroup === group.tag ? '#1677ff' : '#606266',
-              backgroundColor: 'transparent',
+              fontWeight: '500',
+              color: selectedGroup === group.tag ? '#ffffff' : 'rgba(0,0,0,0.4)',
+              backgroundColor: selectedGroup === group.tag ? '#9f94e8' : 'rgba(0,0,0,0.08)',
               marginRight: '8px',
+              borderRadius: '8px',
               transition: 'all 0.2s ease',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              borderBottom: selectedGroup === group.tag ? '2px solid #1677ff' : 'none'
+              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
             }}
           >
             {group.tag}
           </div>
         ))}
         
-        {isOverflow && !showMore && (
-          <div 
-            className="more-groups"
-            onClick={() => setShowMore(true)}
-            style={{
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '400',
-              color: '#1677ff',
-              backgroundColor: 'transparent',
-              marginRight: '8px',
-              transition: 'all 0.2s ease',
-              borderBottom: 'none',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            More
-            <span style={{
-              marginLeft: '3px',
-              fontSize: '10px',
-              transform: 'rotate(0deg)',
-              transition: 'transform 0.3s'
-            }}>▼</span>
-          </div>
-        )}
-        
         <div 
-          className={`group-tab ${selectedGroup === 'uncategorized' ? 'selected' : ''}`}
+          className={`material-chip ${selectedGroup === 'uncategorized' ? 'selected' : ''}`}
           onClick={() => setSelectedGroup('uncategorized')}
           style={{
-            padding: '6px 10px',
+            padding: '6px 12px',
             cursor: 'pointer',
             fontSize: '12px',
-            fontWeight: selectedGroup === 'uncategorized' ? '600' : '400',
-            color: selectedGroup === 'uncategorized' ? '#1677ff' : '#606266',
-            backgroundColor: 'transparent',
-            marginLeft: 'auto',
+            fontWeight: '500',
+            color: selectedGroup === 'uncategorized' ? '#ffffff' : 'rgba(0,0,0,0.4)',
+            backgroundColor: selectedGroup === 'uncategorized' ? '#9f94e8' : 'rgba(0,0,0,0.08)',
+            marginRight: '8px',
+            borderRadius: '8px',
             transition: 'all 0.2s ease',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-            borderBottom: selectedGroup === 'uncategorized' ? '2px solid #1677ff' : 'none'
+            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
           }}
         >
           Uncategorized
         </div>
+        
+        {isOverflow && !showMore && (
+          <div 
+            className="material-chip more"
+            onClick={() => setShowMore(true)}
+            style={{
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '500',
+              color: '#9f94e8',
+              backgroundColor: 'rgba(103, 80, 164, 0.08)',
+              marginRight: '8px',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            More
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 10L12 15L17 10" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
+        
+        
       </div>
       
       {/* 添加淡化边缘效果 */}
       {isOverflow && (
         <div style={{
           position: 'absolute',
-          right: '5%',
+          right: '2.5%',
           top: 0,
           bottom: 0,
           width: '40px',
@@ -565,35 +603,36 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         display: 'flex',
         justifyContent: 'center',
         width: '100%',
-        marginBottom: '15px',
+        marginBottom: '20px',
         position: 'relative',
         zIndex: 5
       }}>
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
-          width: '90%',
-          padding: '10px',
-          backgroundColor: '#f9f9f9',
-          borderRadius: '6px',
+          width: '95%',
+          padding: '16px',
+          backgroundColor: 'rgba(103, 80, 164, 0.05)',
+          borderRadius: '12px',
           gap: '8px',
-          position: 'relative'
+          position: 'relative',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
         }}>
           {nodeGroups.slice(6).map((group, index) => (
             <div 
               key={index}
-              className={`group-tab ${selectedGroup === group.tag ? 'selected' : ''}`}
+              className="material-chip-secondary"
               onClick={() => setSelectedGroup(group.tag)}
               style={{
-                padding: '4px 10px',
+                padding: '6px 12px',
                 cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: selectedGroup === group.tag ? '600' : '400',
-                color: selectedGroup === group.tag ? '#1677ff' : '#606266',
-                backgroundColor: selectedGroup === group.tag ? '#e6f7ff' : 'transparent',
-                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: selectedGroup === group.tag ? '#ffffff' : 'rgba(0,0,0,0.87)',
+                backgroundColor: selectedGroup === group.tag ? '#9f94e8' : 'rgba(0,0,0,0.08)',
+                borderRadius: '8px',
                 transition: 'all 0.2s ease',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+                fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
               }}
             >
               {group.tag}
@@ -601,143 +640,153 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           ))}
           
           {/* Less按钮 */}
-          <div
+          <button
             onClick={() => setShowMore(false)}
             style={{
-              padding: '4px 10px',
+              padding: '6px 12px',
               cursor: 'pointer',
-              fontSize: '12px',
+              fontSize: '14px',
               fontWeight: '500',
-              color: '#1677ff',
-              backgroundColor: 'rgba(22, 119, 255, 0.08)',
-              borderRadius: '4px',
+              color: '#9f94e8',
+              backgroundColor: 'rgba(103, 80, 164, 0.08)',
+              borderRadius: '8px',
+              border: 'none',
+              outline: 'none',
               transition: 'all 0.2s ease',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               display: 'flex',
               alignItems: 'center',
+              gap: '4px',
               position: 'absolute',
-              right: '10px',
-              top: '10px'
+              right: '16px',
+              top: '16px'
             }}
           >
             Less
-            <span style={{
-              marginLeft: '3px',
-              fontSize: '10px',
-              transform: 'rotate(180deg)'
-            }}>▼</span>
-          </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 14L12 9L17 14" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="node-list" style={{
+    <div className="node-list-container" style={{
       width: '100%',
       height: '100%',
-      borderRadius: '8px',
+      borderRadius: '16px',
       background: '#fff',
-      padding: '15px',
+      padding: '10px 10px 10px 10px',
       overflow: 'hidden',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
     }}>
       <div className="node-list-header" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '20px'
+        marginBottom: '15px'
       }}>
-        <div className="tabs" style={{
+        <div className="material-tabs" style={{
           display: 'flex',
-          gap: '20px'
+          gap: '24px'
         }}>
           <div 
-            className={`tab ${selectedTab === 'nodes' ? 'active-tab' : ''}`}
+            className={`material-tab ${selectedTab === 'nodes' ? 'active-tab' : ''}`}
             onClick={() => setSelectedTab('nodes')}
             style={{
               cursor: 'pointer',
-              padding: '6px 0',
+              padding: '8px 0',
               position: 'relative',
-              color: selectedTab === 'nodes' ? '#3a6df0' : '#808191',
-              fontWeight: selectedTab === 'nodes' ? '600' : '400',
-              fontSize: '18px',
-              fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              borderBottom: selectedTab === 'nodes' ? '2px solid #3a6df0' : 'none',
-              transition: 'all 0.25s ease',
-              letterSpacing: '0.5px'
+              color: selectedTab === 'nodes' ? '#9f94e8' : 'rgba(0,0,0,0.6)',
+              fontWeight: selectedTab === 'nodes' ? '500' : '400',
+              fontSize: '16px',
+              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              transition: 'all 0.2s ease',
             }}
           >
-            NodeList
-            {selectedTab === 'nodes' && <div style={{
-              position: 'absolute',
-              bottom: '-2px',
-              left: '0',
-              width: '100%',
-              height: '2px',
-              background: 'linear-gradient(90deg, #3a6df0 0%, #5d8efb 100%)',
-              borderRadius: '2px 2px 0 0'
-            }}></div>}
+            Nodes
+            {selectedTab === 'nodes' && (
+              <div style={{
+                position: 'absolute',
+                bottom: '0',
+                left: '0',
+                width: '100%',
+                height: '3px',
+                backgroundColor: '#9f94e8',
+                borderRadius: '3px 3px 0 0'
+              }}></div>
+            )}
           </div>
           <div 
-            className={`tab ${selectedTab === 'rules' ? 'active-tab' : ''}`}
+            className={`material-tab ${selectedTab === 'rules' ? 'active-tab' : ''}`}
             onClick={() => setSelectedTab('rules')}
             style={{
               cursor: 'pointer',
-              padding: '6px 0',
+              padding: '8px 0',
               position: 'relative',
-              color: selectedTab === 'rules' ? '#3a6df0' : '#808191',
-              fontWeight: selectedTab === 'rules' ? '600' : '400',
-              fontSize: '18px',
-              fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              borderBottom: selectedTab === 'rules' ? '2px solid #3a6df0' : 'none',
-              transition: 'all 0.25s ease',
-              letterSpacing: '0.5px'
+              color: selectedTab === 'rules' ? '#9f94e8' : 'rgba(0,0,0,0.6)',
+              fontWeight: selectedTab === 'rules' ? '500' : '400',
+              fontSize: '16px',
+              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              transition: 'all 0.2s ease',
             }}
           >
-            RulesCollection
-            {selectedTab === 'rules' && <div style={{
-              position: 'absolute',
-              bottom: '-2px',
-              left: '0',
-              width: '100%',
-              height: '2px',
-              background: 'linear-gradient(90deg, #3a6df0 0%, #5d8efb 100%)',
-              borderRadius: '2px 2px 0 0'
-            }}></div>}
+            Rules
+            {selectedTab === 'rules' && (
+              <div style={{
+                position: 'absolute',
+                bottom: '0',
+                left: '0',
+                width: '100%',
+                height: '3px',
+                backgroundColor: '#9f94e8',
+                borderRadius: '3px 3px 0 0'
+              }}></div>
+            )}
           </div>
         </div>
-        <div 
-          className="count" 
+        <button 
+          className="material-button" 
           style={{
-            background: 'rgba(58, 109, 240, 0.08)',
-            color: '#3a6df0',
+            backgroundColor: isExpandedView ? 'rgba(103, 80, 164, 0.08)' : 'rgba(103, 80, 164, 0.08)',
+            color: '#9f94e8',
             borderRadius: '20px',
-            padding: '2px 10px',
-            fontSize: '13px',
+            padding: '6px 16px',
+            fontSize: '14px',
             fontWeight: '500',
+            border: 'none',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer'
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            outline: 'none'
           }}
           onClick={onToggleExpandedView}
           title={isExpandedView ? "点击返回正常视图" : "点击展开全屏视图"}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(103, 80, 164, 0.12)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(103, 80, 164, 0.08)';
+          }}
         >
-          {selectedTab === 'nodes' 
+          <span>{selectedTab === 'nodes' 
             ? (profileData && profileData.length || 0) 
-            : (ruleSets && ruleSets.length || 0)}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            : (ruleSets && ruleSets.length || 0)}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             {isExpandedView ? (
-              // 显示收起图标
-              <path d="M12 20V4M12 20L6 14M12 20L18 14" stroke="#3a6df0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 20V4M12 20L6 14M12 20L18 14" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             ) : (
-              // 显示展开图标
-              <path d="M12 4V20M12 4L6 10M12 4L18 10" stroke="#3a6df0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 4V20M12 4L6 10M12 4L18 10" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             )}
           </svg>
-        </div>
+        </button>
       </div>
       
       {selectedTab === 'nodes' && renderGroupTabs()}
@@ -746,7 +795,10 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       <div style={{ 
         overflow: 'auto', 
         maxHeight: isExpandedView ? 'calc(100vh - 100px)' : 'calc(100vh - 300px)',
-        flex: '1 1 auto'
+        flex: '1 1 auto',
+        padding: '4px',
+        scrollBehavior: 'smooth',
+        borderRadius: '8px'
       }}>
         {selectedTab === 'nodes' ? renderNodes() : renderRuleSets()}
       </div>

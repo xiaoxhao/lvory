@@ -688,16 +688,6 @@ const SettingsContent = ({ section }) => {
           </div>
         );
       
-      case 'ai':
-        return (
-          <div>
-            <SettingsSection 
-              title={t('settings.aiConfiguration')} 
-              description={t('settings.configureAI')}
-              badge="BETA"
-            />
-          </div>
-        );
       
       case 'nodes':
         return (
