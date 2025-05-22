@@ -49,9 +49,6 @@ export default {
     backendAddress: '后端地址',
     enterBackendAddress: '输入后端服务地址',
     
-    // AI 配置
-    aiConfiguration: 'AI 配置',
-    configureAI: '配置 AI 驱动的功能和设置。',
     
     // 关于部分
     about: '关于',

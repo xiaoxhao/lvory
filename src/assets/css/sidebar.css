@@ -1,34 +1,31 @@
 .sidebar {
   width: 215px;
   height: 100%;
-  background-color: #fff;
-  border-right: none;
-  padding: 0;
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-bottom: 20px;
+  background-color: #FAFAFA; /* 改为淡灰色背景 */
+  border-right: none; /* 删除边框 */
+  padding: 16px 12px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width 0.3s ease, padding 0.3s ease;
+  transition: width 0.3s cubic-bezier(0.2, 0, 0, 1), padding 0.3s cubic-bezier(0.2, 0, 0, 1); /* MD3 标准缓动曲线 */
 }
 
 .sidebar.minimized {
-  width: 60px;
-  padding-left: 10px;
-  padding-right: 10px;
+  width: 72px;
+  padding-left: 12px;
+  padding-right: 12px;
   align-items: center;
 }
 
 .sidebar.minimized .logo {
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .sidebar.minimized .logo-image {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 }
 
 .sidebar.minimized .main-menu ul {
@@ -37,113 +34,227 @@
 
 .sidebar.minimized .menu-item {
   justify-content: center;
-  padding: 10px 0;
-  width: 40px;
-  height: 40px;
+  padding: 12px;
+  width: 48px;
+  height: 48px;
   position: relative;
 }
 
 .sidebar.minimized .menu-item .icon {
   margin-right: 0;
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 .sidebar.minimized .badge {
-  display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  background-color: #B3261E; /* MD3 错误色 */
+  color: white;
+  font-size: 12px;
+  padding: 0 4px;
 }
 
 .logo {
-  margin-top: 20px;
-  margin-bottom: 30px;
+  margin-top: 16px;
+  margin-bottom: 32px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .logo-image {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 }
 
 .logo h2 {
-  font-size: 24px;
-  font-weight: 400;
-  color: #333;
+  font-size: 22px;
+  font-weight: 500;
+  color: #1C1B1F; /* MD3 中性色 */
+  margin: 0;
 }
 
 .main-menu {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .main-menu ul {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: 20px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1);
+  color: #49454F; /* MD3 中性变体色 */
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .menu-item:hover {
-  background-color: #f5f5f5;
+  background-color: rgba(0, 0, 0, 0.04); /* 改为淡灰色 */
 }
 
 .menu-item.active {
-  background-color: #f0f0f0;
-  font-weight: 500;
+  background-color: rgba(0, 0, 0, 0.08); /* 改为淡灰色 */
+  color: rgba(0, 0, 0, 0.87); /* 改为深灰色文字 */
 }
 
 .menu-item .icon {
-  margin-right: 15px;
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
+  margin-right: 16px;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
   display: inline-block;
 }
 
 .badge {
   margin-left: auto;
-  background-color: #f0f0f0;
-  border-radius: 10px;
-  padding: 2px 8px;
+  background-color: rgba(0, 0, 0, 0.08); /* 改为淡灰色 */
+  border-radius: 100px;
+  padding: 4px 8px;
   font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87); /* 改为深灰色文字 */
 }
 
-/* 图标样式 */
+/* 图标样式 - 保持原有的SVG但更新颜色 */
 .terminal-icon {
-  background-color: #00b4d8;
+  background-color: #00B4D8;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Crect class='cls-1' x='2' y='4' width='20' height='16' rx='2'%3E%3C/rect%3E%3Cpolyline class='cls-1' points='6 10 9 12 6 14'%3E%3C/polyline%3E%3Cline class='cls-1' x1='10' y1='14' x2='14' y2='14'%3E%3C/line%3E%3C/svg%3E") no-repeat center / contain;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Crect class='cls-1' x='2' y='4' width='20' height='16' rx='2'%3E%3C/rect%3E%3Cpolyline class='cls-1' points='6 10 9 12 6 14'%3E%3C/polyline%3E%3Cline class='cls-1' x1='10' y1='14' x2='14' y2='14'%3E%3C/line%3E%3C/svg%3E") no-repeat center / contain;
 }
 
 .home-icon {
-  background-color: #4a6bff;
+  background-color: #757575; /* 改为灰色 */
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Cpolyline class='cls-1' points='1 10.5 12 1.5 23 10.5'%3E%3C/polyline%3E%3Cpath class='cls-1' d='M8,10.5h2.57A4.43,4.43,0,0,1,15,14.93V17.5a0,0,0,0,1,0,0H12.43A4.43,4.43,0,0,1,8,13.07V10.5A0,0,0,0,1,8,10.5Z'%3E%3C/path%3E%3Cline class='cls-1' x1='17' y1='19.5' x2='11' y2='13.5'%3E%3C/line%3E%3Cpolyline class='cls-1' points='20 7.5 20 22.5 4 22.5 4 7.5'%3E%3C/polyline%3E%3Cline class='cls-1' x1='22' y1='22.5' x2='2' y2='22.5'%3E%3C/line%3E%3C/svg%3E") no-repeat center / contain;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Cpolyline class='cls-1' points='1 10.5 12 1.5 23 10.5'%3E%3C/polyline%3E%3Cpath class='cls-1' d='M8,10.5h2.57A4.43,4.43,0,0,1,15,14.93V17.5a0,0,0,0,1,0,0H12.43A4.43,4.43,0,0,1,8,13.07V10.5A0,0,0,0,1,8,10.5Z'%3E%3C/path%3E%3Cline class='cls-1' x1='17' y1='19.5' x2='11' y2='13.5'%3E%3C/line%3E%3Cpolyline class='cls-1' points='20 7.5 20 22.5 4 22.5 4 7.5'%3E%3C/polyline%3E%3Cline class='cls-1' x1='22' y1='22.5' x2='2' y2='22.5'%3E%3C/line%3E%3C/svg%3E") no-repeat center / contain;
 }
 
 .profiles-icon {
-  background-color: #ff7a45;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' stroke-width='1.5' viewBox='0 0 22.91 22.91' width='24' height='24'%3E%3Cg transform='translate(-0.545 -0.545)'%3E%3Cpath d='M12,6.27l.6,1.26,1.35.2-.98.98.23,1.38L12,9.44l-1.2.65.23-1.38-.98-.98,1.35-.2Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M20.59,1.5h0A1.91,1.91,0,0,1,22.5,3.41V5.32H18.68V3.41A1.91,1.91,0,0,1,20.59,1.5Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M14.86,18.68H1.5v1.91A1.9,1.9,0,0,0,3.41,22.5H16.77a1.91,1.91,0,0,1-1.91-1.91Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M5.32,18.68V3.41A1.9,1.9,0,0,1,7.23,1.5H20.59a1.91,1.91,0,0,0-1.91,1.91V20.59a1.9,1.9,0,0,1-1.91,1.91h0' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cline x2='7.64' transform='translate(8.18 14.86)' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/line%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
+  background-color: #757575; /* 改为灰色 */
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' stroke-width='1.5' viewBox='0 0 22.91 22.91' width='24' height='24'%3E%3Cg transform='translate(-0.545 -0.545)'%3E%3Cpath d='M12,6.27l.6,1.26,1.35,.2-.98,.98,.23,1.38L12,9.44l-1.2,.65,.23-1.38-.98-.98,1.35-.2Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M20.59,1.5h0A1.91,1.91,0,0,1,22.5,3.41V5.32H18.68V3.41A1.91,1.91,0,0,1,20.59,1.5Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M14.86,18.68H1.5v1.91A1.9,1.9,0,0,0,3.41,22.5H16.77a1.91,1.91,0,0,1-1.91-1.91Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M5.32,18.68V3.41A1.9,1.9,0,0,1,7.23,1.5H20.59a1.91,1.91,0,0,0-1.91,1.91V20.59a1.9,1.9,0,0,1-1.91,1.91h0' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cline x2='7.64' transform='translate(8.18 14.86)' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/line%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' stroke-width='1.5' viewBox='0 0 22.91 22.91' width='24' height='24'%3E%3Cg transform='translate(-0.545 -0.545)'%3E%3Cpath d='M12,6.27l.6,1.26,1.35,.2-.98,.98,.23,1.38L12,9.44l-1.2,.65,.23-1.38-.98-.98,1.35-.2Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M20.59,1.5h0A1.91,1.91,0,0,1,22.5,3.41V5.32H18.68V3.41A1.91,1.91,0,0,1,20.59,1.5Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M14.86,18.68H1.5v1.91A1.9,1.9,0,0,0,3.41,22.5H16.77a1.91,1.91,0,0,1-1.91-1.91Z' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cpath d='M5.32,18.68V3.41A1.9,1.9,0,0,1,7.23,1.5H20.59a1.91,1.91,0,0,0-1.91,1.91V20.59a1.9,1.9,0,0,1-1.91,1.91h0' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/path%3E%3Cline x2='7.64' transform='translate(8.18 14.86)' fill='none' stroke='%23000' stroke-miterlimit='10'%3E%3C/line%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
 }
 
 .activity-icon {
-  background-color: #36c88a;
+  background-color: #757575; /* 改为灰色 */
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Ccircle class='cls-1' cx='12' cy='12' r='10.5'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='12' cy='6.27' r='0.95'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='17.73' cy='9.14' r='0.95'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='12.95' cy='12' r='0.95'%3E%3C/circle%3E%3C/svg%3E") no-repeat center / contain;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Ccircle class='cls-1' cx='12' cy='12' r='10.5'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='12' cy='6.27' r='0.95'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='17.73' cy='9.14' r='0.95'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='12.95' cy='12' r='0.95'%3E%3C/circle%3E%3C/svg%3E") no-repeat center / contain;
 }
 
 .settings-icon {
-  background-color: #9254de;
+  background-color: #757575; /* 改为灰色 */
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Ccircle class='cls-1' cx='3.41' cy='12' r='1.91'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='12' cy='18.68' r='1.91'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='20.59' cy='5.32' r='1.91'%3E%3C/circle%3E%3Cline class='cls-1' x1='20.59' y1='23.45' x2='20.59' y2='7.23'%3E%3C/line%3E%3Cline class='cls-1' x1='20.59' y1='3.41' x2='20.59' y2='0.55'%3E%3C/line%3E%3Cline class='cls-1' x1='12' y1='23.45' x2='12' y2='20.59'%3E%3C/line%3E%3Cline class='cls-1' x1='12' y1='16.77' x2='12' y2='0.55'%3E%3C/line%3E%3Cline class='cls-1' x1='3.41' y1='23.45' x2='3.41' y2='13.91'%3E%3C/line%3E%3Cline class='cls-1' x1='3.41' y1='10.09' x2='3.41' y2='0.55'%3E%3C/line%3E%3C/svg%3E") no-repeat center / contain;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke-width='1.5' width='24' height='24'%3E%3Cdefs%3E%3Cstyle%3E.cls-1%7Bfill:none;stroke:%23000;stroke-miterlimit:10;%7D%3C/style%3E%3C/defs%3E%3Ccircle class='cls-1' cx='3.41' cy='12' r='1.91'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='12' cy='18.68' r='1.91'%3E%3C/circle%3E%3Ccircle class='cls-1' cx='20.59' cy='5.32' r='1.91'%3E%3C/circle%3E%3Cline class='cls-1' x1='20.59' y1='23.45' x2='20.59' y2='7.23'%3E%3C/line%3E%3Cline class='cls-1' x1='20.59' y1='3.41' x2='20.59' y2='0.55'%3E%3C/line%3E%3Cline class='cls-1' x1='12' y1='23.45' x2='12' y2='20.59'%3E%3C/line%3E%3Cline class='cls-1' x1='12' y1='16.77' x2='12' y2='0.55'%3E%3C/line%3E%3Cline class='cls-1' x1='3.41' y1='23.45' x2='3.41' y2='13.91'%3E%3C/line%3E%3Cline class='cls-1' x1='3.41' y1='10.09' x2='3.41' y2='0.55'%3E%3C/line%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* MD3风格的状态提示颜色 */
+.menu-item.active .home-icon,
+.menu-item.active .activity-icon,
+.menu-item.active .profiles-icon,
+.menu-item.active .settings-icon {
+  background-color: rgba(0, 0, 0, 0.87); /* 改为深灰色 */
+}
+
+/* 添加Material Design 3的涟漪效果 */
+.menu-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-item::after {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #000 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 0.8s;
+}
+
+.menu-item:active::after {
+  transform: scale(0, 0);
+  opacity: 0.1;
+  transition: 0s;
+}
+
+/* 为涟漪效果添加样式 */
+.ripple {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: rgba(0, 0, 0, 0.3); /* 改为灰色 */
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple-animation 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple-animation {
+  to {
+    transform: scale(25);
+    opacity: 0;
+  }
+}
+
+/* 增强焦点效果，提高可访问性 */
+.menu-item:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.3); /* 改为灰色 */
+  outline-offset: 2px;
+}
+
+/* 改进动画效果，使用MD3的标准动画曲线 */
+.menu-item {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.minimized .menu-item .icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 添加系统状态部分的MD3样式 */
+.system-status {
+  margin-top: auto;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.02); /* 改为淡灰色 */
+  border-radius: 16px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); /* 减淡阴影 */
+}
+
+/* 调整最小化状态下的系统状态图标 */
+.sidebar.minimized .minimized-badge {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/* 统一调整图标尺寸 */
+.icon {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

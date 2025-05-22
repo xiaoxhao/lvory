@@ -363,12 +363,12 @@ const StatsOverview = ({ apiAddress }) => {
             showSymbol: false,
             lineStyle: {
               width: 2,
-              color: '#f56c6c'
+              color: '#6750A4' // MD3 主色
             },
             areaStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(245, 108, 108, 0.3)' },
-                { offset: 1, color: 'rgba(245, 108, 108, 0.1)' }
+                { offset: 0, color: 'rgba(103, 80, 164, 0.3)' }, // MD3 主色透明度
+                { offset: 1, color: 'rgba(103, 80, 164, 0.1)' }
               ])
             }
           },
@@ -380,12 +380,12 @@ const StatsOverview = ({ apiAddress }) => {
             showSymbol: false,
             lineStyle: {
               width: 2,
-              color: '#409eff'
+              color: '#7D5260' // MD3 第三色
             },
             areaStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
-                { offset: 1, color: 'rgba(64, 158, 255, 0.1)' }
+                { offset: 0, color: 'rgba(125, 82, 96, 0.3)' }, // MD3 第三色透明度
+                { offset: 1, color: 'rgba(125, 82, 96, 0.1)' }
               ])
             }
           }
@@ -421,9 +421,9 @@ const StatsOverview = ({ apiAddress }) => {
       const option = {
         grid: {
           left: 30,    // 减小左边距
-          right: 10,   // 减小右边距
-          top: 25,     // 增加顶部边距为标题留出空间
-          bottom: 10,  // 保持一定的底部边距
+          right: 15,   // 略微增加右边距
+          top: 20,     // 调整顶部边距
+          bottom: 15,  // 调整底部边距
           containLabel: true
         },
         tooltip: {
@@ -432,16 +432,20 @@ const StatsOverview = ({ apiAddress }) => {
             const detail = params.data[2];
             if (!detail || detail.avg === null) return 'no data';
             
-            return `delay: ${detail.avg.toFixed(0)}ms\nloss: ${detail.loss.toFixed(1)}%`;
+            return `<div style="font-weight:600;margin-bottom:3px;font-size:12px">Network Delay</div>` +
+                   `<div style="display:flex;justify-content:space-between"><span>Delay:</span><span style="font-weight:600">${detail.avg.toFixed(0)}ms</span></div>` +
+                   `<div style="display:flex;justify-content:space-between"><span>Loss:</span><span style="font-weight:600">${detail.loss.toFixed(1)}%</span></div>`;
           },
           textStyle: {
-            fontSize: 11
+            fontSize: 12,
+            lineHeight: 18
           },
-          padding: [6, 8],
-          backgroundColor: '',
-          borderColor: 'transparent',
-          borderWidth: 0,
-          borderRadius: 4
+          padding: [8, 10],
+          backgroundColor: 'rgba(28, 27, 31, 0.8)', // 更深的背景色增加对比度
+          borderColor: 'rgba(103, 80, 164, 0.3)',
+          borderWidth: 1,
+          borderRadius: 6,
+          extraCssText: 'box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);'
         },
         xAxis: {
           type: 'category',
@@ -450,7 +454,7 @@ const StatsOverview = ({ apiAddress }) => {
           axisLine: {
             show: true,
             lineStyle: {
-              color: '#ccc',
+              color: 'rgba(103, 80, 164, 0.4)', // MD3 主色带透明度
               width: 1
             }
           },
@@ -473,7 +477,7 @@ const StatsOverview = ({ apiAddress }) => {
           axisLine: {
             show: true,  // 显示Y轴线
             lineStyle: {
-              color: '#ccc',
+              color: 'rgba(103, 80, 164, 0.4)', // MD3 主色带透明度
               width: 1
             }
           },
@@ -481,26 +485,28 @@ const StatsOverview = ({ apiAddress }) => {
             show: false
           },
           axisLabel: {
-            fontSize: 9,
-            color: '#999',
+            fontSize: 10,
+            fontFamily: 'Roboto, Arial, sans-serif',
+            color: '#49454F', // MD3 on-surface-variant 颜色
             formatter: function(value, index) {
-              // 只显示第一个和最后一个标签
-              if (index === 0 || index === 5) {  // 使用固定值5代替this.yAxis.ticksLength-1
+              // 只显示部分标签
+              if (index === 0 || index === 2 || index === 4) {
                 return value + ' ms';
               }
               return '';
-            }
+            },
+            margin: 8
           },
           splitLine: {
             show: true,
             lineStyle: {
-              color: '#eee',
+              color: 'rgba(103, 80, 164, 0.15)', // 降低分割线的透明度使其更柔和
               width: 0.5,
               type: 'dashed'
             }
           },
           nameTextStyle: {
-            fontSize: 9,
+            fontSize: 10,
             padding: [0, 0, 0, 0]
           }
         },
@@ -513,34 +519,47 @@ const StatsOverview = ({ apiAddress }) => {
             symbolSize: function(value) {
               const detail = value[2];
               if (!detail || detail.avg === null) return 3;
-              return 5 + Math.min(detail.loss, 50) / 10;
+              // 调整点的大小，使其更美观
+              return 5 + Math.min(detail.loss, 40) / 8;
             },
             data: data,
             lineStyle: {
-              width: 2,
-              color: '#409eff'
+              width: 2.5, // 增加线宽
+              color: '#6750A4', // MD3 主色
+              shadowColor: 'rgba(103, 80, 164, 0.3)',
+              shadowBlur: 5,
+              shadowOffsetY: 2,
+              cap: 'round',
+              join: 'round'
             },
             itemStyle: {
               color: function(params) {
                 const detail = params.data[2];
-                if (!detail || detail.avg === null) return '#ccc'; // 无数据
+                if (!detail || detail.avg === null) return '#CAC4D0'; // MD3 outline 颜色
                 
-                // 颜色根据丢包率和平均延迟综合计算
-                if (detail.loss > 20) return '#f56c6c'; // 高丢包率
-                if (detail.avg < 30) return '#67c23a';  // 良好延迟
-                if (detail.avg < 70) return '#e6a23c';  // 中等延迟
-                return '#f56c6c';                    // 较差延迟
-              }
+                // 增强颜色渐变效果
+                if (detail.loss > 20) return '#B3261E'; // MD3 错误色
+                if (detail.avg < 30) return '#1E6E5A';  // 更饱和的绿色
+                if (detail.avg < 70) return '#9C6D00';  // 更饱和的黄色
+                if (detail.avg < 120) return '#BF4A30';  // 轻度错误橙色
+                return '#B3261E';                      // MD3 错误色
+              },
+              borderColor: '#FFF',
+              borderWidth: 1.5,
+              shadowColor: 'rgba(0, 0, 0, 0.2)',
+              shadowBlur: 3
             },
-            // 添加波浪填充
+            // 美化波浪填充
             areaStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(64, 158, 255, 0.4)' },
-                { offset: 1, color: 'rgba(64, 158, 255, 0.1)' }
+                { offset: 0, color: 'rgba(103, 80, 164, 0.5)' }, // 更高透明度，增强视觉效果
+                { offset: 0.5, color: 'rgba(103, 80, 164, 0.2)' },
+                { offset: 1, color: 'rgba(103, 80, 164, 0.05)' }
               ]),
               // 加强波浪效果
-              shadowColor: 'rgba(64, 158, 255, 0.2)',
-              shadowBlur: 10
+              shadowColor: 'rgba(103, 80, 164, 0.3)', // MD3 主色带透明度
+              shadowBlur: 15,
+              opacity: 0.8
             },
             z: 2 // 确保线在最上面
           }
@@ -566,10 +585,61 @@ const StatsOverview = ({ apiAddress }) => {
       
       // 更新为波浪图
       gaugeChartInstance.current.setOption({
+        yAxis: {
+          axisLabel: {
+            formatter: function(value, index) {
+              if (index === 0 || index === 2 || index === 4) {
+                return value + ' ms';
+              }
+              return '';
+            }
+          }
+        },
         series: [
           {
             type: 'line',
-            data: data
+            data: data,
+            smooth: true,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: function(value) {
+              const detail = value[2];
+              if (!detail || detail.avg === null) return 3;
+              return 5 + Math.min(detail.loss, 40) / 8;
+            },
+            lineStyle: {
+              width: 2.5,
+              color: '#6750A4',
+              shadowColor: 'rgba(103, 80, 164, 0.3)',
+              shadowBlur: 5,
+              shadowOffsetY: 2
+            },
+            itemStyle: {
+              color: function(params) {
+                const detail = params.data[2];
+                if (!detail || detail.avg === null) return '#CAC4D0';
+                
+                if (detail.loss > 20) return '#B3261E';
+                if (detail.avg < 30) return '#1E6E5A';
+                if (detail.avg < 70) return '#9C6D00';
+                if (detail.avg < 120) return '#BF4A30';
+                return '#B3261E';
+              },
+              borderColor: '#FFF',
+              borderWidth: 1.5,
+              shadowColor: 'rgba(0, 0, 0, 0.2)',
+              shadowBlur: 3
+            },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(103, 80, 164, 0.5)' },
+                { offset: 0.5, color: 'rgba(103, 80, 164, 0.2)' },
+                { offset: 1, color: 'rgba(103, 80, 164, 0.05)' }
+              ]),
+              shadowColor: 'rgba(103, 80, 164, 0.3)',
+              shadowBlur: 15,
+              opacity: 0.8
+            }
           }
         ]
       });
@@ -692,6 +762,12 @@ const StatsOverview = ({ apiAddress }) => {
           if (!prevStatus && status.isRunning) {
             // 内核从停止到启动，获取IP信息
             setTimeout(fetchIpLocation, 3000);
+            // 确保图表能够正确显示
+            setTimeout(() => {
+              if (gaugeChartInstance.current) {
+                gaugeChartInstance.current.resize();
+              }
+            }, 100);
           } else if (prevStatus && !status.isRunning) {
             // 内核从启动到停止，清空IP信息
             setIpLocation('');
@@ -729,9 +805,9 @@ const StatsOverview = ({ apiAddress }) => {
             </h2>
             <div id="stats-date" className="stats-date">
               {kernelRunning && (ipLocation || asnInfo) ? (
-                <span onClick={handleIpInfoClick} style={{ cursor: 'pointer' }}>
-                  {showAsnInfo && asnInfo ? asnInfo : `Node IP: ${ipLocation}`}
-                </span>
+              <span onClick={handleIpInfoClick} style={{ cursor: 'pointer' }}>
+                  Node IP: {showAsnInfo && asnInfo ? asnInfo : ipLocation}
+              </span>
               ) : (
                 new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
               )}
@@ -821,12 +897,15 @@ const StatsOverview = ({ apiAddress }) => {
           <div id="gauge-label" className="gauge-label" style={{ 
             position: 'relative', 
             top: '0', 
-            marginBottom: '5px', 
-            fontSize: '13px',
-            fontFamily: 'Arial, sans-serif',
-            fontWeight: '600',
-            color: '#444',
-            letterSpacing: '0.5px'
+            marginBottom: '8px', 
+            fontSize: '14px',
+            fontFamily: 'Roboto, Arial, sans-serif',
+            fontWeight: '500',
+            color: '#6750A4',
+            letterSpacing: '0.5px',
+            textAlign: 'center',
+            textShadow: '0 1px 2px rgba(103, 80, 164, 0.1)',
+            visibility: kernelRunning ? 'visible' : 'hidden'  // 内核未运行时隐藏标题但保留占位
           }}>
             Network Latency
           </div>
@@ -835,6 +914,7 @@ const StatsOverview = ({ apiAddress }) => {
               id="gauge-chart"
               ref={gaugeChartRef} 
               className="gauge-chart"
+              style={{ visibility: kernelRunning ? 'visible' : 'hidden' }} // 内核未运行时隐藏图表但保留占位
             />
           </div>
         </div>

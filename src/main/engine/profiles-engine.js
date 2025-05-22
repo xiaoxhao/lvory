@@ -376,8 +376,8 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
     return targetConfig;
   }
   
-  // 克隆目标配置以避免修改原对象
-  const result = JSON.parse(JSON.stringify(targetConfig));
+  // 直接使用目标配置而不是创建副本
+  const result = targetConfig;
   
   // 应用所有映射规则
   mappings.forEach(mapping => {
@@ -423,80 +423,11 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
         }
       }
       
-      // 处理不同的转换类型
-      switch (mapping.transform) {
-        case 'template':
-          // 模板转换
-          if (Array.isArray(userValue)) {
-            // 处理数组中的每个元素
-            userValue.forEach((item, index) => {
-              const templateResult = {};
-              
-              // 填充模板中的每个字段
-              Object.entries(mapping.template).forEach(([field, template]) => {
-                // 替换模板中的变量引用
-                const processedTemplate = template.replace(/\{([^{}]+)\}/g, (match, variable) => {
-                  // 替换 nodes[*] 为 nodes[index]
-                  const indexedVariable = variable.replace(/\[\*\]/g, `[${index}]`);
-                  const value = getValueByPath(userConfig, indexedVariable);
-                  return value !== undefined ? value : '';
-                });
-                
-                templateResult[field] = processedTemplate;
-              });
-              
-              // 构造目标路径
-              const targetPath = mapping.target_path.replace(/\{([^{}]+)\}/g, (match, variable) => {
-                // 替换 nodes[*] 为 nodes[index]
-                const indexedVariable = variable.replace(/\[\*\]/g, `[${index}]`);
-                const value = getValueByPath(userConfig, indexedVariable);
-                return value !== undefined ? value : '';
-              });
-              
-              // 应用到目标配置
-              createOrUpdatePath(result, targetPath, templateResult, {
-                conflict_strategy: mapping.conflict_strategy
-              });
-            });
-          } else if (typeof userValue === 'object') {
-            // 处理单个对象
-            const templateResult = {};
-            
-            // 填充模板中的每个字段
-            Object.entries(mapping.template).forEach(([field, template]) => {
-              // 替换模板中的变量引用
-              const processedTemplate = template.replace(/\{([^{}]+)\}/g, (match, variable) => {
-                const value = getValueByPath(userConfig, variable);
-                return value !== undefined ? value : '';
-              });
-              
-              templateResult[field] = processedTemplate;
-            });
-            
-            // 处理目标路径中的变量
-            const targetPath = replacePathVariables(mapping.target_path, userConfig);
-            
-            // 应用到目标配置
-            createOrUpdatePath(result, targetPath, templateResult, {
-              conflict_strategy: mapping.conflict_strategy
-            });
-          }
-          break;
-          
-        case 'function':
-          // 函数转换 - 可以在这里添加自定义函数支持
-          logger.warn('函数转换尚未实现');
-          break;
-          
-        case 'direct':
-        default:
-          // 直接映射，无需转换
-          const targetPath = replacePathVariables(mapping.target_path, userConfig);
-          createOrUpdatePath(result, targetPath, userValue, {
-            conflict_strategy: mapping.conflict_strategy
-          });
-          break;
-      }
+      // 直接映射，无需转换
+      const targetPath = replacePathVariables(mapping.target_path, userConfig);
+      createOrUpdatePath(result, targetPath, userValue, {
+        conflict_strategy: mapping.conflict_strategy
+      });
       
       // 处理依赖项
       if (mapping.dependencies && Array.isArray(mapping.dependencies)) {
