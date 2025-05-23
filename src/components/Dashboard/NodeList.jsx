@@ -3,128 +3,131 @@ import NodeDetailModal from './NodeDetailModal';
 
 // Material 3 风格的节点卡片组件
 const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
-  const getNodeTypeColor = (type) => {
+  // 根据节点质量获取圆点颜色
+  const getNodeQualityColor = (latency) => {
+    if (latency === 'timeout' || latency === undefined || latency === null) {
+      return '#8b4a4a'; // 红色 - 无法连接或未测试
+    }
+    if (latency < 100) return '#5a6c57'; // 绿色 - 优秀
+    if (latency < 200) return '#4a6b6b'; // 青色 - 良好  
+    if (latency < 300) return '#8b7a4a'; // 黄色 - 一般
+    return '#8b4a4a'; // 红色 - 较差
+  };
+
+  // 获取节点类型对应的背景色 - 统一为更淡雅的背景
+  const getNodeTypeBackgroundColor = (type) => {
     switch (type) {
-      case 'direct': return '#4CAF50'; // Material Green
-      case 'shadowsocks': return '#FF9800'; // Material Orange
-      case 'vmess': return '#673AB7'; // Material Deep Purple
-      case 'trojan': return '#F44336'; // Material Red
-      default: return '#607D8B'; // Material Blue Grey
+      case 'direct': return 'rgba(246, 247, 237, 1)'; // 淡绿背景
+      case 'shadowsocks': return 'rgba(240, 245, 248, 1)'; // 淡蓝背景
+      case 'vmess': return 'rgba(240, 248, 248, 1)'; // 淡青背景
+      case 'trojan': return 'rgba(248, 245, 240, 1)'; // 淡棕背景
+      default: return 'rgba(246, 247, 237, 1)'; // 默认淡绿背景
     }
   };
 
-  // 测试结果状态和颜色
-  const getLatencyStatus = (latency) => {
-    if (latency === 'timeout') return { color: '#F44336', text: '超时' };
-    if (latency < 100) return { color: '#4CAF50', text: `${latency}ms` }; // 很好
-    if (latency < 200) return { color: '#8BC34A', text: `${latency}ms` }; // 好
-    if (latency < 300) return { color: '#FFC107', text: `${latency}ms` }; // 一般
-    return { color: '#F44336', text: `${latency}ms` }; // 差
+  // 更丰富的节点类型配色 - 调整为更柔和的色调
+  const getNodeTypeColor = (type) => {
+    switch (type) {
+      case 'direct': return '#5a6c57'; // 深绿灰色
+      case 'shadowsocks': return '#6b7885'; // 蓝灰色
+      case 'vmess': return '#4a6b6b'; // 青绿色
+      case 'trojan': return '#8b5a4a'; // 棕色
+      default: return '#666666'; // 中性灰
+    }
   };
 
-  const latencyStatus = testResults[profile.tag] ? getLatencyStatus(testResults[profile.tag]) : null;
+  const latency = testResults[profile.tag];
+  const qualityColor = getNodeQualityColor(latency);
+  const typeBackgroundColor = getNodeTypeBackgroundColor(profile.type);
 
   return (
     <div 
       className="material-card" 
       style={{ 
-        backgroundColor: '#ffffff', 
-        borderRadius: '12px', 
-        padding: '10px', 
+        backgroundColor: typeBackgroundColor, 
+        borderRadius: '8px', 
+        padding: '8px 12px', 
         width: 'calc(25% - 12px)',
-        margin: '0 0 12px 0',
-        height: '64%',
+        margin: '0 0 8px 0',
+        height: 'auto',
+        minHeight: '72px',
         display: 'flex', 
         flexDirection: 'column', 
+        justifyContent: 'space-between',
         transition: 'all 0.15s ease',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
-        fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-        border: '1px solid rgba(0,0,0,0.12)'
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        boxShadow: 'none',
+        border: 'none'
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-0.5px)';
-        e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(90, 108, 87, 0.1)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+        e.currentTarget.style.boxShadow = 'none';
       }}
-    >
-      {latencyStatus && (
-        <div style={{
-          position: 'absolute',
-          top: '8px',
-          right: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '3px',
-          fontSize: '11px',
-          fontWeight: '500',
-          backgroundColor: `${latencyStatus.color}08`,
-          color: latencyStatus.color,
-          padding: '1px 6px',
-          borderRadius: '12px'
-        }}>
-          <span style={{
-            display: 'inline-block',
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: latencyStatus.color
-          }}></span>
-          {latencyStatus.text}
-        </div>
-      )}
-      
+    >      
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        marginBottom: '8px'
+        marginBottom: '6px'
       }}>
         <div style={{
-          width: '10px',
-          height: '10px',
+          width: '8px',
+          height: '8px',
           borderRadius: '50%',
-          backgroundColor: getNodeTypeColor(profile.type),
-          marginRight: '6px'
+          backgroundColor: qualityColor,
+          marginRight: '6px',
+          flexShrink: 0
         }}></div>
         <div style={{ 
-          fontSize: '13px', 
-          fontWeight: '500', 
-          color: 'rgba(0,0,0,0.78)',
+          fontSize: '12px', 
+          fontWeight: '600', 
+          color: '#333333',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          textOverflow: 'ellipsis',
+          lineHeight: '1.2'
         }}>
           {privateMode ? '********' : (profile.tag || 'Unknown')}
         </div>
       </div>
       
       <div style={{
-        padding: '3px 6px',
-        backgroundColor: 'rgba(0,0,0,0.03)',
-        borderRadius: '3px',
-        fontSize: '11px',
-        fontWeight: '400',
-        color: 'rgba(0,0,0,0.6)',
-        alignSelf: 'flex-start',
-        marginBottom: '6px'
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        gap: '8px'
       }}>
-        {profile.type || 'Unknown'}
-      </div>
-      
-      <div style={{
-        fontSize: '11px',
-        color: 'rgba(0,0,0,0.54)',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
-      }}>
-        {privateMode ? '********' : (profile.server || 'N/A')}
+        <div style={{
+          padding: '2px 6px',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          borderRadius: '4px',
+          fontSize: '10px',
+          fontWeight: '500',
+          color: getNodeTypeColor(profile.type),
+          border: `1px solid ${getNodeTypeColor(profile.type)}20`,
+          whiteSpace: 'nowrap'
+        }}>
+          {profile.type || 'Unknown'}
+        </div>
+        
+        <div style={{
+          fontSize: '10px',
+          color: '#555555',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '60%',
+          textAlign: 'right'
+        }}>
+          {privateMode ? '****' : (profile.server || 'N/A')}
+        </div>
       </div>
     </div>
   );
@@ -143,6 +146,10 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
   // 节点详情弹窗状态
   const [selectedNode, setSelectedNode] = useState(null);
   const [showNodeDetail, setShowNodeDetail] = useState(false);
+
+  // 添加定时测量状态
+  const [isAutoTesting, setIsAutoTesting] = useState(false);
+  const testInterval = 3600000; // 默认1小时 (3600000毫秒)
 
   useEffect(() => {
     const loadRuleSets = async () => {
@@ -172,10 +179,47 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       }
     };
 
-    // 加载规则集数据
     loadRuleSets();
-    // 加载节点组数据
     loadNodeGroups();
+  }, []);
+
+  // 定时测量节点功能
+  useEffect(() => {
+    let intervalId;
+    
+    const performBackgroundTest = async () => {
+      if (window.electron && window.electron.testNodes && profileData && profileData.length > 0) {
+        try {
+          // 静默测试，不显示加载状态
+          await window.electron.testNodes(profileData.map(node => node.tag), false);
+        } catch (error) {
+          console.error('后台节点测试失败:', error);
+        }
+      }
+    };
+
+    // 启动自动测试
+    const startAutoTest = () => {
+      if (isAutoTesting) {
+        // 立即执行一次测试
+        performBackgroundTest();
+        // 设置定时器
+        intervalId = setInterval(performBackgroundTest, testInterval);
+      }
+    };
+
+    startAutoTest();
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isAutoTesting, testInterval, profileData]);
+
+  // 组件挂载时自动启动定时测量
+  useEffect(() => {
+    setIsAutoTesting(true);
   }, []);
 
   // 检查选项卡是否溢出
@@ -255,15 +299,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
   const getRuleSetTypeColor = (type) => {
     switch (type) {
       case 'remote':
-        return '#9254de'; // 紫色
+        return '#666666'; // 使用指定色调
       case 'local':
-        return '#52c41a'; // 绿色
+        return '#666666'; // 使用指定色调
       case 'source':
-        return '#1890ff'; // 蓝色
+        return '#ad0c3a'; // 使用指定色调
       case 'binary':
-        return '#fa8c16'; // 橙色
+        return '#ad0c3a'; // 使用指定色调
       default:
-        return '#8c8c8c'; // 灰色
+        return '#333333'; // 使用指定色调
     }
   };
 
@@ -271,15 +315,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
   const getNodeGroupTypeColor = (type) => {
     switch (type) {
       case 'urltest':
-        return '#1890ff'; // 蓝色
+        return '#666666'; // 使用指定色调
       case 'selector':
-        return '#722ed1'; // 紫色
+        return '#ad0c3a'; // 使用指定色调
       case 'direct':
-        return '#52c41a'; // 绿色
+        return '#666666'; // 使用指定色调
       case 'reject':
-        return '#f5222d'; // 红色
+        return '#ad0c3a'; // 使用指定色调
       default:
-        return '#8c8c8c'; // 灰色
+        return '#333333'; // 使用指定色调
     }
   };
 
@@ -322,15 +366,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           <div style={{ 
             padding: '40px 20px', 
             textAlign: 'center', 
-            color: 'rgba(0,0,0,0.54)', 
-            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            color: '#666666', 
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '16px'
           }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM18 12.5H13.5V17H10.5V12.5H6V9.5H10.5V5H13.5V9.5H18V12.5Z" fill="rgba(0,0,0,0.26)"/>
+              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15 13H17V16H15V13Z" fill="#666666"/>
             </svg>
             No service nodes found. Please click "+ Profiles" to add configuration file.
           </div>
@@ -352,7 +396,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         }}>
           {ruleSets.map((ruleSet, index) => (
             <div key={index} className="material-rule-card" style={{ 
-              backgroundColor: '#ffffff', 
+              backgroundColor: '#f8f8f8',
               borderRadius: '12px',
               padding: '10px', 
               width: 'calc(25% - 12px)',
@@ -364,24 +408,24 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               cursor: 'pointer',
               position: 'relative',
               overflow: 'hidden',
-              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              border: '1px solid rgba(0,0,0,0.12)'
+              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0, 0, 0, 0.06)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-0.5px)';
-              e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
             }}
             >
               <div style={{ 
                 fontWeight: '500', 
                 fontSize: '13px', 
                 marginBottom: '8px', 
-                color: 'rgba(0,0,0,0.78)',
+                color: '#333333',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -403,7 +447,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               </div>
               <div style={{ 
                 fontSize: '11px', 
-                color: 'rgba(0,0,0,0.6)',
+                color: '#666666',
                 display: 'flex',
                 alignItems: 'center',
                 marginBottom: '6px'
@@ -411,9 +455,11 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
                 <span style={{
                   display: 'inline-block',
                   padding: '3px 6px',
-                  backgroundColor: 'rgba(0,0,0,0.03)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.65)',
                   borderRadius: '3px',
-                  fontSize: '11px'
+                  fontSize: '11px',
+                  color: getRuleSetTypeColor(ruleSet.format || ruleSet.type),
+                  border: `1px solid ${getRuleSetTypeColor(ruleSet.format || ruleSet.type)}20`
                 }}>
                   {ruleSet.format || ruleSet.type}
                 </span>
@@ -421,7 +467,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               {ruleSet.url && (
                 <div style={{
                   fontSize: '11px',
-                  color: 'rgba(0,0,0,0.54)',
+                  color: '#444444',
                   marginTop: '6px',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -433,14 +479,14 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               {ruleSet.update_interval && (
                 <div style={{
                   fontSize: '11px',
-                  color: 'rgba(0,0,0,0.54)',
+                  color: '#444444',
                   marginTop: '3px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '3px'
                 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.2 16.2L17 14.9L12.5 12.2V7Z" fill="rgba(0,0,0,0.45)"/>
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.2 16.2L17 14.9L12.5 12.2V7Z" fill="#666666"/>
                   </svg>
                   更新间隔: {ruleSet.update_interval}
                 </div>
@@ -452,15 +498,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         <div style={{ 
           padding: '40px 20px', 
           textAlign: 'center', 
-          color: 'rgba(0,0,0,0.54)', 
-          fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          color: '#666666', 
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '16px'
         }}>
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15 13H17V16H15V13Z" fill="rgba(0,0,0,0.26)"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15 13H17V16H15V13Z" fill="#666666"/>
           </svg>
           No rule sets found.
         </div>
@@ -497,12 +543,13 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             cursor: 'pointer',
             fontSize: '12px',
             fontWeight: '500',
-            color: selectedGroup === 'all' ? '#ffffff' : 'rgba(0,0,0,0.4)',
-            backgroundColor: selectedGroup === 'all' ? '#9f94e8' : 'rgba(0,0,0,0.08)',
+            color: selectedGroup === 'all' ? '#ffffff' : '#5a6c57',
+            backgroundColor: selectedGroup === 'all' ? '#7a9070' : 'rgba(246, 247, 237, 0.8)',
             marginRight: '8px',
-            borderRadius: '8px',
+            borderRadius: '6px',
             transition: 'all 0.2s ease',
-            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            border: 'none'
           }}
         >
           All
@@ -518,12 +565,13 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               cursor: 'pointer',
               fontSize: '12px',
               fontWeight: '500',
-              color: selectedGroup === group.tag ? '#ffffff' : 'rgba(0,0,0,0.4)',
-              backgroundColor: selectedGroup === group.tag ? '#9f94e8' : 'rgba(0,0,0,0.08)',
+              color: selectedGroup === group.tag ? '#ffffff' : '#5a6c57',
+              backgroundColor: selectedGroup === group.tag ? '#7a9070' : 'rgba(246, 247, 237, 0.8)',
               marginRight: '8px',
-              borderRadius: '8px',
+              borderRadius: '6px',
               transition: 'all 0.2s ease',
-              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              border: 'none'
             }}
           >
             {group.tag}
@@ -538,12 +586,13 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             cursor: 'pointer',
             fontSize: '12px',
             fontWeight: '500',
-            color: selectedGroup === 'uncategorized' ? '#ffffff' : 'rgba(0,0,0,0.4)',
-            backgroundColor: selectedGroup === 'uncategorized' ? '#9f94e8' : 'rgba(0,0,0,0.08)',
+            color: selectedGroup === 'uncategorized' ? '#ffffff' : '#5a6c57',
+            backgroundColor: selectedGroup === 'uncategorized' ? '#7a9070' : 'rgba(246, 247, 237, 0.8)',
             marginRight: '8px',
-            borderRadius: '8px',
+            borderRadius: '6px',
             transition: 'all 0.2s ease',
-            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            border: 'none'
           }}
         >
           Uncategorized
@@ -558,24 +607,23 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               cursor: 'pointer',
               fontSize: '12px',
               fontWeight: '500',
-              color: '#9f94e8',
-              backgroundColor: 'rgba(103, 80, 164, 0.08)',
+              color: '#5a6c57',
+              backgroundColor: 'rgba(246, 247, 237, 0.8)',
               marginRight: '8px',
-              borderRadius: '8px',
+              borderRadius: '6px',
               transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
+              border: 'none'
             }}
           >
             More
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7 10L12 15L17 10" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7 10L12 15L17 10" stroke="#5a6c57" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
         )}
-        
-        
       </div>
       
       {/* 添加淡化边缘效果 */}
@@ -612,11 +660,12 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           flexWrap: 'wrap',
           width: '95%',
           padding: '16px',
-          backgroundColor: 'rgba(103, 80, 164, 0.05)',
-          borderRadius: '12px',
+          backgroundColor: 'rgba(246, 247, 237, 0.5)',
+          borderRadius: '8px',
           gap: '8px',
           position: 'relative',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+          boxShadow: 'none',
+          border: '1px solid rgba(90, 108, 87, 0.15)'
         }}>
           {nodeGroups.slice(6).map((group, index) => (
             <div 
@@ -626,13 +675,14 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               style={{
                 padding: '6px 12px',
                 cursor: 'pointer',
-                fontSize: '14px',
+                fontSize: '12px',
                 fontWeight: '500',
-                color: selectedGroup === group.tag ? '#ffffff' : 'rgba(0,0,0,0.87)',
-                backgroundColor: selectedGroup === group.tag ? '#9f94e8' : 'rgba(0,0,0,0.08)',
-                borderRadius: '8px',
+                color: selectedGroup === group.tag ? '#ffffff' : '#5a6c57',
+                backgroundColor: selectedGroup === group.tag ? '#7a9070' : 'rgba(246, 247, 237, 0.8)',
+                borderRadius: '6px',
                 transition: 'all 0.2s ease',
-                fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                border: 'none'
               }}
             >
               {group.tag}
@@ -645,15 +695,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             style={{
               padding: '6px 12px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: '500',
-              color: '#9f94e8',
-              backgroundColor: 'rgba(103, 80, 164, 0.08)',
-              borderRadius: '8px',
+              color: '#5a6c57',
+              backgroundColor: 'rgba(246, 247, 237, 0.8)',
+              borderRadius: '6px',
               border: 'none',
               outline: 'none',
               transition: 'all 0.2s ease',
-              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -664,7 +714,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           >
             Less
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7 14L12 9L17 14" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7 14L12 9L17 14" stroke="#5a6c57" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
         </div>
@@ -678,11 +728,12 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       height: '100%',
       borderRadius: '16px',
       background: '#fff',
-      padding: '10px 10px 10px 10px',
+      padding: '20px 0px 10px 0px',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+      border: '1px solid rgba(246, 247, 237, 0.3)'
     }}>
       <div className="node-list-header" style={{
         display: 'flex',
@@ -692,68 +743,56 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       }}>
         <div className="material-tabs" style={{
           display: 'flex',
-          gap: '24px'
+          border: '1px solid rgba(90, 108, 87, 0.3)',
+          borderRadius: '20px',
+          padding: '2px',
+          backgroundColor: 'transparent',
+          width: 'fit-content'
         }}>
           <div 
             className={`material-tab ${selectedTab === 'nodes' ? 'active-tab' : ''}`}
             onClick={() => setSelectedTab('nodes')}
             style={{
               cursor: 'pointer',
-              padding: '8px 0',
+              padding: '6px 20px',
               position: 'relative',
-              color: selectedTab === 'nodes' ? '#9f94e8' : 'rgba(0,0,0,0.6)',
+              color: selectedTab === 'nodes' ? '#5a6c57' : '#666666',
               fontWeight: selectedTab === 'nodes' ? '500' : '400',
-              fontSize: '16px',
-              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              fontSize: '12px',
+              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               transition: 'all 0.2s ease',
+              borderRadius: '18px',
+              backgroundColor: selectedTab === 'nodes' ? 'rgba(90, 108, 87, 0.1)' : 'transparent',
+              border: 'none'
             }}
           >
             Nodes
-            {selectedTab === 'nodes' && (
-              <div style={{
-                position: 'absolute',
-                bottom: '0',
-                left: '0',
-                width: '100%',
-                height: '3px',
-                backgroundColor: '#9f94e8',
-                borderRadius: '3px 3px 0 0'
-              }}></div>
-            )}
           </div>
           <div 
             className={`material-tab ${selectedTab === 'rules' ? 'active-tab' : ''}`}
             onClick={() => setSelectedTab('rules')}
             style={{
               cursor: 'pointer',
-              padding: '8px 0',
+              padding: '6px 20px',
               position: 'relative',
-              color: selectedTab === 'rules' ? '#9f94e8' : 'rgba(0,0,0,0.6)',
+              color: selectedTab === 'rules' ? '#5a6c57' : '#666666',
               fontWeight: selectedTab === 'rules' ? '500' : '400',
-              fontSize: '16px',
-              fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              fontSize: '12px',
+              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               transition: 'all 0.2s ease',
+              borderRadius: '18px',
+              backgroundColor: selectedTab === 'rules' ? 'rgba(90, 108, 87, 0.1)' : 'transparent',
+              border: 'none'
             }}
           >
             Rules
-            {selectedTab === 'rules' && (
-              <div style={{
-                position: 'absolute',
-                bottom: '0',
-                left: '0',
-                width: '100%',
-                height: '3px',
-                backgroundColor: '#9f94e8',
-                borderRadius: '3px 3px 0 0'
-              }}></div>
-            )}
           </div>
         </div>
         <button 
           className="material-button" 
           style={{
-            backgroundColor: isExpandedView ? 'rgba(103, 80, 164, 0.08)' : 'rgba(103, 80, 164, 0.08)',
-            color: '#9f94e8',
+            backgroundColor: 'rgba(246, 247, 237, 0.5)',
+            color: '#666666',
             borderRadius: '20px',
             padding: '6px 16px',
             fontSize: '14px',
@@ -764,16 +803,16 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             gap: '8px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
             outline: 'none'
           }}
           onClick={onToggleExpandedView}
           title={isExpandedView ? "点击返回正常视图" : "点击展开全屏视图"}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(103, 80, 164, 0.12)';
+            e.currentTarget.style.backgroundColor = 'rgba(246, 247, 237, 0.7)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(103, 80, 164, 0.08)';
+            e.currentTarget.style.backgroundColor = 'rgba(246, 247, 237, 0.5)';
           }}
         >
           <span>{selectedTab === 'nodes' 
@@ -781,9 +820,9 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             : (ruleSets && ruleSets.length || 0)}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             {isExpandedView ? (
-              <path d="M12 20V4M12 20L6 14M12 20L18 14" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 20V4M12 20L6 14M12 20L18 14" stroke="#666666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             ) : (
-              <path d="M12 4V20M12 4L6 10M12 4L18 10" stroke="#9f94e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 4V20M12 4L6 10M12 4L18 10" stroke="#666666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             )}
           </svg>
         </button>

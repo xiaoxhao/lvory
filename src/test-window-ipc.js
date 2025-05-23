@@ -21,5 +21,3 @@ console.log('window.electron.window.action("show").then(console.log)');
 
 console.log('通过新API退出应用(慎用):');
 console.log('window.electron.window.action("quit").then(console.log)');
-
-console.log('\n你可以复制上面的代码，在浏览器控制台中执行以测试新的IPC功能'); 

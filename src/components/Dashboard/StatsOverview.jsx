@@ -51,11 +51,14 @@ const StatsOverview = ({ apiAddress }) => {
   const [showAsnInfo, setShowAsnInfo] = useState(false);
   const [asnInfo, setAsnInfo] = useState('');
   const [kernelRunning, setKernelRunning] = useState(false);
+  const [isFullscreenChart, setIsFullscreenChart] = useState(false);
   
   const trafficChartRef = useRef(null);
   const trafficChartInstance = useRef(null);
   const gaugeChartRef = useRef(null);
   const gaugeChartInstance = useRef(null);
+  const fullscreenChartRef = useRef(null);
+  const fullscreenChartInstance = useRef(null);
   const isInitialized = useRef(false);
   
   // 使用一个计数器来记录成功和失败次数，计算丢包率
@@ -569,6 +572,11 @@ const StatsOverview = ({ apiAddress }) => {
       // 应用选项
       chart.setOption(option);
       
+      // 添加双击事件监听器
+      chart.getZr().on('dblclick', () => {
+        setIsFullscreenChart(true);
+      });
+      
       // 响应窗口大小变化
       window.addEventListener('resize', () => chart.resize());
     }
@@ -644,6 +652,10 @@ const StatsOverview = ({ apiAddress }) => {
         ]
       });
     }
+    
+    if (isFullscreenChart && fullscreenChartInstance.current) {
+      updateFullscreenChart();
+    }
   };
   
   // 更新流量图表
@@ -715,6 +727,229 @@ const StatsOverview = ({ apiAddress }) => {
     setShowAsnInfo(!showAsnInfo);
   };
   
+  // 初始化全屏延迟图表
+  const initFullscreenChart = () => {
+    if (fullscreenChartRef.current) {
+      if (fullscreenChartInstance.current) {
+        fullscreenChartInstance.current.dispose();
+      }
+      
+      const chart = echarts.init(fullscreenChartRef.current);
+      fullscreenChartInstance.current = chart;
+      
+      // 确保使用当前最新的数据
+      const data = aggregatedLatencyData.values.map((val, index) => {
+        const detail = aggregatedLatencyData.details[index];
+        return [aggregatedLatencyData.timestamps[index], val, detail];
+      });
+      
+      const option = {
+        grid: {
+          left: 80,
+          right: 50,
+          top: 60,
+          bottom: 60,
+          containLabel: true
+        },
+        title: {
+          text: 'Network Latency Detail',
+          left: 'center',
+          top: 20,
+          textStyle: {
+            fontSize: 24,
+            fontWeight: '600',
+            color: '#6750A4',
+            fontFamily: 'Roboto, Arial, sans-serif'
+          }
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: function(params) {
+            const detail = params.data[2];
+            if (!detail || detail.avg === null) return 'no data';
+            
+            return `<div style="font-weight:600;margin-bottom:8px;font-size:16px">Network Delay Detail</div>` +
+                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Time:</span><span style="font-weight:600">${params.data[0]}</span></div>` +
+                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Average:</span><span style="font-weight:600">${detail.avg.toFixed(1)}ms</span></div>` +
+                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Minimum:</span><span style="font-weight:600">${detail.min ? detail.min.toFixed(1) : 'N/A'}ms</span></div>` +
+                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Maximum:</span><span style="font-weight:600">${detail.max ? detail.max.toFixed(1) : 'N/A'}ms</span></div>` +
+                   `<div style="display:flex;justify-content:space-between"><span>Packet Loss:</span><span style="font-weight:600">${detail.loss.toFixed(1)}%</span></div>`;
+          },
+          textStyle: {
+            fontSize: 14,
+            lineHeight: 20
+          },
+          padding: [12, 16],
+          backgroundColor: 'rgba(28, 27, 31, 0.9)',
+          borderColor: 'rgba(103, 80, 164, 0.4)',
+          borderWidth: 1,
+          borderRadius: 8,
+          extraCssText: 'box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);'
+        },
+        xAxis: {
+          type: 'category',
+          data: aggregatedLatencyData.timestamps,
+          show: true,
+          boundaryGap: false,
+          axisLine: {
+            show: true,
+            lineStyle: {
+              color: 'rgba(103, 80, 164, 0.6)',
+              width: 2
+            }
+          },
+          axisTick: {
+            show: true,
+            lineStyle: {
+              color: 'rgba(103, 80, 164, 0.4)',
+              width: 1
+            }
+          },
+          axisLabel: {
+            show: true,
+            fontSize: 12,
+            fontFamily: 'Roboto, Arial, sans-serif',
+            color: '#49454F',
+            margin: 12,
+            rotate: 45
+          },
+          splitLine: {
+            show: true,
+            lineStyle: {
+              color: 'rgba(103, 80, 164, 0.1)',
+              width: 1,
+              type: 'dashed'
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Latency (ms)',
+          nameLocation: 'middle',
+          nameGap: 50,
+          nameTextStyle: {
+            fontSize: 14,
+            color: '#49454F',
+            fontFamily: 'Roboto, Arial, sans-serif'
+          },
+          min: 0,
+          max: function(value) {
+            return value.max < 100 ? 100 : Math.ceil(value.max / 50) * 50;
+          },
+          axisLine: {
+            show: true,
+            lineStyle: {
+              color: 'rgba(103, 80, 164, 0.6)',
+              width: 2
+            }
+          },
+          axisTick: {
+            show: true,
+            lineStyle: {
+              color: 'rgba(103, 80, 164, 0.4)',
+              width: 1
+            }
+          },
+          axisLabel: {
+            fontSize: 12,
+            fontFamily: 'Roboto, Arial, sans-serif',
+            color: '#49454F',
+            formatter: '{value} ms',
+            margin: 12
+          },
+          splitLine: {
+            show: true,
+            lineStyle: {
+              color: 'rgba(103, 80, 164, 0.15)',
+              width: 1,
+              type: 'dashed'
+            }
+          }
+        },
+        series: [
+          {
+            type: 'line',
+            smooth: true,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: function(value) {
+              const detail = value[2];
+              if (!detail || detail.avg === null) return 6;
+              return 8 + Math.min(detail.loss, 40) / 6;
+            },
+            data: data,
+            lineStyle: {
+              width: 4,
+              color: '#6750A4',
+              shadowColor: 'rgba(103, 80, 164, 0.4)',
+              shadowBlur: 8,
+              shadowOffsetY: 3,
+              cap: 'round',
+              join: 'round'
+            },
+            itemStyle: {
+              color: function(params) {
+                const detail = params.data[2];
+                if (!detail || detail.avg === null) return '#CAC4D0';
+                
+                if (detail.loss > 20) return '#B3261E';
+                if (detail.avg < 30) return '#1E6E5A';
+                if (detail.avg < 70) return '#9C6D00';
+                if (detail.avg < 120) return '#BF4A30';
+                return '#B3261E';
+              },
+              borderColor: '#FFF',
+              borderWidth: 2,
+              shadowColor: 'rgba(0, 0, 0, 0.3)',
+              shadowBlur: 4
+            },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(103, 80, 164, 0.6)' },
+                { offset: 0.5, color: 'rgba(103, 80, 164, 0.3)' },
+                { offset: 1, color: 'rgba(103, 80, 164, 0.1)' }
+              ]),
+              shadowColor: 'rgba(103, 80, 164, 0.4)',
+              shadowBlur: 20,
+              opacity: 0.9
+            },
+            z: 2
+          }
+        ]
+      };
+      
+      chart.setOption(option);
+      
+      // 立即调整图表大小
+      setTimeout(() => {
+        chart.resize();
+      }, 50);
+      
+      window.addEventListener('resize', () => chart.resize());
+    }
+  };
+  
+  // 更新全屏延迟图表
+  const updateFullscreenChart = () => {
+    if (fullscreenChartInstance.current) {
+      const data = aggregatedLatencyData.values.map((val, index) => {
+        const detail = aggregatedLatencyData.details[index];
+        return [aggregatedLatencyData.timestamps[index], val, detail];
+      });
+      
+      fullscreenChartInstance.current.setOption({
+        xAxis: {
+          data: aggregatedLatencyData.timestamps
+        },
+        series: [
+          {
+            data: data
+          }
+        ]
+      });
+    }
+  };
+  
   // 组件挂载时初始化
   useEffect(() => {
     // 避免重复初始化
@@ -743,8 +978,45 @@ const StatsOverview = ({ apiAddress }) => {
       if (gaugeChartInstance.current) {
         gaugeChartInstance.current.dispose();
       }
+      
+      if (fullscreenChartInstance.current) {
+        fullscreenChartInstance.current.dispose();
+      }
     };
   }, [apiAddress]);
+  
+  // 监听全屏图表状态变化
+  useEffect(() => {
+    if (isFullscreenChart) {
+      // 延迟初始化，确保DOM已渲染
+      setTimeout(() => {
+        initFullscreenChart();
+        // 初始化后立即更新一次数据
+        setTimeout(() => {
+          updateFullscreenChart();
+        }, 100);
+      }, 50);
+      
+      // 添加ESC键监听
+      const handleKeyDown = (event) => {
+        if (event.key === 'Escape') {
+          setIsFullscreenChart(false);
+        }
+      };
+      
+      document.addEventListener('keydown', handleKeyDown);
+      
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      // 清理全屏图表实例
+      if (fullscreenChartInstance.current) {
+        fullscreenChartInstance.current.dispose();
+        fullscreenChartInstance.current = null;
+      }
+    }
+  }, [isFullscreenChart]);
   
   // 监听内核状态变化
   useEffect(() => {
@@ -893,7 +1165,6 @@ const StatsOverview = ({ apiAddress }) => {
         
         {/* 右侧延迟散点图 */}
         <div id="gauge-container" className="gauge-container">
-          {/* 将Network Latency移到顶部 */}
           <div id="gauge-label" className="gauge-label" style={{ 
             position: 'relative', 
             top: '0', 
@@ -907,7 +1178,7 @@ const StatsOverview = ({ apiAddress }) => {
             textShadow: '0 1px 2px rgba(103, 80, 164, 0.1)',
             visibility: kernelRunning ? 'visible' : 'hidden'  // 内核未运行时隐藏标题但保留占位
           }}>
-            Network Latency
+            Latency
           </div>
           <div id="gauge-wrapper" className="gauge-wrapper">
             <div 
@@ -919,6 +1190,81 @@ const StatsOverview = ({ apiAddress }) => {
           </div>
         </div>
       </div>
+      
+      {/* 全屏延迟图表模态框 */}
+      {isFullscreenChart && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backdropFilter: 'blur(5px)'
+          }}
+          onClick={() => setIsFullscreenChart(false)}
+        >
+          <div 
+            style={{
+              width: '90vw',
+              height: '80vh',
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              padding: '20px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 关闭按钮 */}
+            <button
+              onClick={() => setIsFullscreenChart(false)}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                width: '32px',
+                height: '32px',
+                border: 'none',
+                backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                color: '#6750A4',
+                transition: 'all 0.2s ease',
+                zIndex: 10000
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(103, 80, 164, 0.2)';
+                e.target.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(103, 80, 164, 0.1)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              ×
+            </button>
+            
+            {/* 全屏图表容器 */}
+            <div 
+              ref={fullscreenChartRef}
+              style={{
+                width: '100%',
+                height: '100%'
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
