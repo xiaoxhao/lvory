@@ -201,6 +201,9 @@ contextBridge.exposeInMainWorld('electron', {
   // 获取节点组信息
   getNodeGroups: () => ipcRenderer.invoke('get-node-groups'),
 
+  // 获取当前配置文件内容
+  getCurrentConfig: () => ipcRenderer.invoke('get-current-config'),
+
   // 添加引擎到窗口对象，用于前端直接使用
   engine: {
     getValueByPath: (obj, path) => {

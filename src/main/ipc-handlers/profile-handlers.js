@@ -508,6 +508,28 @@ function setup() {
       return { success: false, error: error.message };
     }
   });
+
+  // 获取当前配置文件内容
+  ipcMain.handle('get-current-config', async () => {
+    try {
+      const configPath = profileManager.getConfigPath();
+      if (!configPath || !fs.existsSync(configPath)) {
+        return { success: false, error: '配置文件不存在' };
+      }
+      
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      const config = JSON.parse(configContent);
+      
+      return {
+        success: true,
+        config: config,
+        configPath: configPath
+      };
+    } catch (error) {
+      logger.error('获取当前配置文件内容失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
 }
 
 module.exports = {

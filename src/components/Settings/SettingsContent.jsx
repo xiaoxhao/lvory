@@ -204,6 +204,56 @@ const InputWithLabel = ({ label, value, onChange, placeholder, type = "text", mi
   </div>
 );
 
+// 可复用的只读标签组件
+const ReadOnlyLabel = ({ label, value, loading = false, error = null }) => (
+  <div style={{ marginBottom: '20px' }}>
+    <label style={styles.label}>{label}</label>
+    <div style={{
+      ...styles.input,
+      backgroundColor: '#f8fafc',
+      color: loading ? '#64748b' : (error ? '#dc2626' : '#1e293b'),
+      border: '1px solid #e2e8f0',
+      cursor: 'default',
+      display: 'flex',
+      alignItems: 'center',
+      fontWeight: '600',
+      position: 'relative'
+    }}>
+      {loading && (
+        <span style={{
+          display: 'inline-block',
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          border: '2px solid #e2e8f0',
+          borderTopColor: '#64748b',
+          animation: 'spin 1s linear infinite',
+          marginRight: '8px'
+        }}></span>
+      )}
+      <span style={{ color: loading ? '#64748b' : (error ? '#dc2626' : '#334155') }}>
+        {loading ? '从配置文件读取中...' : (error ? `错误: ${error}` : (value || '未设置'))}
+      </span>
+      {!loading && !error && value && (
+        <span style={{
+          marginLeft: 'auto',
+          fontSize: '12px',
+          color: '#059669',
+          fontWeight: 'normal'
+        }}>
+          ✓ 从配置文件读取
+        </span>
+      )}
+    </div>
+    <style>{`
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
+
 // 可复用的选择框组件
 const SelectWithLabel = ({ label, value, onChange, options }) => (
   <div style={{ marginBottom: '20px' }}>
@@ -261,14 +311,8 @@ const ToggleWithTooltip = ({ label, tKey, value, onChange, disabled = false, too
 
 const SettingsContent = ({ section }) => {
   const { t } = useTranslation();
-  const { showAnimations, updateSettings } = useAppContext();
-  const [userConfig, setUserConfig] = useState({
-    settings: {
-      proxy_port: '7890',
-      allow_lan: false,
-      api_address: '127.0.0.1:9090'
-    }
-  });
+  const { showAnimations, updateSettings, appSettings } = useAppContext();
+  const [userConfig, setUserConfig] = useState({ settings: {} });
   const [settings, setSettings] = useState({
     proxyPort: '7890',
     apiAddress: '127.0.0.1:9090',
@@ -310,6 +354,82 @@ const SettingsContent = ({ section }) => {
     AUTHOR: '-',
     CORE_VERSION: '-'
   });
+  const [configValues, setConfigValues] = useState({
+    proxyPort: { value: '', loading: true, error: null },
+    apiAddress: { value: '', loading: true, error: null }
+  });
+
+  // 从当前配置文件读取代理端口和API地址
+  const loadConfigValues = async () => {
+    try {
+      setConfigValues(prev => ({
+        ...prev,
+        proxyPort: { value: '', loading: true, error: null },
+        apiAddress: { value: '', loading: true, error: null }
+      }));
+
+      if (window.electron && window.electron.getCurrentConfig) {
+        const result = await window.electron.getCurrentConfig();
+        if (result.success && result.config) {
+          const config = result.config;
+          
+          // 使用前端简化版引擎获取值
+          let proxyPort = '';
+          let apiAddress = '';
+          
+          try {
+            // 查找mixed类型的inbound端口
+            if (config.inbounds && Array.isArray(config.inbounds)) {
+              const mixedInbound = config.inbounds.find(inbound => inbound.type === 'mixed');
+              if (mixedInbound && mixedInbound.listen_port) {
+                proxyPort = mixedInbound.listen_port.toString();
+              }
+            }
+            
+            // 获取API地址
+            if (config.experimental && config.experimental.clash_api && config.experimental.clash_api.external_controller) {
+              apiAddress = config.experimental.clash_api.external_controller;
+            }
+            
+            setConfigValues({
+              proxyPort: { value: proxyPort, loading: false, error: null },
+              apiAddress: { value: apiAddress, loading: false, error: null }
+            });
+            
+            // 同时更新settings状态，用于其他逻辑
+            setSettings(prev => ({
+              ...prev,
+              proxyPort: proxyPort,
+              apiAddress: apiAddress
+            }));
+            
+          } catch (parseError) {
+            console.error('解析配置值失败:', parseError);
+            setConfigValues({
+              proxyPort: { value: '', loading: false, error: '解析失败' },
+              apiAddress: { value: '', loading: false, error: '解析失败' }
+            });
+          }
+        } else {
+          setConfigValues({
+            proxyPort: { value: '', loading: false, error: '配置文件不存在' },
+            apiAddress: { value: '', loading: false, error: '配置文件不存在' }
+          });
+        }
+      } else {
+        setConfigValues({
+          proxyPort: { value: '', loading: false, error: 'API不可用' },
+          apiAddress: { value: '', loading: false, error: 'API不可用' }
+        });
+      }
+    } catch (error) {
+      console.error('读取配置文件失败:', error);
+      setConfigValues({
+        proxyPort: { value: '', loading: false, error: '读取失败' },
+        apiAddress: { value: '', loading: false, error: '读取失败' }
+      });
+    }
+  };
 
   // 加载关于信息
   useEffect(() => {
@@ -321,7 +441,66 @@ const SettingsContent = ({ section }) => {
     if (section === 'about') {
       loadAboutInfo();
     }
+    
+    // 当进入basic设置页面时，加载配置文件中的值
+    if (section === 'basic') {
+      loadConfigValues();
+    }
   }, [section]);
+
+  // 监听配置文件变化，刷新值
+  useEffect(() => {
+    // 监听配置文件变更事件
+    if (window.electron && window.electron.onProfilesChanged && section === 'basic') {
+      const removeListener = window.electron.onProfilesChanged(() => {
+        loadConfigValues();
+      });
+      
+      return removeListener;
+    }
+  }, [section]);
+
+  // 初始化加载设置
+  useEffect(() => {
+    const initializeSettings = async () => {
+      try {
+        // 加载用户配置
+        if (window.electron && window.electron.userConfig && window.electron.userConfig.get) {
+          const result = await window.electron.userConfig.get();
+          if (result.success && result.config) {
+            setUserConfig(result.config);
+            setSettings(prev => createUserConfigMapping(result, prev));
+          }
+        }
+        
+        // 加载系统级设置
+        if (window.electron && window.electron.getSettings) {
+          const result = await window.electron.getSettings();
+          if (result.success) {
+            setSettings(prev => ({
+              ...prev,
+              ...result.settings
+            }));
+          }
+        }
+        
+        // 加载开机自启动设置
+        if (window.electron && window.electron.getAutoLaunch) {
+          const result = await window.electron.getAutoLaunch();
+          if (result.success) {
+            setSettings(prev => ({
+              ...prev,
+              autoStart: result.enabled
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('初始化设置失败:', error);
+      }
+    };
+
+    initializeSettings();
+  }, []);
 
   // 将映射逻辑提取为独立函数
   const mapSettingToUserConfig = (key, value, userConfig) => {
@@ -403,6 +582,11 @@ const SettingsContent = ({ section }) => {
           if (window.electron && window.electron.mappingEngine && window.electron.mappingEngine.applyMapping) {
             await window.electron.mappingEngine.applyMapping();
           }
+          
+          // 重新加载配置文件中的值
+          if (section === 'basic') {
+            await loadConfigValues();
+          }
         } else {
           console.error('保存配置失败:', result.error);
         }
@@ -464,6 +648,11 @@ const SettingsContent = ({ section }) => {
         } else {
           console.error('获取开机自启动设置失败:', result.error);
         }
+      }
+      
+      // 重新加载配置文件中的值
+      if (section === 'basic') {
+        await loadConfigValues();
       }
     } catch (error) {
       console.error('重置设置失败:', error);
@@ -581,27 +770,20 @@ const SettingsContent = ({ section }) => {
               description={t('settings.configureBasic')}
             >
               {/* 代理端口设置 */}
-              <InputWithLabel 
-                label={t('settings.proxyPort')} 
-                value={settings.proxyPort}
-                onChange={(e) => handleSettingChange('proxyPort', e.target.value)}
-                placeholder={t('settings.enterProxyPort')}
+              <ReadOnlyLabel
+                label={t('settings.proxyPort')}
+                value={configValues.proxyPort.value}
+                loading={configValues.proxyPort.loading}
+                error={configValues.proxyPort.error}
               />
 
               {/* API地址设置 */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={styles.label}>{t('settings.apiAddress')}</label>
-                <input
-                  type="text"
-                  value={settings.apiAddress}
-                  onChange={(e) => handleSettingChange('apiAddress', e.target.value)}
-                  style={styles.input}
-                  placeholder={t('settings.enterApiAddress')}
-                />
-                <p style={styles.warning}>
-                  {t('settings.apiAddressWarning')}
-                </p>
-              </div>
+              <ReadOnlyLabel
+                label={t('settings.apiAddress')}
+                value={configValues.apiAddress.value}
+                loading={configValues.apiAddress.loading}
+                error={configValues.apiAddress.error}
+              />
 
               {/* 允许局域网连接开关 */}
               {renderToggle(t('settings.allowLan'), 'allowLan', settings.allowLan)}
