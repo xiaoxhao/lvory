@@ -56,28 +56,13 @@ const saveUserSettings = (settings) => {
  * @returns {String} 应用数据目录路径
  */
 function getAppDataDir() {
-  let appDir;
-  
-  // 根据不同平台获取合适的数据目录
-  if (process.platform === 'win32') {
-    // Windows平台 - 使用LOCALAPPDATA目录
-    const appDataDir = process.env.LOCALAPPDATA || '';
-    appDir = path.join(appDataDir, 'lvory');
-  } else if (process.platform === 'darwin') {
-    // macOS平台 - 使用Library/Application Support目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, 'Library', 'Application Support', 'lvory');
-  } else {
-    // Linux平台 - 使用~/.config目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, '.config', 'lvory');
-  }
+  const appDataDir = process.env.LOCALAPPDATA || '';
+  const appDir = path.join(appDataDir, 'lvory');
   
   // 确保目录存在
   if (!fs.existsSync(appDir)) {
     try {
       fs.mkdirSync(appDir, { recursive: true });
-      logger.info(`创建应用数据目录: ${appDir}`);
     } catch (error) {
       logger.error(`创建应用数据目录失败: ${error.message}`);
     }

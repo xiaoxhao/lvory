@@ -42,15 +42,15 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
 
   return (
     <div 
-      className="node-list-card" 
+      className="material-card" 
       style={{ 
         backgroundColor: typeBackgroundColor, 
         borderRadius: '8px', 
         padding: '8px 12px', 
         width: 'calc(25% - 12px)',
-        margin: '5px 0 8px 0',
+        margin: '0 0 8px 0',
         height: 'auto',
-        minHeight: '92px',
+        minHeight: '72px',
         display: 'flex', 
         flexDirection: 'column', 
         justifyContent: 'space-between',
@@ -179,31 +179,8 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       }
     };
 
-    const refreshData = () => {
-      loadRuleSets();
-      loadNodeGroups();
-      // 重置选中的组为"all"
-      setSelectedGroup('all');
-    };
-
-    // 初始加载
-    refreshData();
-
-    // 监听配置文件变更事件
-    let unsubscribe;
-    if (window.electron && window.electron.onProfilesChanged) {
-      unsubscribe = window.electron.onProfilesChanged(() => {
-        console.log('配置文件已变更，刷新节点组数据');
-        refreshData();
-      });
-    }
-
-    // 组件卸载时清理事件监听
-    return () => {
-      if (unsubscribe && typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-    };
+    loadRuleSets();
+    loadNodeGroups();
   }, []);
 
   // 定时测量节点功能
