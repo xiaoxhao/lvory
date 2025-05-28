@@ -43,6 +43,13 @@ function setup() {
       const success = profileManager.setConfigPath(fullPath);
       if (success) {
         logger.info(`设置当前配置文件路径: ${fullPath}`);
+        
+        // 通知前端配置文件已切换
+        const mainWindow = utils.getMainWindow();
+        if (mainWindow) {
+          mainWindow.webContents.send('profiles-changed');
+        }
+        
         return { success: true, configPath: fullPath };
       } else {
         return { success: false, error: '设置配置文件路径失败' };

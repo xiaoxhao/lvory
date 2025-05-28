@@ -224,6 +224,76 @@ npm config delete https-proxy`
 }`
           }
         ]
+      },
+      {
+        id: 'linux',
+        title: 'Linux Environment',
+        sections: [
+          {
+            title: 'GNOME/Ubuntu (gsettings)',
+            code: `# Set HTTP Proxy
+gsettings set org.gnome.system.proxy.http host "${proxyAddress.split(':')[0]}"
+gsettings set org.gnome.system.proxy.http port ${proxyAddress.split(':')[1]}
+
+# Set HTTPS Proxy
+gsettings set org.gnome.system.proxy.https host "${proxyAddress.split(':')[0]}"
+gsettings set org.gnome.system.proxy.https port ${proxyAddress.split(':')[1]}
+
+# Enable Manual Proxy
+gsettings set org.gnome.system.proxy mode 'manual'
+
+# View Current Settings
+gsettings get org.gnome.system.proxy mode
+
+# Disable Proxy
+gsettings set org.gnome.system.proxy mode 'none'`
+          },
+          {
+            title: 'KDE (kwriteconfig5)',
+            code: `# Set HTTP Proxy
+kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key ProxyType 1
+kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpProxy "http://${proxyAddress}"
+kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpsProxy "http://${proxyAddress}"
+
+# Apply settings
+dbus-send --type=signal /KIO/Scheduler org.kde.KIO.Scheduler.reparseSlaveConfiguration string:""
+
+# Disable Proxy
+kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key ProxyType 0`
+          },
+          {
+            title: 'Environment Variables',
+            code: `# Set for current session
+export http_proxy=http://${proxyAddress}
+export https_proxy=http://${proxyAddress}
+export HTTP_PROXY=http://${proxyAddress}
+export HTTPS_PROXY=http://${proxyAddress}
+export no_proxy=localhost,127.0.0.1,::1
+
+# Add to ~/.bashrc or ~/.zshrc for persistence
+echo 'export http_proxy=http://${proxyAddress}' >> ~/.bashrc
+echo 'export https_proxy=http://${proxyAddress}' >> ~/.bashrc
+echo 'export no_proxy=localhost,127.0.0.1,::1' >> ~/.bashrc
+
+# Unset proxy
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy`
+          },
+          {
+            title: 'APT Package Manager',
+            code: `# Create proxy config file
+sudo bash -c 'cat > /etc/apt/apt.conf.d/95proxies << EOF
+Acquire::http::proxy "http://${proxyAddress}";
+Acquire::https::proxy "http://${proxyAddress}";
+EOF'
+
+# Or add to ~/.aptrc for user-specific
+echo 'Acquire::http::proxy "http://${proxyAddress}";' >> ~/.aptrc
+echo 'Acquire::https::proxy "http://${proxyAddress}";' >> ~/.aptrc
+
+# Remove proxy settings
+sudo rm /etc/apt/apt.conf.d/95proxies`
+          }
+        ]
       }
     ];
 

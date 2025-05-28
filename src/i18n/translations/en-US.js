@@ -3,9 +3,9 @@ export default {
     // Basic settings
     basicSettings: 'Basic Settings',
     configureBasic: 'Configure basic program settings and behavior.',
-    proxyPort: 'Proxy Port (from config file)',
+    proxyPort: 'Proxy Port',
     enterProxyPort: 'Enter proxy port (e.g. 7890)',
-    apiAddress: 'API Address (from config file)',
+    apiAddress: 'API Address',
     enterApiAddress: 'Enter API address (e.g. 127.0.0.1:9090)',
     apiAddressWarning: '*Note: This value is automatically read from the active configuration file',
     allowLan: 'Allow LAN Connections',
