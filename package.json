@@ -151,11 +151,35 @@
       "iconSize": 128
     },
     "linux": {
-      "target": "AppImage",
-      "artifactName": "${productName}-${version}.${ext}",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "tar.gz",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "resource/icon/index256.png",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
       "executableName": "lvory",
       "synopsis": "Minimalist Cross-Platform Client for Singbox",
-      "category": "Network"
+      "description": "A minimalist cross-platform GUI client for sing-box, providing easy proxy management and configuration.",
+      "category": "Network",
+      "desktop": {
+        "Name": "lvory",
+        "Comment": "Minimalist Cross-Platform Client for Singbox",
+        "Keywords": "proxy;singbox;network;vpn;",
+        "Categories": "Network;Security;",
+        "StartupWMClass": "lvory"
+      },
+      "depends": ["gconf2", "gconf-service", "libxss1", "libappindicator1", "libasound2"],
+      "maintainer": "lvory Team"
     },
     "fileAssociations": [],
     "asarUnpack": [
