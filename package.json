@@ -178,8 +178,10 @@
         "Categories": "Network;Security;",
         "StartupWMClass": "lvory"
       },
-      "depends": ["gconf2", "gconf-service", "libxss1", "libappindicator1", "libasound2"],
       "maintainer": "lvory Team"
+    },
+    "deb": {
+      "depends": ["gconf2", "gconf-service", "libxss1", "libappindicator1", "libasound2"]
     },
     "fileAssociations": [],
     "asarUnpack": [
