@@ -46,7 +46,7 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
       style={{ 
         backgroundColor: typeBackgroundColor, 
         borderRadius: '8px', 
-        padding: '8px 12px', 
+        padding: '12px', 
         width: 'calc(25% - 12px)',
         margin: '5px 0 8px 0',
         height: 'auto',
@@ -72,54 +72,90 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
         e.currentTarget.style.boxShadow = 'none';
       }}
     >      
+      {/* 卡片顶部：标题和延迟 */}
       <div style={{
         display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '6px'
+        marginBottom: '8px',
+        minHeight: '16px'
       }}>
+        {/* 左侧：状态点和节点名称 */}
         <div style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          backgroundColor: qualityColor,
-          marginRight: '6px',
-          flexShrink: 0
-        }}></div>
-        <div style={{ 
-          fontSize: '12px', 
-          fontWeight: '600', 
-          color: '#333333',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          lineHeight: '1.2'
+          display: 'flex',
+          alignItems: 'center',
+          flex: 1,
+          minWidth: 0
         }}>
-          {privateMode ? '********' : (profile.tag || 'Unknown')}
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: qualityColor,
+            marginRight: '8px',
+            flexShrink: 0
+          }}></div>
+          <div style={{ 
+            fontSize: '12px', 
+            fontWeight: '600', 
+            color: '#333333',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            lineHeight: '16px'
+          }}>
+            {privateMode ? '********' : (profile.tag || 'Unknown')}
+          </div>
         </div>
+        
+        {/* 右侧：延迟显示 */}
+        {latency !== undefined && (
+          <div style={{
+            fontSize: '10px',
+            fontWeight: '500',
+            color: latency === 'timeout' ? '#d32f2f' : '#2e7d32',
+            backgroundColor: latency === 'timeout' ? 'rgba(211, 47, 47, 0.1)' : 'rgba(46, 125, 50, 0.1)',
+            borderRadius: '3px',
+            padding: '2px 6px',
+            marginLeft: '8px',
+            flexShrink: 0,
+            lineHeight: '16px',
+            height: '16px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            {latency === 'timeout' ? '超时' : `${latency}ms`}
+          </div>
+        )}
       </div>
       
+      {/* 卡片底部：协议类型和IP地址 */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
         gap: '8px'
       }}>
+        {/* 左侧：协议类型 */}
         <div style={{
-          padding: '2px 6px',
+          padding: '3px 8px',
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
           borderRadius: '4px',
           fontSize: '10px',
           fontWeight: '500',
           color: getNodeTypeColor(profile.type),
           border: `1px solid ${getNodeTypeColor(profile.type)}20`,
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          flexShrink: 0
         }}>
           {profile.type || 'Unknown'}
         </div>
         
+        {/* 右侧：IP地址/服务器地址 */}
         <div style={{
           fontSize: '10px',
-          color: '#555555',
+          fontWeight: '400',
+          color: '#666666',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',

@@ -28,7 +28,7 @@ const testNode = async (node, apiAddress) => {
     
     if (!response.ok) {
       if (response.status === 408) return 'timeout';
-      if (data?.delay === 'number') return data.delay;
+      if (typeof data?.delay === 'number') return data.delay;
       console.error(`HTTP错误: ${response.status}`);
       return 'timeout';
     }
@@ -50,12 +50,15 @@ const processTestResults = (results) => {
 };
 
 // 手动测试所有节点
-const testAllNodes = async (profileData, apiAddress) => {
+const testAllNodes = async (profileData, apiAddress, onProgress) => {
   const results = {};
   for (const node of profileData) {
     const nodeKey = node.tag || node.name || 'unknown';
     const delay = await testNode(node, apiAddress);
     results[nodeKey] = delay;
+    if (onProgress) {
+      onProgress({ [nodeKey]: delay });
+    }
   }
   return results;
 };
@@ -76,6 +79,10 @@ const useSpeedTest = (profileData, apiAddress) => {
     setIsTesting(true);
     setTestResults({});
     
+    const onProgress = (partialResults) => {
+      setTestResults(prev => ({ ...prev, ...partialResults }));
+    };
+    
     try {
       if (window.electron?.testNodes) {
         try {
@@ -83,11 +90,11 @@ const useSpeedTest = (profileData, apiAddress) => {
           setTestResults(processTestResults(results));
         } catch (error) {
           console.error('测速失败:', error);
-          const results = await testAllNodes(profileData, apiAddress);
+          const results = await testAllNodes(profileData, apiAddress, onProgress);
           setTestResults(results);
         }
       } else {
-        const results = await testAllNodes(profileData, apiAddress);
+        const results = await testAllNodes(profileData, apiAddress, onProgress);
         setTestResults(results);
       }
     } finally {

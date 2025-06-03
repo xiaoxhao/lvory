@@ -12,12 +12,47 @@ const { promisify } = require('util');
 const streamPipeline = promisify(pipeline);
 const logger = require('../utils/logger');
 
-// 尝试导入AdmZip，用于解压文件
 let AdmZip;
 try {
   AdmZip = require('adm-zip');
 } catch (error) {
   logger.warn('AdmZip库未安装，解压功能将不可用');
+}
+
+/**
+ * 检查URL是否可达
+ * @param {string} url 要检查的URL
+ * @param {number} timeout 超时时间（毫秒）
+ * @returns {Promise<boolean>} 是否可达
+ */
+function checkUrlAvailability(url, timeout = 5000) {
+  return new Promise((resolve) => {
+    const urlObj = new URL(url);
+    const options = {
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
+      method: 'HEAD',
+      timeout: timeout,
+      headers: {
+        'User-Agent': 'lvory-downloader'
+      }
+    };
+
+    const request = https.request(options, (response) => {
+      resolve(response.statusCode >= 200 && response.statusCode < 400);
+    });
+
+    request.on('error', () => {
+      resolve(false);
+    });
+
+    request.on('timeout', () => {
+      request.destroy();
+      resolve(false);
+    });
+
+    request.end();
+  });
 }
 
 /**
@@ -80,7 +115,7 @@ const downloadCore = async (mainWindow) => {
     const arch = process.arch === 'x64' ? 'amd64' : 
                  process.arch === 'arm64' ? 'arm64' : 'amd64';
     
-    const version = '1.11.8';
+    const version = '1.11.9';
     let downloadUrl;
     let githubDownloadUrl;
     let binaryName;
@@ -146,6 +181,7 @@ const downloadCore = async (mainWindow) => {
         const options = {
           hostname: urlObj.hostname,
           path: urlObj.pathname + urlObj.search,
+          timeout: 30000, // 30秒超时
           headers: {
             'User-Agent': 'lvory-Downloader'
           }
@@ -193,6 +229,11 @@ const downloadCore = async (mainWindow) => {
             request.on('error', (err) => {
               reject(err);
             });
+
+            request.on('timeout', () => {
+              request.destroy();
+              reject(new Error('下载超时'));
+            });
           });
           
           // 如果没有重定向，跳出循环
@@ -206,43 +247,39 @@ const downloadCore = async (mainWindow) => {
       }
     };
     
-    // 尝试下载文件，如果Win32或Linux平台从OSS下载失败，则从GitHub下载
     try {
       if (platform === 'win32' || platform === 'linux') {
-        logger.info(`尝试从OSS下载sing-box: ${downloadUrl}`);
+        logger.info(`检查OSS连通性: ${downloadUrl}`);
         
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('core-download-progress', {
             progress: 0,
-            message: `开始从OSS下载: ${downloadUrl}`
+            message: `正在检查OSS连通性...`
           });
         }
+
+        const ossAvailable = await checkUrlAvailability(downloadUrl, 3000);
         
-        try {
-          await downloadWithRedirects(downloadUrl);
-          logger.info(`从OSS ${downloadUrl} 下载成功`);
-        } catch (error) {
-          logger.warn(`从OSS下载失败: ${error.message}，尝试从GitHub下载`);
+        if (ossAvailable) {
+          logger.info(`OSS连通性检查通过，开始从OSS下载: ${downloadUrl}`);
           
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('core-download-progress', {
               progress: 0,
-              message: `OSS下载失败，尝试从GitHub下载: ${githubDownloadUrl}`
+              message: `正在从 OSS 源下载内核`
             });
           }
           
-          // 重新创建文件流
-          if (fs.existsSync(archivePath)) {
-            fs.unlinkSync(archivePath);
+          try {
+            await downloadWithRedirects(downloadUrl);
+            logger.info(`从OSS ${downloadUrl} 下载成功`);
+          } catch (error) {
+            logger.warn(`从OSS下载失败: ${error.message}，尝试从GitHub下载`);
+            throw error; // 抛出错误以触发后备下载
           }
-          
-          const newFileStream = fs.createWriteStream(archivePath);
-          fileStream.close();
-          fileStream = newFileStream;
-          
-          downloadUrl = githubDownloadUrl;
-          await downloadWithRedirects(downloadUrl);
-          logger.info(`从GitHub ${downloadUrl} 下载成功`);
+        } else {
+          logger.warn(`OSS连通性检查失败，直接尝试从GitHub下载`);
+          throw new Error('OSS不可达');
         }
       } else {
         // macOS平台直接从GitHub下载
@@ -257,7 +294,35 @@ const downloadCore = async (mainWindow) => {
         logger.info(`从 ${downloadUrl} 下载成功`);
       }
     } catch (error) {
-      throw new Error(`下载文件失败: ${error.message}`);
+      // 如果有GitHub备用地址，尝试从GitHub下载
+      if ((platform === 'win32' || platform === 'linux') && githubDownloadUrl) {
+        logger.info(`尝试从GitHub下载: ${githubDownloadUrl}`);
+        
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('core-download-progress', {
+            progress: 0,
+            message: `从GitHub下载中`
+          });
+        }
+        
+        // 重新创建文件流
+        if (fs.existsSync(archivePath)) {
+          fs.unlinkSync(archivePath);
+        }
+        
+        const newFileStream = fs.createWriteStream(archivePath);
+        fileStream.close();
+        fileStream = newFileStream;
+        
+        try {
+          await downloadWithRedirects(githubDownloadUrl);
+          logger.info(`从GitHub ${githubDownloadUrl} 下载成功`);
+        } catch (githubError) {
+          throw new Error(`所有下载源都失败了。OSS错误: ${error.message}，GitHub错误: ${githubError.message}`);
+        }
+      } else {
+        throw new Error(`下载文件失败: ${error.message}`);
+      }
     }
     
     logger.info(`下载成功，准备解压`);
