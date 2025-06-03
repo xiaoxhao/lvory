@@ -1,6 +1,6 @@
 {
   "name": "lvory",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Minimalist Cross-Platform Client for Singbox",
   "main": "index.js",
   "scripts": {
@@ -153,15 +153,7 @@
     "linux": {
       "target": [
         {
-          "target": "AppImage",
-          "arch": ["x64", "arm64"]
-        },
-        {
           "target": "deb",
-          "arch": ["x64", "arm64"]
-        },
-        {
-          "target": "tar.gz",
           "arch": ["x64", "arm64"]
         }
       ],

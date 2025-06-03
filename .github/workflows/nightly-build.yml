@@ -209,8 +209,7 @@ jobs:
       - name: List build directory contents
         run: |
           ls -la build
-          echo "Linux build files:"
-          find build -name "*.AppImage" -type f
+          echo "Linux DEB files:"
           find build -name "*.deb" -type f
         shell: bash
       
@@ -218,9 +217,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-build-artifacts
-          path: |
-            build/*.AppImage
-            build/*.deb
+          path: build/*.deb
 
   create-release:
     needs: [build-windows, build-macos-arm64, build-macos-x64, build-linux]
@@ -283,12 +280,11 @@ jobs:
             ## 支持平台 / Supported Platforms
             - Windows Portable & Setup
             - macOS DMG (Intel x64 & Apple Silicon arm64)
-            - Linux AppImage, DEB (x64 & arm64)
+            - Linux DEB (x64 & arm64)
           draft: false
           prerelease: true
           files: |
             artifacts/windows/*.msi
             artifacts/macos-x64/*.dmg
             artifacts/macos-arm64/*.dmg
-            artifacts/linux/*.AppImage
             artifacts/linux/*.deb
