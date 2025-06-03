@@ -6,41 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const os = require('os');
-
-/**
- * 获取应用数据目录
- * @returns {String} 应用数据目录路径
- */
-function getAppDataDir() {
-  let appDir;
-  
-  // 根据不同平台获取合适的数据目录
-  if (process.platform === 'win32') {
-    // Windows平台 - 使用LOCALAPPDATA目录
-    const appDataDir = process.env.LOCALAPPDATA || '';
-    appDir = path.join(appDataDir, 'lvory');
-  } else if (process.platform === 'darwin') {
-    // macOS平台 - 使用Documents目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, 'Documents', 'lvory');
-  } else {
-    // Linux平台 - 使用~/.config目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, '.config', 'lvory');
-  }
-  
-  // 确保目录存在
-  if (!fs.existsSync(appDir)) {
-    try {
-      fs.mkdirSync(appDir, { recursive: true });
-      console.log(`创建应用数据目录: ${appDir}`);
-    } catch (error) {
-      console.error(`创建应用数据目录失败: ${error.message}`);
-    }
-  }
-  
-  return appDir;
-}
+const { getAppDataDir, getStorePath } = require('./paths');
 
 /**
  * 存储数据
@@ -50,8 +16,7 @@ function getAppDataDir() {
  */
 async function set(key, value) {
   try {
-    const appDataDir = getAppDataDir();
-    const storePath = path.join(appDataDir, 'store.json');
+    const storePath = getStorePath();
     
     let storeData = {};
     // 如果文件存在，先读取现有数据
@@ -98,8 +63,7 @@ async function set(key, value) {
  */
 async function get(key) {
   try {
-    const appDataDir = getAppDataDir();
-    const storePath = path.join(appDataDir, 'store.json');
+    const storePath = getStorePath();
     
     // 如果文件不存在，返回null
     if (!fs.existsSync(storePath)) {
@@ -135,8 +99,7 @@ async function get(key) {
  */
 async function remove(key) {
   try {
-    const appDataDir = getAppDataDir();
-    const storePath = path.join(appDataDir, 'store.json');
+    const storePath = getStorePath();
     
     // 如果文件不存在，直接返回成功
     if (!fs.existsSync(storePath)) {

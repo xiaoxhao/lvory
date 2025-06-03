@@ -53,17 +53,17 @@ function setup() {
     try {
       let configPath;
       if (options && options.configPath) {
-        // 创建配置副本
-        const originalPath = options.configPath;
-        if (fs.existsSync(originalPath)) {
-          profileManager.updateConfigCopy();
-          configPath = profileManager.getConfigCopyPath();
-        } else {
-          configPath = originalPath;
-        }
+        configPath = options.configPath;
       } else {
-        // 使用默认配置的副本
-        configPath = profileManager.getConfigCopyPath();
+        configPath = profileManager.getConfigPath();
+      }
+      
+      if (!configPath) {
+        return { success: false, error: '无法获取配置文件路径' };
+      }
+      
+      if (!fs.existsSync(configPath)) {
+        return { success: false, error: `配置文件不存在: ${configPath}` };
       }
       
       const proxyConfig = options && options.proxyConfig ? options.proxyConfig : {
@@ -85,7 +85,7 @@ function setup() {
         }
       }
       
-      logger.info(`启动sing-box内核，使用配置文件副本: ${configPath}`);
+      logger.info(`启动sing-box内核，配置文件: ${configPath}`);
       
       // 启动内核
       const result = await singbox.startCore({ 

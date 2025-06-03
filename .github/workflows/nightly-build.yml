@@ -118,7 +118,7 @@ jobs:
           path: build/*.dmg
 
   build-macos-x64:
-    runs-on: macos-13
+    runs-on: macos-14
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     
@@ -212,7 +212,6 @@ jobs:
           echo "Linux build files:"
           find build -name "*.AppImage" -type f
           find build -name "*.deb" -type f
-          find build -name "*.tar.gz" -type f
         shell: bash
       
       - name: Upload build artifacts
@@ -222,7 +221,6 @@ jobs:
           path: |
             build/*.AppImage
             build/*.deb
-            build/*.tar.gz
 
   create-release:
     needs: [build-windows, build-macos-arm64, build-macos-x64, build-linux]
@@ -285,7 +283,7 @@ jobs:
             ## 支持平台 / Supported Platforms
             - Windows Portable & Setup
             - macOS DMG (Intel x64 & Apple Silicon arm64)
-            - Linux AppImage, DEB, TAR.GZ (x64 & arm64)
+            - Linux AppImage, DEB (x64 & arm64)
           draft: false
           prerelease: true
           files: |
@@ -294,4 +292,3 @@ jobs:
             artifacts/macos-arm64/*.dmg
             artifacts/linux/*.AppImage
             artifacts/linux/*.deb
-            artifacts/linux/*.tar.gz 

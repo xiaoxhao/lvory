@@ -5,8 +5,8 @@
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const logger = require('../utils/logger');
+const { getAppDataDir, getConfigDir, getUserSettingsPath } = require('../utils/paths');
 const profileEngine = require('./engine/profiles-engine');
 const mappingDefinition = require('./engine/mapping-definition');
 
@@ -18,12 +18,6 @@ let configCopyPath = null;
 
 // 映射定义缓存
 let mappingDefinitionCache = null;
-
-// 用户设置文件路径
-const getUserSettingsPath = () => {
-  const appDataDir = getAppDataDir();
-  return path.join(appDataDir, 'settings.json');
-};
 
 // 加载用户设置
 const loadUserSettings = () => {
@@ -50,41 +44,6 @@ const saveUserSettings = (settings) => {
     return false;
   }
 };
-
-/**
- * 获取应用数据目录
- * @returns {String} 应用数据目录路径
- */
-function getAppDataDir() {
-  let appDir;
-  
-  // 根据不同平台获取合适的数据目录
-  if (process.platform === 'win32') {
-    // Windows平台 - 使用LOCALAPPDATA目录
-    const appDataDir = process.env.LOCALAPPDATA || '';
-    appDir = path.join(appDataDir, 'lvory');
-  } else if (process.platform === 'darwin') {
-    // macOS平台 - 使用Library/Application Support目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, 'Library', 'Application Support', 'lvory');
-  } else {
-    // Linux平台 - 使用~/.config目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, '.config', 'lvory');
-  }
-  
-  // 确保目录存在
-  if (!fs.existsSync(appDir)) {
-    try {
-      fs.mkdirSync(appDir, { recursive: true });
-      logger.info(`创建应用数据目录: ${appDir}`);
-    } catch (error) {
-      logger.error(`创建应用数据目录失败: ${error.message}`);
-    }
-  }
-  
-  return appDir;
-}
 
 /**
  * 获取映射定义文件路径
@@ -308,12 +267,7 @@ function loadUserConfig() {
  */
 const scanProfileConfig = () => {
   try {
-    const appDataDir = getAppDataDir();
-    const configDir = path.join(appDataDir, 'configs');
-    
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true });
-    }
+    const configDir = getConfigDir();
     
     let fileToUse = null;
     
@@ -329,14 +283,10 @@ const scanProfileConfig = () => {
         logger.info('从用户设置加载配置文件:', fileToUse);
       } else {
         // 否则使用默认配置文件
-        const testConfigPath = path.join(configDir, 'profiles-test.json');
         const configFilePath = path.join(configDir, 'sing-box.json');
         
         // 检查配置文件是否存在
-        if (fs.existsSync(testConfigPath)) {
-          fileToUse = testConfigPath;
-          logger.info('找到测试配置文件:', testConfigPath);
-        } else if (fs.existsSync(configFilePath)) {
+        if (fs.existsSync(configFilePath)) {
           fileToUse = configFilePath;
           logger.info('找到标准配置文件:', configFilePath);
         } else {
@@ -381,19 +331,11 @@ const getConfigPath = () => {
   }
   
   // 否则使用默认配置路径
-  const appDataDir = getAppDataDir();
-  const configDir = path.join(appDataDir, 'configs');
-  const testConfigPath = path.join(configDir, 'profiles-test.json');
+  const configDir = getConfigDir();
   const configFilePath = path.join(configDir, 'sing-box.json');
   
-  // 检查配置文件是否存在
-  if (fs.existsSync(testConfigPath)) {
-    currentConfigPath = testConfigPath;
-  } else if (fs.existsSync(configFilePath)) {
-    currentConfigPath = configFilePath;
-  } else {
-    currentConfigPath = configFilePath;
-  }
+  // 使用标准配置文件
+  currentConfigPath = configFilePath;
   
   return currentConfigPath;
 };

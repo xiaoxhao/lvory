@@ -11,6 +11,7 @@ const { pipeline } = require('stream');
 const { promisify } = require('util');
 const streamPipeline = promisify(pipeline);
 const logger = require('../utils/logger');
+const { getAppDataDir, getBinDir } = require('../utils/paths');
 
 let AdmZip;
 try {
@@ -56,41 +57,6 @@ function checkUrlAvailability(url, timeout = 5000) {
 }
 
 /**
- * 获取应用数据目录
- * @returns {String} 应用数据目录路径
- */
-function getAppDataDir() {
-  let appDir;
-  
-  // 根据不同平台获取合适的数据目录
-  if (process.platform === 'win32') {
-    // Windows平台 - 使用LOCALAPPDATA目录
-    const appDataDir = process.env.LOCALAPPDATA || '';
-    appDir = path.join(appDataDir, 'lvory');
-  } else if (process.platform === 'darwin') {
-    // macOS平台 - 使用Library/Application Support目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, 'Library', 'Application Support', 'lvory');
-  } else {
-    // Linux平台 - 使用~/.config目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, '.config', 'lvory');
-  }
-  
-  // 确保目录存在
-  if (!fs.existsSync(appDir)) {
-    try {
-      fs.mkdirSync(appDir, { recursive: true });
-      logger.info(`创建应用数据目录: ${appDir}`);
-    } catch (error) {
-      logger.error(`创建应用数据目录失败: ${error.message}`);
-    }
-  }
-  
-  return appDir;
-}
-
-/**
  * 下载内核函数
  * @param {Object} options 下载选项
  * @returns {Promise<Object>} 下载结果
@@ -102,13 +68,7 @@ const downloadCore = async (mainWindow) => {
       throw new Error('解压库未安装，无法下载和解压内核');
     }
     
-    const appDataDir = getAppDataDir();
-    const binDir = path.join(appDataDir, 'bin');
-    
-    // 创建bin目录
-    if (!fs.existsSync(binDir)) {
-      fs.mkdirSync(binDir, { recursive: true });
-    }
+    const binDir = getBinDir();
     
     // 获取当前平台信息
     const platform = process.platform;
@@ -144,6 +104,7 @@ const downloadCore = async (mainWindow) => {
     }
     
     const targetPath = path.join(binDir, binaryName);
+    const appDataDir = getAppDataDir();
     const tempFilePath = path.join(appDataDir, 'temp_download');
     
     // 确保临时文件夹存在

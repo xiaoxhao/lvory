@@ -572,6 +572,10 @@ const StatsOverview = ({ apiAddress }) => {
       // 应用选项
       chart.setOption(option);
       
+      setTimeout(() => {
+        chart.resize();
+      }, 100);
+      
       // 添加双击事件监听器
       chart.getZr().on('dblclick', () => {
         setIsFullscreenChart(true);

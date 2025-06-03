@@ -8,50 +8,10 @@ const windowManager = require('../window');
 const { ipcMain, app, shell } = require('electron');
 const os = require('os');
 const https = require('https');
+const { getAppDataDir, getConfigDir } = require('../../utils/paths');
 
 // 应用构建日期，由CI注入
 const APP_BUILD_DATE = '20240101'; // 默认构建日期
-
-/**
- * 获取应用数据目录
- * @returns {String} 应用数据目录路径
- */
-function getAppDataDir() {
-  // 使用LOCALAPPDATA目录作为数据存储位置
-  const appDataDir = process.env.LOCALAPPDATA || '';
-  const appDir = path.join(appDataDir, 'lvory');
-  
-  // 确保目录存在
-  if (!fs.existsSync(appDir)) {
-    try {
-      fs.mkdirSync(appDir, { recursive: true });
-    } catch (error) {
-      logger.error(`创建应用数据目录失败: ${error.message}`);
-    }
-  }
-  
-  return appDir;
-}
-
-/**
- * 获取配置文件目录
- * @returns {String} 配置文件目录路径
- */
-function getConfigDir() {
-  const appDataDir = getAppDataDir();
-  const configDir = path.join(appDataDir, 'configs');
-  
-  // 确保配置目录存在
-  if (!fs.existsSync(configDir)) {
-    try {
-      fs.mkdirSync(configDir, { recursive: true });
-    } catch (error) {
-      logger.error(`创建配置目录失败: ${error.message}`);
-    }
-  }
-  
-  return configDir;
-}
 
 /**
  * 获取主窗口
