@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🖥️ Lvory
+# Lvory
 
 *Minimalist Cross-Platform Client for Singbox*
 
@@ -14,40 +14,40 @@
 
 </div>
 
-## 📑 Table of Contents
+## Table of Contents
 
-- [✨ Features](#-features)
-- [📸 Preview](#-preview)
-- [🚀 Getting Started](#-getting-started)
-- [🛠️ Development](#️-development)
-- [🤝 Contributing](#-contributing)
-- [⚠️ Disclaimer](#️-disclaimer)
-- [📄 License](#-license)
+- [Features](#features)
+- [Preview](#preview)
+- [Getting Started](#getting-started)
+- [Development](#development)
+- [Contributing](#contributing)
+- [Disclaimer](#disclaimer)
+- [License](#license)
 
 
 
-## ✨ Features
+## Features
 
 Lvory is a highly flexible cross-platform SingBox client developed with Electron, **targeted at users with self-hosting capabilities**.
 
-### 🔧 Core Features
+### Core Features
 
 | Feature | Description |
 |---------|-------------|
-| 🔄 **Automatic Kernel Management** | Automatically downloads, installs, and updates the SingBox kernel |
-| 🌐 **Proxy Management** | One-click system proxy enable/disable with automatic port detection |
-| 📁 **Configuration Management** | Multi-config support with automatic node parsing and display |
-| ⏰ **Auto-Updates** | Scheduled automatic updates for configuration files |
-| 📊 **Activity Logs** | Real-time SingBox runtime logs and system activities |
-| 🎯 **Greater Flexibility** | File-based operations with UI assistance for maximum flexibility |
+| **Automatic Kernel Management** | Automatically downloads, installs, and updates the SingBox kernel |
+| **Proxy Management** | One-click system proxy enable/disable with automatic port detection |
+| **Configuration Management** | Multi-config support with automatic node parsing and display |
+| **Auto-Updates** | Scheduled automatic updates for configuration files |
+| **Activity Logs** | Real-time SingBox runtime logs and system activities |
+| **Greater Flexibility** | File-based operations with UI assistance for maximum flexibility |
 
-### 🔮 Planned Features
+### Planned Features
 
-- 📈 Node SLA calculation and quality assessment
-- ⚙️ Flexible policy development framework
+- Node SLA calculation and quality assessment
+- Flexible policy development framework
 
 
-## 📸 Preview
+## Preview
 
 <div align="center">
 
@@ -61,14 +61,14 @@ For more screenshots, visit our [More Screenshots](docs/screenshot.md)
 
 
 
-## 🚀 Getting Started
+## Getting Started
 
-### 📋 Prerequisites
+### Prerequisites
 
 - **Operating System**: Windows 10+, macOS 10.15+, or Linux
 - **SingBox**: Automatically managed by Lvory
 
-### 📦 Installation
+### Installation
 
 Download the latest release from our [GitHub Releases](https://github.com/sxueck/lvory/releases) page.
 
@@ -77,7 +77,7 @@ Choose the appropriate package for your operating system:
 - **macOS**: `Lvory-x.x.x.dmg`
 - **Linux**: `Lvory-x.x.x.deb`
 
-### 🎯 Quick Start
+### Quick Start
 
 1. **Launch Lvory** - Start the application
 2. **Add Configuration** - Import your SingBox configuration files
@@ -86,9 +86,9 @@ Choose the appropriate package for your operating system:
 
 
 
-## 🛠️ Development
+## Development
 
-### 🏗️ Architecture Documents
+### Architecture Documents
 
 - **[Profiles Engine Design - Alpha](docs/profiles_engine.md)**  
   Configuration mapping engine prototype and implementation details
@@ -96,7 +96,7 @@ Choose the appropriate package for your operating system:
 - **[Node Scoring Algorithm - Alpha](docs/node_score.md)**  
   Proxy node scoring algorithm and workflow documentation
 
-### 🔧 Development Setup
+### Development Setup
 
 ```bash
 # Install development dependencies
@@ -111,11 +111,11 @@ npm run build
 
 
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please feel free to submit issues and pull requests.
 
-### 📝 Guidelines
+### Guidelines
 
 - Follow the existing code style
 - Write clear commit messages
@@ -138,6 +138,6 @@ We welcome contributions! Please feel free to submit issues and pull requests.
 
 
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
