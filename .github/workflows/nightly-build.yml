@@ -66,7 +66,7 @@ jobs:
           name: windows-build-artifacts
           path: build/*.msi
 
-  build-macos-arm64:
+  build-macos:
     runs-on: macos-latest
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -101,8 +101,8 @@ jobs:
           done
         shell: bash
       
-      - name: Build
-        run: npm run build:mac-arm64
+      - name: Build Universal macOS App
+        run: npm run build:mac-universal
       
       - name: List build directory contents
         run: |
@@ -114,58 +114,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-arm64-build-artifacts
-          path: build/*.dmg
-
-  build-macos-x64:
-    runs-on: macos-14
-    env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    
-    steps:
-      - name: Check out the code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
-      
-      - name: Configuring nodejs
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-      
-      - name: Installation of dependencies
-        run: npm install
-      
-      - name: Get the current date
-        id: date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-        shell: bash
-      
-      - name: Inject build date
-        run: |
-          buildDate="${{ steps.date.outputs.date }}"
-          find src -type f -name "*.js" -print0 | xargs -0 grep -l "const APP_BUILD_DATE = '[0-9]\\{8\\}'" | while read file; do
-            sed -i '' "s/const APP_BUILD_DATE = '[0-9]\{8\}'/const APP_BUILD_DATE = '$buildDate'/" "$file"
-            echo "Injected build date $buildDate into $file"
-          done
-        shell: bash
-      
-      - name: Build
-        run: npm run build:mac-x64
-      
-      - name: List build directory contents
-        run: |
-          ls -la build
-          echo "macOS DMG files:"
-          find build -name "*.dmg" -type f
-        shell: bash
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-x64-build-artifacts
+          name: macos-build-artifacts
           path: build/*.dmg
 
   build-linux:
@@ -220,7 +169,7 @@ jobs:
           path: build/*.deb
 
   create-release:
-    needs: [build-windows, build-macos-arm64, build-macos-x64, build-linux]
+    needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     
     steps:
@@ -239,17 +188,11 @@ jobs:
           name: windows-build-artifacts
           path: artifacts/windows
       
-      - name: Download macOS x64 artifacts
+      - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macos-x64-build-artifacts
-          path: artifacts/macos-x64
-      
-      - name: Download macOS arm64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-arm64-build-artifacts
-          path: artifacts/macos-arm64
+          name: macos-build-artifacts
+          path: artifacts/macos
       
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
@@ -279,12 +222,11 @@ jobs:
             
             ## 支持平台 / Supported Platforms
             - Windows Portable & Setup
-            - macOS DMG (Intel x64 & Apple Silicon arm64)
+            - macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)
             - Linux DEB (x64 & arm64)
           draft: false
           prerelease: true
           files: |
             artifacts/windows/*.msi
-            artifacts/macos-x64/*.dmg
-            artifacts/macos-arm64/*.dmg
+            artifacts/macos/*.dmg
             artifacts/linux/*.deb

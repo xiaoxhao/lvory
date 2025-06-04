@@ -121,9 +121,14 @@
     },
     "mac": {
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
       ],
-      "icon": "resource/icon/index512.ico",
+      "icon": "resource/icon/index512.png",
       "category": "public.app-category.utilities",
       "darkModeSupport": true,
       "artifactName": "${productName}-${version}-${arch}.${ext}",

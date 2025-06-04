@@ -4,6 +4,7 @@
  */
 const { app, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const logger = require('../utils/logger');
 const singbox = require('../utils/sing-box');
 const windowManager = require('./window');
@@ -18,13 +19,47 @@ let updateTrayMenuCallback = null;
  */
 const getTrayIcon = (isActive = false) => {
   try {
-    // 托盘图标路径
-    const iconPath = path.join(__dirname, '../../resource', 'icon', 'tray.png');
+    let iconPath;
+    
+    // 根据是否为 macOS 和是否打包来确定正确的图标路径
+    if (process.platform === 'darwin' && process.env.NODE_ENV !== 'development') {
+      // macOS 打包后的路径处理
+      const resourcesPath = process.resourcesPath || path.join(process.cwd(), 'resources');
+      const asarPath = path.join(resourcesPath, 'app.asar', 'resource', 'icon', 'tray.png');
+      const unpackedPath = path.join(resourcesPath, 'icon', 'tray.png');
+      
+      // 优先使用 extraResources 中的图标
+      if (fs.existsSync(unpackedPath)) {
+        iconPath = unpackedPath;
+      } else if (fs.existsSync(asarPath)) {
+        // 如果 asar 内的文件存在，需要将其复制到临时位置
+        const tempPath = path.join(app.getPath('temp'), 'lvory-tray.png');
+        try {
+          const iconData = fs.readFileSync(asarPath);
+          fs.writeFileSync(tempPath, iconData);
+          iconPath = tempPath;
+        } catch (error) {
+          logger.error(`复制托盘图标到临时目录失败: ${error.message}`);
+          throw error;
+        }
+      } else {
+        throw new Error('托盘图标文件不存在');
+      }
+    } else {
+      // 开发环境或其他平台的路径
+      iconPath = path.join(__dirname, '../../resource', 'icon', 'tray.png');
+    }
+    
+    // 验证文件是否存在
+    if (!fs.existsSync(iconPath)) {
+      throw new Error(`托盘图标文件不存在: ${iconPath}`);
+    }
+    
     return iconPath;
   } catch (error) {
     logger.error(`获取托盘图标失败: ${error.message}`);
     // 创建一个空白图像作为备用
-    return nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABNJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC');
+    return nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABBJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC');
   }
 };
 
