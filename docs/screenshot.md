@@ -4,3 +4,4 @@
 ![Activity](screenshot/activity.png)
 ![Profile_Actions](screenshot/profile_action.png)
 ![settings](screenshot/settings.png)
+![ActivityConn](screenshot/activity_conn.png)

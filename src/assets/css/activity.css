@@ -94,6 +94,80 @@
   color: #374151;
 }
 
+.retry-button {
+  padding: 4px 6px;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  color: #007bff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.retry-button:hover:not(:disabled) {
+  background-color: rgba(0, 123, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.retry-button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  animation: spin 1s linear infinite;
+}
+
+.retry-button-flat {
+  padding: 6px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 32px;
+}
+
+.retry-button-flat:hover:not(:disabled) {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  color: #343a40;
+}
+
+.retry-button-flat:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.retry-button-flat:disabled::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 6px;
+  border: 2px solid transparent;
+  border-top: 2px solid #6c757d;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .log-container {
   flex: 1;
   overflow-y: auto;
@@ -102,6 +176,32 @@
   font-family: monospace;
   font-size: 13px;
   user-select: text;
+}
+
+/* 为日志容器添加滚动条样式 - 使用!important确保优先级 */
+.activity-container .log-container::-webkit-scrollbar {
+  width: 8px !important;
+  display: block !important;
+}
+
+.activity-container .log-container::-webkit-scrollbar-track {
+  background: #f1f1f1 !important;
+  border-radius: 4px !important;
+}
+
+.activity-container .log-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1 !important;
+  border-radius: 4px !important;
+}
+
+.activity-container .log-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8 !important;
+}
+
+/* 确保Firefox也显示滚动条 */
+.activity-container .log-container {
+  scrollbar-width: thin !important;
+  scrollbar-color: #c1c1c1 #f1f1f1 !important;
 }
 
 .no-logs {
@@ -158,6 +258,170 @@
   user-select: text;
 }
 
+.activity-tabs {
+  display: flex;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #586069;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-button:hover {
+  color: #0366d6;
+}
+
+.tab-button.active {
+  color: #0366d6;
+  border-bottom-color: #0366d6;
+}
+
+/* 连接状态表头样式 */
+.connection-header {
+  display: flex;
+  padding: 12px 8px 8px 8px;
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 12px;
+  color: #586069;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.connection-header-time {
+  flex: 0 0 80px;
+  padding-right: 8px;
+}
+
+.connection-header-direction {
+  flex: 0 0 50px;
+  padding-right: 8px;
+  text-align: center;
+}
+
+.connection-header-address {
+  flex: 1;
+  padding-right: 8px;
+  min-width: 200px;
+}
+
+.connection-header-proxy {
+  flex: 0 0 120px;
+  padding-right: 8px;
+}
+
+.connection-header-protocol {
+  flex: 0 0 100px;
+}
+
+/* 连接行样式 */
+.connection-row {
+  display: flex;
+  padding: 8px;
+  border-bottom: 1px solid #f0f2f5;
+  line-height: 1.4;
+  align-items: center;
+  user-select: text;
+  font-family: monospace;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.connection-row:last-child {
+  border-bottom: none;
+}
+
+.connection-row:hover {
+  background-color: #f6f8fa;
+  transform: translateX(2px);
+}
+
+.connection-time {
+  flex: 0 0 80px;
+  color: #6e7781;
+  font-size: 11px;
+  padding-right: 8px;
+}
+
+.connection-direction {
+  flex: 0 0 50px;
+  text-align: center;
+  font-size: 14px;
+  padding-right: 8px;
+}
+
+.connection-address {
+  flex: 1;
+  color: #24292e;
+  font-weight: 500;
+  padding-right: 8px;
+  min-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connection-proxy {
+  flex: 0 0 120px;
+  color: #8250df;
+  font-weight: 500;
+  padding-right: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connection-protocol {
+  flex: 0 0 100px;
+  color: #1f883d;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* 移除旧的连接日志样式 */
+.connection-log-info,
+.connection-log-warning,
+.connection-log-error,
+.connection-log-debug {
+  background-color: transparent;
+}
+
+/* 旧的连接日志字段样式 - 删除这些不再使用的样式 */
+.log-item .connection-session,
+.log-item .connection-delay,
+.log-item .connection-network,
+.log-item .connection-node,
+.log-item .connection-domain {
+  display: none;
+}
+
+/* 连接日志hover效果 - 更新 */
+.connection-row:hover {
+  background-color: rgba(3, 102, 214, 0.08);
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+/* 连接日志消息样式调整 - 移除旧样式 */
+.connection-log-info .log-message,
+.connection-log-warning .log-message,
+.connection-log-error .log-message,
+.connection-log-debug .log-message {
+  display: none;
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .activity-controls {
@@ -176,5 +440,34 @@
   .log-message {
     width: 100%;
     margin-top: 4px;
+  }
+  
+  /* 连接状态响应式调整 */
+  .connection-header {
+    display: none;
+  }
+  
+  .connection-row {
+    flex-wrap: wrap;
+    padding: 12px 8px;
+  }
+  
+  .connection-time, .connection-direction {
+    flex: 0 0 auto;
+    margin-bottom: 4px;
+    margin-right: 12px;
+  }
+  
+  .connection-address {
+    flex: 0 0 100%;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  .connection-proxy, .connection-protocol {
+    flex: 0 0 auto;
+    margin-bottom: 4px;
+    margin-right: 12px;
   }
 } 

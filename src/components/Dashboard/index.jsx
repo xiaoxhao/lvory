@@ -15,7 +15,7 @@ import useSingBoxControl from './SingBoxControl';
 import useStatusMonitor from './StatusMonitor';
 import useProfileUpdate from './hooks/useProfileUpdate';
 
-const Dashboard = ({ activeView = 'dashboard' }) => {
+const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [profileData, setProfileData] = useState([]);
@@ -171,6 +171,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
                 isDownloadingCore={isDownloadingCore}
                 downloadProgress={downloadProgress}
                 downloadMessage={downloadMessage}
+                onSwitchToActivity={onSwitchToActivity}
                 style={{ padding: '5px 0' }}
               />
               
@@ -214,7 +215,7 @@ const Dashboard = ({ activeView = 'dashboard' }) => {
           padding: '0',
           display: activeView === 'activity' ? 'block' : 'none' 
         }}>
-          <Activity />
+          <Activity isKernelRunning={isRunning} isActivityView={activeView === 'activity'} />
         </div>
       </div>
 

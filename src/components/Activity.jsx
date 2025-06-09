@@ -1,104 +1,228 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import LogItem from './Activity/LogItem';
+import ConnectionLogItem from './Activity/ConnectionLogItem';
+import ConnectionHeader from './Activity/ConnectionHeader';
+import LogHeader from './Activity/LogHeader';
 import '../assets/css/activity.css';
 
-const Activity = () => {
+const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
   const [logs, setLogs] = useState([]);
+  const [connectionLogs, setConnectionLogs] = useState([]);
+  const [currentConnections, setCurrentConnections] = useState(new Map()); // 当前连接状态
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('logs');
+  
+  // 添加延迟停止连接监听的状态
+  const [connectionMonitorActive, setConnectionMonitorActive] = useState(false);
+  const connectionStopTimeoutRef = useRef(null);
+  
+  // 当切换到Activity视图且内核运行时，自动切换到connections标签
+  useEffect(() => {
+    if (isActivityView && isKernelRunning) {
+      setActiveTab('connections');
+    }
+  }, [isActivityView, isKernelRunning]);
+
+  // 当不满足监听条件时，清理连接状态
+  useEffect(() => {
+    if (!shouldMonitorConnections()) {
+      setCurrentConnections(new Map());
+      setConnectionLogs([]);
+    }
+  }, [shouldMonitorConnections]);
   const logContainerRef = useRef(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScroll, setAutoScroll] = useState(false); // 连接状态默认不保留历史
   const [loading, setLoading] = useState(false);
-  const [pageSize] = useState(200); // 每页显示的日志数量
+  const [pageSize] = useState(200);
   const [visibleLogs, setVisibleLogs] = useState([]);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
 
-  // 日志类型的颜色映射
-  const logColors = {
-    INFO: '#4CAF50',    // 绿色
-    WARN: '#FF9800',    // 橙色
-    ERROR: '#F44336',   // 红色
-  };
+  // 判断是否应该监听连接活动的函数
+  const shouldMonitorConnections = useCallback(() => {
+    return isKernelRunning && connectionMonitorActive && activeTab === 'connections';
+  }, [isKernelRunning, connectionMonitorActive, activeTab]);
 
-  // 日志类型图标映射
-  const logIcons = {
-    SYSTEM: '🖥️',
-    SINGBOX: '📦',
-    NETWORK: '🌐',
-  };
+  // 处理连接标签页的激活和停用
+  useEffect(() => {
+    if (isActivityView && activeTab === 'connections') {
+      // 立即激活连接监听
+      setConnectionMonitorActive(true);
+      // 清除任何现有的停止定时器
+      if (connectionStopTimeoutRef.current) {
+        clearTimeout(connectionStopTimeoutRef.current);
+        connectionStopTimeoutRef.current = null;
+      }
+      
+      // 启动后端连接监听
+      if (isKernelRunning) {
+        window.electron.logs.startConnectionMonitoring().then(success => {
+          if (success) {
+            console.log('后端连接监听已启动');
+          } else {
+            console.warn('后端连接监听启动失败');
+          }
+        }).catch(error => {
+          console.error('启动后端连接监听时出错:', error);
+        });
+      }
+    } else if (activeTab !== 'connections' || !isActivityView) {
+      // 设置10秒延迟停止
+      if (connectionStopTimeoutRef.current) {
+        clearTimeout(connectionStopTimeoutRef.current);
+      }
+      connectionStopTimeoutRef.current = setTimeout(() => {
+        setConnectionMonitorActive(false);
+        console.log('连接监听已在10秒后自动停止');
+        
+        // 停止后端连接监听
+        window.electron.logs.stopConnectionMonitoring().then(() => {
+          console.log('后端连接监听已停止');
+        }).catch(error => {
+          console.error('停止后端连接监听时出错:', error);
+        });
+      }, 10000);
+    }
 
-  // 应用过滤和搜索条件
-  const applyFilters = useCallback(() => {
-    if (!logs.length) return [];
+    // 清理函数
+    return () => {
+      if (connectionStopTimeoutRef.current) {
+        clearTimeout(connectionStopTimeoutRef.current);
+        connectionStopTimeoutRef.current = null;
+      }
+      // 组件卸载时确保停止后端监听
+      if (connectionMonitorActive) {
+        window.electron.logs.stopConnectionMonitoring().catch(error => {
+          console.error('组件卸载时停止后端连接监听出错:', error);
+        });
+      }
+    };
+  }, [isActivityView, activeTab, isKernelRunning, connectionMonitorActive]);
+
+  // 重试连接监听的函数
+  const retryConnectionMonitoring = useCallback(async () => {
+    if (!shouldMonitorConnections() || isRetrying) {
+      return;
+    }
+
+    setIsRetrying(true);
+    setRetryCount(prev => prev + 1);
+
+    try {
+      // 尝试重新获取连接历史
+      const history = await window.electron.logs.getConnectionLogHistory();
+      if (history?.length) {
+        setConnectionLogs(history.slice(-pageSize));
+      }
+      
+      // 清空当前连接状态以重新开始监听
+      setCurrentConnections(new Map());
+      
+      console.log(`连接监听重试成功 (第${retryCount + 1}次)`);
+    } catch (error) {
+      console.error(`连接监听重试失败 (第${retryCount + 1}次):`, error);
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [shouldMonitorConnections, isRetrying, retryCount, pageSize]);
+
+  // 当条件满足时重置重试计数
+  useEffect(() => {
+    if (shouldMonitorConnections()) {
+      setRetryCount(0);
+    }
+  }, [shouldMonitorConnections]);
+
+  const applyFilters = useCallback((logsToFilter, isConnection = false) => {
+    if (!logsToFilter.length) return [];
     
-    const filtered = logs.filter((log) => {
+    return logsToFilter.filter((log) => {
       if (!log) return false;
       
-      // 应用类型过滤
-      if (filter !== 'all' && log.type !== filter) {
-        return false;
+      if (filter !== 'all') {
+        if (isConnection) {
+          // 连接日志按方向过滤
+          if (log.direction !== filter) return false;
+        } else {
+          if (log.type !== filter) return false;
+        }
       }
 
-      // 应用搜索过滤 - 确保message存在
-      if (searchTerm && log.message && typeof log.message === 'string') {
-        return log.message.toLowerCase().includes(searchTerm.toLowerCase());
-      } else if (searchTerm) {
-        return false;
+      if (searchTerm) {
+        const searchContent = isConnection ? 
+          (log.payload || log.address || '') : 
+          (log.message || '');
+        
+        if (typeof searchContent === 'string') {
+          return searchContent.toLowerCase().includes(searchTerm.toLowerCase());
+        } else {
+          return false;
+        }
       }
 
       return true;
     });
+  }, [filter, searchTerm]);
 
-    return filtered;
-  }, [logs, filter, searchTerm]);
-
-  // 更新可见日志
   useEffect(() => {
-    const filteredLogs = applyFilters();
-    // 只显示最新的pageSize条日志
-    setVisibleLogs(filteredLogs.slice(-pageSize));
-  }, [logs, filter, searchTerm, pageSize, applyFilters]);
+    if (activeTab === 'logs') {
+      const filteredLogs = applyFilters(logs, false);
+      setVisibleLogs(filteredLogs.slice(-pageSize));
+    } else {
+      // 连接状态页面显示当前连接或历史连接
+      const displayLogs = autoScroll ? connectionLogs : Array.from(currentConnections.values());
+      const filteredLogs = applyFilters(displayLogs, true);
+      setVisibleLogs(filteredLogs);
+    }
+  }, [logs, connectionLogs, currentConnections, filter, searchTerm, pageSize, applyFilters, activeTab, autoScroll]);
 
-  // 组件加载时获取历史日志
   useEffect(() => {
     const fetchLogs = async () => {
       try {
         setLoading(true);
-        const history = await window.electron.logs.getLogHistory();
-        
-        // 只加载最新的一批日志
-        if (history && history.length) {
-          const recentLogs = history.slice(-pageSize);
-          setLogs(recentLogs);
+        if (activeTab === 'logs') {
+          const history = await window.electron.logs.getLogHistory();
+          if (history?.length) {
+            setLogs(history.slice(-pageSize));
+          }
+        } else if (shouldMonitorConnections()) {
+          // 只有在内核运行且处于连接状态标签时才获取连接日志
+          // 以避免不需要的性能开销
+          const history = await window.electron.logs.getConnectionLogHistory();
+          if (history?.length) {
+            setConnectionLogs(history.slice(-pageSize));
+          }
         }
-        
-        setIsInitialLoad(false);
         setLoading(false);
-        if (autoScroll) {
-          scrollToBottom();
-        }
       } catch (error) {
         console.error('获取日志历史失败:', error);
         setLoading(false);
-        setIsInitialLoad(false);
       }
     };
 
     fetchLogs();
 
-    // 订阅日志更新 - 使用批量更新减少渲染次数
     let newLogs = [];
     let updateTimer = null;
 
     const processNewLogs = () => {
       if (newLogs.length > 0) {
-        setLogs(prevLogs => {
-          // 保持日志数量在合理范围内
-          const combinedLogs = [...prevLogs, ...newLogs];
-          const trimmedLogs = combinedLogs.length > pageSize * 2 
-            ? combinedLogs.slice(-pageSize * 2) 
-            : combinedLogs;
-          return trimmedLogs;
-        });
+        if (activeTab === 'logs') {
+          setLogs(prevLogs => {
+            const combinedLogs = [...prevLogs, ...newLogs];
+            return combinedLogs.length > pageSize * 2 
+              ? combinedLogs.slice(-pageSize * 2) 
+              : combinedLogs;
+          });
+        } else {
+          setConnectionLogs(prevLogs => {
+            const combinedLogs = [...prevLogs, ...newLogs];
+            return combinedLogs.length > pageSize * 2 
+              ? combinedLogs.slice(-pageSize * 2) 
+              : combinedLogs;
+          });
+        }
         newLogs = [];
         
         if (autoScroll) {
@@ -109,8 +233,6 @@ const Activity = () => {
     
     const onNewLog = (log) => {
       newLogs.push(log);
-      
-      // 批量更新，降低渲染频率
       if (!updateTimer) {
         updateTimer = setTimeout(() => {
           processNewLogs();
@@ -118,51 +240,101 @@ const Activity = () => {
         }, 300);
       }
     };
+
+    const onNewConnectionLog = (connectionLog) => {
+      // 只有在应该监听连接时才处理连接日志
+      if (!shouldMonitorConnections()) {
+        return;
+      }
+      
+      // 为连接日志生成唯一标识符
+      const connectionKey = `${connectionLog.sessionId}-${connectionLog.direction}-${connectionLog.address}`;
+      
+      if (autoScroll) {
+        // 保留历史模式：添加到连接日志历史
+        setConnectionLogs(prevLogs => {
+          const combinedLogs = [...prevLogs, connectionLog];
+          return combinedLogs.length > pageSize * 2 
+            ? combinedLogs.slice(-pageSize * 2) 
+            : combinedLogs;
+        });
+      } else {
+        // 实时状态模式：更新当前连接状态
+        setCurrentConnections(prevConnections => {
+          const newConnections = new Map(prevConnections);
+          newConnections.set(connectionKey, {
+            ...connectionLog,
+            lastUpdate: Date.now()
+          });
+          
+          // 限制显示的连接数量，移除最旧的连接
+          if (newConnections.size > 100) {
+            const oldestKey = Array.from(newConnections.entries())
+              .sort(([,a], [,b]) => a.lastUpdate - b.lastUpdate)[0][0];
+            newConnections.delete(oldestKey);
+          }
+          
+          return newConnections;
+        });
+      }
+    };
     
     const unsubscribe = window.electron.logs.onLogMessage(onNewLog);
     const unsubscribeActivity = window.electron.logs.onActivityLog(onNewLog);
+    const unsubscribeConnection = window.electron.logs.onConnectionLog(onNewConnectionLog);
 
     return () => {
       if (updateTimer) {
         clearTimeout(updateTimer);
       }
-      if (unsubscribe) unsubscribe();
-      if (unsubscribeActivity) unsubscribeActivity();
+      unsubscribe?.();
+      unsubscribeActivity?.();
+      unsubscribeConnection?.();
     };
-  }, [autoScroll, pageSize]);
+  }, [autoScroll, pageSize, activeTab, shouldMonitorConnections]);
 
-  // 滚动到底部
   const scrollToBottom = () => {
     if (logContainerRef.current && autoScroll) {
       setTimeout(() => {
-        if (logContainerRef.current) {
-          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-        }
+        logContainerRef.current?.scrollTo({
+          top: logContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
       }, 0);
     }
   };
 
-  // 滚动事件处理 - 加载更多历史日志
   const handleScroll = useCallback(() => {
-    if (!logContainerRef.current || loading || isInitialLoad) return;
+    if (!logContainerRef.current || loading) return;
     
     const { scrollTop } = logContainerRef.current;
     
-    // 当滚动到顶部附近时，加载更多历史日志
     if (scrollTop < 50) {
       const loadMoreLogs = async () => {
         try {
           setLoading(true);
-          const history = await window.electron.logs.getLogHistory();
           
-          if (history && history.length > logs.length) {
-            // 计算要加载的新日志范围
-            const startIndex = Math.max(0, history.length - logs.length - pageSize);
-            const endIndex = history.length - logs.length;
+          if (activeTab === 'logs') {
+            const history = await window.electron.logs.getLogHistory();
             
-            if (endIndex > startIndex) {
-              const olderLogs = history.slice(startIndex, endIndex);
-              setLogs(prevLogs => [...olderLogs, ...prevLogs]);
+            if (history?.length > logs.length) {
+              const startIndex = Math.max(0, history.length - logs.length - pageSize);
+              const endIndex = history.length - logs.length;
+              
+              if (endIndex > startIndex) {
+                setLogs(prevLogs => [...history.slice(startIndex, endIndex), ...prevLogs]);
+              }
+            }
+          } else {
+            const history = await window.electron.logs.getConnectionLogHistory();
+            
+            if (history?.length > connectionLogs.length) {
+              const startIndex = Math.max(0, history.length - connectionLogs.length - pageSize);
+              const endIndex = history.length - connectionLogs.length;
+              
+              if (endIndex > startIndex) {
+                setConnectionLogs(prevLogs => [...history.slice(startIndex, endIndex), ...prevLogs]);
+              }
             }
           }
           
@@ -175,9 +347,8 @@ const Activity = () => {
       
       loadMoreLogs();
     }
-  }, [loading, logs.length, pageSize, isInitialLoad]);
+  }, [loading, logs.length, connectionLogs.length, pageSize, activeTab]);
 
-  // 添加滚动事件监听
   useEffect(() => {
     const container = logContainerRef.current;
     if (container) {
@@ -186,9 +357,9 @@ const Activity = () => {
     }
   }, [handleScroll]);
 
-  // 清除日志
   const handleClearLogs = async () => {
     try {
+      // 只处理日志清除，移除连接相关清除逻辑
       await window.electron.logs.clearLogs();
       setLogs([]);
       setVisibleLogs([]);
@@ -197,90 +368,35 @@ const Activity = () => {
     }
   };
 
-  // 格式化时间戳
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return '--:--:--';
-    try {
-      const date = new Date(timestamp);
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      const seconds = date.getSeconds().toString().padStart(2, '0');
-      const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
-      return `${hours}:${minutes}:${seconds}.${milliseconds}`;
-    } catch (e) {
-      return timestamp.toString();
-    }
-  };
-
-  // 安全获取日志属性
-  const safeString = (value) => {
-    if (value === undefined || value === null) return '';
-    return String(value);
-  };
-
   return (
     <div className="activity-container">
-      <div className="activity-header">
-        <h2>Logging</h2>
-        <div className="activity-controls">
-          <div className="search-filter">
-            <input
-              type="text"
-              placeholder="search logs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            >
-              <option value="all">ALL</option>
-              <option value="SYSTEM">System</option>
-              <option value="SINGBOX">SingBox</option>
-              <option value="NETWORK">Network</option>
-            </select>
-          </div>
-          <div className="activity-actions">
-            <label className="autoscroll-label">
-              <input
-                type="checkbox"
-                checked={autoScroll}
-                onChange={() => setAutoScroll(!autoScroll)}
-              />
-              Auto-Scrolling
-            </label>
-            <button onClick={handleClearLogs} className="clear-button">
-              Clear Logs
-            </button>
-          </div>
-        </div>
-      </div>
+      <LogHeader
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filter={filter}
+        setFilter={setFilter}
+        autoScroll={autoScroll}
+        setAutoScroll={setAutoScroll}
+        onClear={handleClearLogs}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onRetry={retryConnectionMonitoring}
+        isRetrying={isRetrying}
+        shouldShowRetry={shouldMonitorConnections()}
+      />
       <div className="log-container" ref={logContainerRef}>
+        {activeTab === 'connections' && <ConnectionHeader />}
         {loading && <div className="loading-logs">加载日志中...</div>}
         {visibleLogs.length === 0 && !loading ? (
-          <div className="no-logs">no log recording</div>
+          <div className="no-logs">
+            {activeTab === 'connections' ? 'No active connections' : 'No log recording'}
+          </div>
         ) : (
-          visibleLogs.map((log, index) => {
-            // 确保log存在且包含必要的属性
-            if (!log) return null;
-            
-            const level = safeString(log.level || 'INFO').toLowerCase();
-            const type = safeString(log.type || 'SYSTEM');
-            const message = safeString(log.message || '');
-            
-            return (
-              <div key={`${log.timestamp}-${index}`} className={`log-item log-${level}`}>
-                <div className="log-timestamp">{formatTimestamp(log.timestamp)}</div>
-                <div className="log-level" style={{ color: logColors[log.level] || '#000' }}>
-                  {log.level || 'INFO'}
-                </div>
-                <div className="log-type">
-                  {logIcons[type] || '🔹'} {type}
-                </div>
-                <div className="log-message">{message}</div>
-              </div>
-            );
-          })
+          visibleLogs.map((log, index) => (
+            activeTab === 'logs' ?
+              <LogItem key={`${log?.timestamp}-${index}`} log={log} index={index} /> :
+              <ConnectionLogItem key={`${log?.timestamp || log?.lastUpdate}-${index}`} log={log} index={index} />
+          ))
         )}
       </div>
     </div>

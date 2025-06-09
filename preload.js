@@ -1,7 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-  // 窗口管理 - 新API
   window: {
     control: (action) => ipcRenderer.send('window.control', { action }),
     action: (type) => ipcRenderer.invoke('window.action', { type })
@@ -180,11 +179,29 @@ contextBridge.exposeInMainWorld('electron', {
       return () => ipcRenderer.removeListener('activity-log', callback);
     },
     
+    // 接收连接日志
+    onConnectionLog: (callback) => {
+      ipcRenderer.on('connection-log', (event, log) => callback(log));
+      return () => ipcRenderer.removeListener('connection-log', callback);
+    },
+    
     // 获取之前的日志历史
     getLogHistory: () => ipcRenderer.invoke('get-log-history'),
     
+    // 获取连接日志历史
+    getConnectionLogHistory: () => ipcRenderer.invoke('get-connection-log-history'),
+    
     // 清除日志历史
-    clearLogs: () => ipcRenderer.invoke('clear-logs')
+    clearLogs: () => ipcRenderer.invoke('clear-logs'),
+    
+    // 清除连接日志历史
+    clearConnectionLogs: () => ipcRenderer.invoke('clear-connection-logs'),
+    
+    // 启动连接监听
+    startConnectionMonitoring: () => ipcRenderer.invoke('start-connection-monitoring'),
+    
+    // 停止连接监听
+    stopConnectionMonitoring: () => ipcRenderer.invoke('stop-connection-monitoring')
   },
 
   // 开机自启动相关API

@@ -297,23 +297,33 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
 
   // 在组件顶部添加一个useEffect来注入自定义CSS样式
   useEffect(() => {
-    // 添加自定义样式表以隐藏所有滚动条
+    // 添加自定义样式表以隐藏特定区域的滚动条，但保留Activity日志容器的滚动条
     const style = document.createElement('style');
     style.textContent = `
-      /* 隐藏webkit基础的浏览器滚动条 */
-      ::-webkit-scrollbar {
+      /* 隐藏NodeList组件内的滚动条 */
+      .customer-cards::-webkit-scrollbar,
+      .profile-tags-container::-webkit-scrollbar,
+      .material-rule-card::-webkit-scrollbar,
+      .node-group-card::-webkit-scrollbar {
         display: none;
       }
       
-      /* 确保所有元素都不显示滚动条但允许滚动 */
-      * {
+      .customer-cards,
+      .profile-tags-container,
+      .material-rule-card,
+      .node-group-card {
         -ms-overflow-style: none; /* IE 和 Edge */
         scrollbar-width: none; /* Firefox */
+        scrollbar-color: transparent transparent; /* Firefox */
       }
       
-      /* 确保在Electron环境中隐藏滚动条 */
-      html, body, div {
-        scrollbar-color: transparent transparent; /* Firefox */
+      /* 隐藏主体区域滚动条，但保留Activity组件的滚动条 */
+      body::-webkit-scrollbar {
+        display: none;
+      }
+      
+      body {
+        -ms-overflow-style: none; /* IE 和 Edge */
         scrollbar-width: none; /* Firefox */
       }
     `;

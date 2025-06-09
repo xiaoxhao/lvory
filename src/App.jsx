@@ -198,6 +198,11 @@ const App = () => {
     setActiveItem(item);
   };
 
+  // 处理切换到Activity视图
+  const handleSwitchToActivity = () => {
+    setActiveItem('activity');
+  };
+
   // 窗口控制工具函数
   const handleWindowAction = (action) => {
     if (window.electron) {
@@ -285,7 +290,7 @@ const App = () => {
                   isMinimized={isSettingsActive}
                 />
                 <div className="main-content" style={{ position: 'relative' }}>
-                  <Dashboard activeView={activeItem} />
+                  <Dashboard activeView={activeItem} onSwitchToActivity={handleSwitchToActivity} />
                   {activeItem === 'profiles' && (
                     <div style={{ 
                       width: '100%', 

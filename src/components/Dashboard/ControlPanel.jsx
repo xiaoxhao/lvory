@@ -28,7 +28,8 @@ const ControlPanel = ({
   coreExists,
   isDownloadingCore,
   downloadProgress,
-  downloadMessage
+  downloadMessage,
+  onSwitchToActivity // 添加切换到Activity的回调
 }) => {
   const [showRestartButton, setShowRestartButton] = useState(false);
   const [showProxyConfigModal, setShowProxyConfigModal] = useState(false);
@@ -868,24 +869,28 @@ sudo rm /etc/apt/apt.conf.d/95proxies`
           {renderFolderIcon()}
           <div className="action-separator" style={{ margin: '0 10px' }}></div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <button className="add-customer-btn" onClick={onOpenProfileModal} style={{ 
-              padding: '6px 12px', 
-              height: '28px',
-              transition: 'all 0.3s ease',
-              transform: 'translateY(0)',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-            }}>
-              <span className="plus-icon"></span>
-              <span>PROFILE</span>
+            <button 
+              className="add-customer-btn" 
+              onClick={isRunning ? onSwitchToActivity : onOpenProfileModal} 
+              style={{ 
+                padding: '6px 12px', 
+                height: '28px',
+                transition: 'all 0.3s ease',
+                transform: 'translateY(0)',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+              }}
+            >
+              {!isRunning && <span className="plus-icon"></span>}
+              <span>{isRunning ? 'ACTIVITY' : 'PROFILE'}</span>
             </button>
             <div style={{ marginLeft: '10px' }}>
               {renderRunStopButton()}

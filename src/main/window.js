@@ -6,6 +6,7 @@ const { BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
+const connectionLogger = require('../utils/connection-logger');
 const singbox = require('../utils/sing-box');
 const profileManager = require('./profile-manager');
 const ipcManager = require('./ipc-manager');
@@ -78,6 +79,7 @@ const createWindow = () => {
 
   // 设置主窗口到各个模块
   logger.setMainWindow(mainWindow);
+  connectionLogger.setMainWindow(mainWindow);
   singbox.setMainWindow(mainWindow);
   ipcManager.setMainWindow(mainWindow);
   ipcManager.init();

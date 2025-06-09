@@ -93,5 +93,18 @@ export default {
     information: 'Information',
     skipVersion: 'Skip This Version',
     remindLater: 'Remind Later'
+  },
+  
+  // Activity page related
+  activity: {
+    retryConnection: 'Retry Connection',
+    retrying: 'Retrying',
+    clearLogs: 'Clear Logs',
+    autoScrolling: 'Auto-Scrolling',
+    keepOldConnections: 'Keep Old Connections',
+    realTimeLogs: 'Real-time Logs',
+    connectionStatus: 'Connection Status',
+    searchConnections: 'search connections...',
+    searchLogs: 'search logs...'
   }
 }; 

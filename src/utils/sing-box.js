@@ -27,6 +27,32 @@ class SingBox {
       port: 7890,
       enableSystemProxy: true
     };
+    
+    // 添加全局状态管理
+    this.globalState = {
+      isRunning: false,
+      isInitialized: false,
+      lastError: null,
+      startTime: null,
+      connectionMonitor: {
+        enabled: false,
+        retryCount: 0,
+        maxRetries: 5,
+        retryDelay: 3000,
+        lastRetryTime: null
+      }
+    };
+    
+    // 状态监听器集合
+    this.stateListeners = new Set();
+    
+    // 自动重启配置
+    this.autoRestart = {
+      enabled: false,
+      maxAttempts: 3,
+      attemptDelay: 5000,
+      currentAttempts: 0
+    };
   }
 
   /**
@@ -66,6 +92,207 @@ class SingBox {
     if (config) {
       this.proxyConfig = { ...this.proxyConfig, ...config };
     }
+  }
+
+  /**
+   * 添加状态监听器
+   * @param {Function} listener 状态变化监听器
+   */
+  addStateListener(listener) {
+    if (typeof listener === 'function') {
+      this.stateListeners.add(listener);
+      logger.info(`[SingBox] 添加状态监听器，当前监听器数量: ${this.stateListeners.size}`);
+    }
+  }
+
+  /**
+   * 移除状态监听器
+   * @param {Function} listener 要移除的监听器
+   */
+  removeStateListener(listener) {
+    this.stateListeners.delete(listener);
+    logger.info(`[SingBox] 移除状态监听器，当前监听器数量: ${this.stateListeners.size}`);
+  }
+
+  /**
+   * 通知所有状态监听器
+   * @param {Object} stateChange 状态变化信息
+   */
+  notifyStateListeners(stateChange) {
+    const notification = {
+      ...stateChange,
+      timestamp: Date.now(),
+      globalState: { ...this.globalState }
+    };
+    
+    logger.info(`[SingBox] 通知状态变化: ${JSON.stringify(stateChange)}`);
+    
+    this.stateListeners.forEach(listener => {
+      try {
+        listener(notification);
+      } catch (error) {
+        logger.error(`[SingBox] 状态监听器执行失败: ${error.message}`);
+      }
+    });
+  }
+
+  /**
+   * 更新全局状态
+   * @param {Object} updates 状态更新
+   */
+  updateGlobalState(updates) {
+    const oldState = { ...this.globalState };
+    this.globalState = { ...this.globalState, ...updates };
+    
+    // 通知状态变化
+    this.notifyStateListeners({
+      type: 'state-update',
+      oldState,
+      newState: { ...this.globalState },
+      changes: updates
+    });
+  }
+
+  /**
+   * 获取全局状态
+   */
+  getGlobalState() {
+    return { ...this.globalState };
+  }
+
+  /**
+   * 重置连接监控状态
+   */
+  resetConnectionMonitor() {
+    this.updateGlobalState({
+      connectionMonitor: {
+        enabled: false,
+        retryCount: 0,
+        maxRetries: 5,
+        retryDelay: 3000,
+        lastRetryTime: null
+      }
+    });
+    
+    this.notifyStateListeners({
+      type: 'connection-monitor-reset',
+      message: '连接监控已重置'
+    });
+  }
+
+  /**
+   * 启用连接监控
+   */
+  enableConnectionMonitor() {
+    this.updateGlobalState({
+      connectionMonitor: {
+        ...this.globalState.connectionMonitor,
+        enabled: true,
+        retryCount: 0
+      }
+    });
+    
+    this.notifyStateListeners({
+      type: 'connection-monitor-enabled',
+      message: '连接监控已启用'
+    });
+  }
+
+  /**
+   * 禁用连接监控
+   */
+  disableConnectionMonitor() {
+    this.updateGlobalState({
+      connectionMonitor: {
+        ...this.globalState.connectionMonitor,
+        enabled: false
+      }
+    });
+    
+    this.notifyStateListeners({
+      type: 'connection-monitor-disabled',
+      message: '连接监控已禁用'
+    });
+  }
+
+  /**
+   * 记录连接重试
+   */
+  recordConnectionRetry() {
+    const monitor = this.globalState.connectionMonitor;
+    const newRetryCount = monitor.retryCount + 1;
+    
+    this.updateGlobalState({
+      connectionMonitor: {
+        ...monitor,
+        retryCount: newRetryCount,
+        lastRetryTime: Date.now()
+      }
+    });
+    
+    if (newRetryCount >= monitor.maxRetries) {
+      logger.warn(`[SingBox] 连接重试次数已达到上限 (${monitor.maxRetries})`);
+      this.disableConnectionMonitor();
+      
+      this.notifyStateListeners({
+        type: 'connection-monitor-max-retries',
+        message: `连接重试次数已达到上限 (${monitor.maxRetries})，停止重试`
+      });
+    }
+  }
+
+  /**
+   * 设置自动重启配置
+   * @param {Object} config 自动重启配置
+   */
+  setAutoRestart(config) {
+    this.autoRestart = { ...this.autoRestart, ...config };
+    logger.info(`[SingBox] 自动重启配置已更新: ${JSON.stringify(this.autoRestart)}`);
+  }
+
+  /**
+   * 尝试自动重启
+   * @param {Object} options 启动选项
+   */
+  async attemptAutoRestart(options) {
+    if (!this.autoRestart.enabled) return;
+    
+    this.autoRestart.currentAttempts++;
+    
+    logger.info(`[SingBox] 尝试自动重启 (第${this.autoRestart.currentAttempts}/${this.autoRestart.maxAttempts}次)`);
+    
+    this.notifyStateListeners({
+      type: 'auto-restart-attempt',
+      attempt: this.autoRestart.currentAttempts,
+      maxAttempts: this.autoRestart.maxAttempts,
+      message: `尝试自动重启 (第${this.autoRestart.currentAttempts}/${this.autoRestart.maxAttempts}次)`
+    });
+    
+    setTimeout(async () => {
+      try {
+        const result = await this.startCore(options);
+        if (!result.success) {
+          logger.error(`[SingBox] 自动重启失败: ${result.error}`);
+          
+          if (this.autoRestart.currentAttempts >= this.autoRestart.maxAttempts) {
+            this.notifyStateListeners({
+              type: 'auto-restart-failed',
+              message: '自动重启已达到最大尝试次数，停止重启'
+            });
+          }
+        } else {
+          logger.info('[SingBox] 自动重启成功');
+          this.autoRestart.currentAttempts = 0;
+          
+          this.notifyStateListeners({
+            type: 'auto-restart-success',
+            message: '自动重启成功'
+          });
+        }
+      } catch (error) {
+        logger.error(`[SingBox] 自动重启异常: ${error.message}`);
+      }
+    }, this.autoRestart.attemptDelay);
   }
 
   /**
@@ -438,6 +665,9 @@ class SingBox {
    */
   async startCore(options = {}) {
     try {
+      // 重置自动重启计数
+      this.autoRestart.currentAttempts = 0;
+      
       // 首先停止已存在的进程
       if (this.processHandlers.size > 0) {
         logger.info('[SingBox] 启动前停止现有进程');
@@ -446,11 +676,20 @@ class SingBox {
       
       const configPath = options.configPath;
       if (!configPath) {
+        this.updateGlobalState({ 
+          lastError: '没有指定配置文件',
+          isRunning: false 
+        });
         return { success: false, error: '没有指定配置文件' };
       }
       
       if (!fs.existsSync(configPath)) {
-        return { success: false, error: `配置文件不存在: ${configPath}` };
+        const error = `配置文件不存在: ${configPath}`;
+        this.updateGlobalState({ 
+          lastError: error,
+          isRunning: false 
+        });
+        return { success: false, error };
       }
       
       // 读取配置中的端口号
@@ -466,6 +705,14 @@ class SingBox {
       
       logger.info(`[SingBox] 启动sing-box，配置文件: ${configPath}, 代理端口: ${this.proxyConfig.port}`);
       
+      // 更新启动状态
+      this.updateGlobalState({
+        isRunning: false, // 启动中，还未完全运行
+        isInitialized: true,
+        lastError: null,
+        startTime: Date.now()
+      });
+      
       // 定义输出回调
       const outputCallback = (data) => {
         if (this.outputCallback) this.outputCallback(data);
@@ -475,17 +722,39 @@ class SingBox {
       const exitCallback = (code, error) => {
         logger.info(`[SingBox] 进程退出，退出码: ${code}${error ? ', 错误: ' + error : ''}`);
         
+        // 更新状态为停止
+        this.updateGlobalState({
+          isRunning: false,
+          lastError: error || (code !== 0 ? `进程异常退出，退出码: ${code}` : null)
+        });
+        
         // 清理进程记录
         this.processHandlers.clear();
         this.process = null;
+        
+        // 通知核心停止事件
+        this.notifyStateListeners({
+          type: 'core-stopped',
+          exitCode: code,
+          error: error,
+          message: '内核服务已停止'
+        });
         
         // 禁用系统代理
         this.disableSystemProxy().catch(err => {
           logger.error('[SingBox] 禁用系统代理失败:', err);
         });
         
+        // 禁用连接监控
+        this.disableConnectionMonitor();
+        
         // 触发状态回调
         this.triggerStatusCallback(false);
+        
+        // 检查是否需要自动重启
+        if (this.autoRestart.enabled && this.autoRestart.currentAttempts < this.autoRestart.maxAttempts) {
+          this.attemptAutoRestart(options);
+        }
         
         if (this.exitCallback) this.exitCallback({ code, error });
       };
@@ -501,6 +770,20 @@ class SingBox {
           this.process.configPath = configPath;
         }
         
+        // 更新运行状态
+        this.updateGlobalState({
+          isRunning: true,
+          lastError: null
+        });
+        
+        // 通知核心启动事件 - 不自动启用连接监控
+        this.notifyStateListeners({
+          type: 'core-started',
+          configPath: configPath,
+          proxyPort: this.proxyConfig.port,
+          message: '内核服务已启动'
+        });
+        
         // 设置系统代理
         if (this.proxyConfig.enableSystemProxy) {
           logger.info(`[SingBox] 正在设置系统代理: ${this.proxyConfig.host}:${this.proxyConfig.port}`);
@@ -511,12 +794,36 @@ class SingBox {
         
         // 触发状态回调
         this.triggerStatusCallback(true);
+      } else {
+        // 启动失败，更新状态
+        this.updateGlobalState({
+          isRunning: false,
+          lastError: result.error || '启动失败'
+        });
+        
+        this.notifyStateListeners({
+          type: 'core-start-failed',
+          error: result.error,
+          message: '内核服务启动失败'
+        });
       }
       
       return result;
     } catch (error) {
       const errorMsg = `启动sing-box核心服务失败: ${error.message}`;
       logger.error(errorMsg);
+      
+      this.updateGlobalState({
+        isRunning: false,
+        lastError: errorMsg
+      });
+      
+      this.notifyStateListeners({
+        type: 'core-start-error',
+        error: errorMsg,
+        message: '启动过程中发生异常'
+      });
+      
       return { success: false, error: errorMsg };
     }
   }
@@ -527,6 +834,17 @@ class SingBox {
    */
   async stopCore() {
     try {
+      logger.info('[SingBox] 开始停止内核服务');
+      
+      // 通知即将停止
+      this.notifyStateListeners({
+        type: 'core-stopping',
+        message: '正在停止内核服务'
+      });
+      
+      // 禁用连接监控
+      this.disableConnectionMonitor();
+      
       // 保存停止状态，确保下次启动不会尝试恢复
       try {
         // 修改状态为未运行，然后保存
@@ -558,12 +876,36 @@ class SingBox {
       this.processHandlers.clear();
       this.process = null;
       
+      // 更新全局状态
+      this.updateGlobalState({
+        isRunning: false,
+        lastError: null
+      });
+      
+      // 通知完全停止
+      this.notifyStateListeners({
+        type: 'core-stopped',
+        exitCode: 0,
+        message: '内核服务已完全停止'
+      });
+      
       // 触发状态回调
       this.triggerStatusCallback(false);
       
       return { success: true, message: '已停止所有sing-box进程' };
     } catch (error) {
       logger.error('[SingBox] 停止进程失败:', error);
+      
+      this.updateGlobalState({
+        lastError: error.message
+      });
+      
+      this.notifyStateListeners({
+        type: 'core-stop-error',
+        error: error.message,
+        message: '停止内核服务时发生错误'
+      });
+      
       return { success: false, error: error.message };
     }
   }
@@ -748,10 +1090,16 @@ class SingBox {
     this.pid = null;
     this.configPath = null;
     
-    // 更新状态对象
-    if (this.status) {
-      this.status.isRunning = false;
-    }
+    // 更新全局状态
+    this.updateGlobalState({
+      isRunning: false
+    });
+    
+    // 通知进程清理完成
+    this.notifyStateListeners({
+      type: 'process-cleanup',
+      message: '进程状态已清理'
+    });
     
     logger.info('进程状态已清理');
   }

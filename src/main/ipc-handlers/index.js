@@ -33,7 +33,8 @@ const HANDLERS_TO_REMOVE = [
   // 窗口相关 - 已迁移到新的IPC系统
   'show-window', 'quit-app', 'window-minimize', 'window-maximize', 'window-close',
   // 日志相关
-  'get-log-history', 'clear-logs',
+  'get-log-history', 'clear-logs', 'get-connection-log-history', 'clear-connection-logs',
+  'start-connection-monitoring', 'stop-connection-monitoring',
   // 设置相关
   'set-auto-launch', 'get-auto-launch', 'save-settings', 'get-settings',
   // 节点历史数据相关

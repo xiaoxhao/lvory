@@ -93,5 +93,18 @@ export default {
     information: '提示信息',
     skipVersion: '跳过此版本',
     remindLater: '下次提醒'
+  },
+  
+  // 活动页面相关
+  activity: {
+    retryConnection: '重试连接',
+    retrying: '重试中',
+    clearLogs: '清除日志',
+    autoScrolling: '自动滚动',
+    keepOldConnections: '保留旧连接',
+    realTimeLogs: '实时日志',
+    connectionStatus: '连接状态',
+    searchConnections: '搜索连接...',
+    searchLogs: '搜索日志...'
   }
 }; 

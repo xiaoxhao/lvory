@@ -89,7 +89,7 @@
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 8px 14px 8px 24px;
   border-radius: 16px;
   cursor: pointer;
   transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1);
