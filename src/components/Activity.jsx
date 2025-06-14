@@ -17,6 +17,19 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
   const [connectionMonitorActive, setConnectionMonitorActive] = useState(false);
   const connectionStopTimeoutRef = useRef(null);
   
+  const logContainerRef = useRef(null);
+  const [autoScroll, setAutoScroll] = useState(false); // 连接状态默认不保留历史
+  const [loading, setLoading] = useState(false);
+  const [pageSize] = useState(200);
+  const [visibleLogs, setVisibleLogs] = useState([]);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // 判断是否应该监听连接活动的函数
+  const shouldMonitorConnections = useCallback(() => {
+    return isKernelRunning && connectionMonitorActive && activeTab === 'connections';
+  }, [isKernelRunning, connectionMonitorActive, activeTab]);
+
   // 当切换到Activity视图且内核运行时，自动切换到connections标签
   useEffect(() => {
     if (isActivityView && isKernelRunning) {
@@ -31,18 +44,6 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
       setConnectionLogs([]);
     }
   }, [shouldMonitorConnections]);
-  const logContainerRef = useRef(null);
-  const [autoScroll, setAutoScroll] = useState(false); // 连接状态默认不保留历史
-  const [loading, setLoading] = useState(false);
-  const [pageSize] = useState(200);
-  const [visibleLogs, setVisibleLogs] = useState([]);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  // 判断是否应该监听连接活动的函数
-  const shouldMonitorConnections = useCallback(() => {
-    return isKernelRunning && connectionMonitorActive && activeTab === 'connections';
-  }, [isKernelRunning, connectionMonitorActive, activeTab]);
 
   // 处理连接标签页的激活和停用
   useEffect(() => {

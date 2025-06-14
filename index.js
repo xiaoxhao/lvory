@@ -40,13 +40,20 @@ if (!isFirstInstance && !isDev) {
 }
 
 // 优化V8内存设置 - 减少初始内存限制以降低资源占用
-app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=512 --optimize-for-size --memory-pressure-threshold=1024');
+app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=256 --optimize-for-size --memory-pressure-threshold=512');
 app.commandLine.appendSwitch('enable-features', 'V8Runtime,V8PerContextHeaps,PartitionedFullCodeCache,V8VmFuture,V8LiftoffForAll');
 app.commandLine.appendSwitch('enable-blink-features', 'JSHeavyAdThrottling');
-// 垃圾回收相关优化
-app.commandLine.appendSwitch('js-flags', '--expose-gc --gc-interval=2000');
+// 垃圾回收相关优化 - 使用自然GC
+app.commandLine.appendSwitch('js-flags', '--gc-interval=5000 --max-semi-space-size=1');
 // 禁用后台节流以减少CPU使用率
 app.commandLine.appendSwitch('disable-background-timer-throttling');
+// 禁用不必要的功能以节省内存
+app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor,AudioServiceOutOfProcess');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-dev-shm-usage');
+// 限制渲染进程数量
+app.commandLine.appendSwitch('max-active-webgl-contexts', '1');
+app.commandLine.appendSwitch('disable-background-networking');
 
 // 懒加载 AdmZip
 let AdmZip;
@@ -84,16 +91,16 @@ const initSingBox = () => {
       singbox = require('./src/utils/sing-box');
     } catch (error) {
       logger.error('加载SingBox模块失败:', error);
-      return { 
-        initialized: false, 
-        init: () => {}, 
+      return {
+        initialized: false,
+        init: () => { },
         loadState: async () => null,
         checkInstalled: () => false,
         getVersion: async () => ({ success: false })
       };
     }
   }
-  
+
   if (!singbox.initialized) {
     logger.info('初始化SingBox模块');
     try {
@@ -102,7 +109,7 @@ const initSingBox = () => {
       logger.error('初始化SingBox失败:', error);
     }
   }
-  
+
   return singbox;
 };
 
@@ -124,29 +131,29 @@ const restoreProxyState = async () => {
   // 如果不是第一个实例不恢复代理状态
   if (!isFirstInstance) return;
   if (isDev) return;
-  
+
   try {
     const sb = initSingBox();
     const settings = initSettingsManager();
     await settings.loadSettings();
-    
+
     // 获取存储的sing-box状态
     const state = await sb.loadState();
-    
+
     if (state && state.isRunning && state.configPath) {
       logger.info('恢复上次代理状态，配置文件路径:', state.configPath);
-      
+
       // 延迟启动代理，确保应用界面已经加载
       setTimeout(async () => {
         const mainWindow = windowManager.getMainWindow();
-        
+
         // 启动代理核心
-        const result = await sb.startCore({ 
+        const result = await sb.startCore({
           configPath: state.configPath,
           proxyConfig: state.proxyConfig,
           enableSystemProxy: state.proxyConfig?.enableSystemProxy || false
         });
-        
+
         // 通知UI更新状态
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('proxy-state-restored', {
@@ -155,7 +162,7 @@ const restoreProxyState = async () => {
             configPath: state.configPath
           });
         }
-        
+
         if (result.success) {
           logger.info('代理状态恢复成功');
         } else {
@@ -175,19 +182,19 @@ const setupApp = () => {
   try {
     // 设置IPC处理程序
     ipcHandlers.setupHandlers();
-    
+
     // 设置新的IPC系统
     newIpcSystem.setup();
-    
+
     // 初始化配置管理器
     profileManager.getConfigPath();
-    
+
     // 预加载singbox，确保核心功能正常
     initSingBox();
-    
+
     // 加载设置
     initSettingsManager();
-    
+
     // 恢复上次代理状态
     restoreProxyState().catch(err => {
       logger.error('恢复代理状态过程中出错:', err);
@@ -216,17 +223,17 @@ app.on('ready', () => {
 
   // 创建主窗口
   windowManager.createWindow();
-  
+
   // 初始创建托盘
   trayManager.createTray();
-  
+
   // 初始化主要模块
   setupApp();
-  
+
   // 延迟获取版本信息
   setTimeout(() => {
     const sb = initSingBox();
-    
+
     if (sb.checkInstalled()) {
       logger.info('sing-box已安装，正在获取版本信息');
       sb.getVersion().then(result => {
@@ -252,18 +259,12 @@ app.on('ready', () => {
     
     // 应用初始化完成
     logger.info('应用初始化完成');
-    
-    // 设置定期内存优化
-    if (!isDev) {
-      setInterval(optimizeMemory, 300000); // 每5分钟优化一次内存
-    }
   }, 1000);
 });
 
 // 劫持窗口关闭行为
 app.on('window-all-closed', (e) => {
   if (process.platform !== 'darwin') {
-    // 不立即退出
     e.preventDefault();
   }
 });

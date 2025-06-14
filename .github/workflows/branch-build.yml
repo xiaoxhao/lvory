@@ -1,0 +1,238 @@
+name: Branch Build and Release
+
+on:
+  push:
+    branches-ignore: 
+      - master
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+      
+      - name: Inject build date
+        run: |
+          $buildDate = "${{ steps.date.outputs.date }}"
+          Get-ChildItem -Path src -Filter "*.js" -Recurse | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            if ($content -match "const APP_BUILD_DATE = '(\d+)'") {
+              $newContent = $content -replace "const APP_BUILD_DATE = '(\d+)'", "const APP_BUILD_DATE = '$buildDate'"
+              Set-Content $_.FullName $newContent
+              Write-Host "Injected build date $buildDate into $($_.FullName)"
+            }
+          }
+        shell: pwsh
+      
+      - name: Build Windows
+        run: npm run build:win
+      
+      - name: List build directory contents
+        run: |
+          dir build
+          echo "MSI files:"
+          Get-ChildItem -Path build -Filter "*.msi" -Recurse
+        shell: pwsh
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-artifacts
+          path: build/*.msi
+
+  build-macos:
+    runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+      
+      - name: Inject build date
+        run: |
+          buildDate="${{ steps.date.outputs.date }}"
+          find src -type f -name "*.js" -print0 | xargs -0 grep -l "const APP_BUILD_DATE = '[0-9]\\{8\\}'" | while read file; do
+            sed -i '' "s/const APP_BUILD_DATE = '[0-9]\{8\}'/const APP_BUILD_DATE = '$buildDate'/" "$file"
+            echo "Injected build date $buildDate into $file"
+          done
+        shell: bash
+      
+      - name: Build Universal macOS App
+        run: npm run build:mac-universal
+      
+      - name: List build directory contents
+        run: |
+          ls -la build
+          echo "macOS DMG files:"
+          find build -name "*.dmg" -type f
+        shell: bash
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-artifacts
+          path: build/*.dmg
+
+  build-linux:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+      
+      - name: Inject build date
+        run: |
+          buildDate="${{ steps.date.outputs.date }}"
+          find src -type f -name "*.js" -print0 | xargs -0 grep -l "const APP_BUILD_DATE = '[0-9]\\{8\\}'" | while read file; do
+            sed -i "s/const APP_BUILD_DATE = '[0-9]\{8\}'/const APP_BUILD_DATE = '$buildDate'/" "$file"
+            echo "Injected build date $buildDate into $file"
+          done
+        shell: bash
+      
+      - name: Build Linux
+        run: npm run build:linux
+      
+      - name: List build directory contents
+        run: |
+          ls -la build
+          echo "Linux DEB files:"
+          find build -name "*.deb" -type f
+        shell: bash
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build-artifacts
+          path: build/*.deb
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      
+      - name: Get branch name
+        id: branch
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+      
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+      
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build-artifacts
+          path: artifacts/windows
+      
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-build-artifacts
+          path: artifacts/macos
+      
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build-artifacts
+          path: artifacts/linux
+      
+      - name: List downloaded artifacts
+        run: |
+          find artifacts -type f
+      
+      - name: Delete existing release if exists
+        run: |
+          gh release delete "${{ steps.branch.outputs.branch }}-build" --yes || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create or Update Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.branch.outputs.branch }}-build
+          name: ${{ steps.branch.outputs.branch }} Branch Build
+          body: |
+            Automated build for ${{ steps.branch.outputs.branch }} branch
+            This version is built from the latest code in the ${{ steps.branch.outputs.branch }} branch and may contain unstable features.
+            
+            ## Supported Platforms
+            - Windows Portable & Setup
+            - macOS DMG (Universal Binary - supports Intel x64 and Apple Silicon arm64)
+            - Linux DEB (x64 & arm64)
+            
+            **Note:** This release is automatically updated with each push to the ${{ steps.branch.outputs.branch }} branch.
+          draft: false
+          prerelease: true
+          files: |
+            artifacts/windows/*.msi
+            artifacts/macos/*.dmg
+            artifacts/linux/*.deb 

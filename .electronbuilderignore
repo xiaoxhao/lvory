@@ -1,0 +1,46 @@
+# 开发文件
+src/
+public/
+docs/
+test/
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# 配置文件
+webpack.config.js
+babel.config.js
+.babelrc*
+.eslintrc*
+.prettierrc*
+.gitignore
+.gitattributes
+
+# 依赖和缓存
+node_modules/.cache/
+.npm/
+.yarn/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# IDE和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 构建产物（保留dist）
+build/
+coverage/
+.nyc_output/
+
+# 日志文件
+*.log
+logs/ 

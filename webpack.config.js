@@ -2,13 +2,38 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports = {
-  mode: 'development',
+  mode: isProduction ? 'production' : 'development',
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
-    publicPath: process.env.NODE_ENV === 'production' ? './' : '/'
+    filename: isProduction ? '[name].[contenthash].js' : '[name].js',
+    chunkFilename: isProduction ? '[name].[contenthash].chunk.js' : '[name].chunk.js',
+    publicPath: isProduction ? './' : '/',
+    clean: true
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+          priority: 10
+        },
+        react: {
+          test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+          name: 'react',
+          chunks: 'all',
+          priority: 20
+        }
+      }
+    },
+    usedExports: true,
+    sideEffects: false
   },
   module: {
     rules: [
@@ -18,40 +43,76 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env', '@babel/preset-react']
+            presets: [
+              ['@babel/preset-env', {
+                targets: {
+                  node: '24'
+                },
+                modules: false
+              }],
+              ['@babel/preset-react', {
+                runtime: 'automatic'
+              }]
+            ]
           }
         }
       },
       {
         test: /\.css$/,
         use: [
-          process.env.NODE_ENV === 'development' 
-            ? 'style-loader' 
-            : MiniCssExtractPlugin.loader,
-          'css-loader'
+          isProduction 
+            ? MiniCssExtractPlugin.loader
+            : 'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 1
+            }
+          }
         ]
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
-        type: 'asset/resource',
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 8 * 1024 // 8kb
+          }
+        }
       }
     ]
   },
   resolve: {
-    extensions: ['.js', '.jsx']
+    extensions: ['.js', '.jsx'],
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+    }
   },
   plugins: [
     new HtmlWebpackPlugin({
       template: './public/index.html',
-      filename: 'index.html'
+      filename: 'index.html',
+      minify: isProduction ? {
+        removeComments: true,
+        collapseWhitespace: true,
+        removeRedundantAttributes: true,
+        useShortDoctype: true,
+        removeEmptyAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        keepClosingSlash: true,
+        minifyJS: true,
+        minifyCSS: true,
+        minifyURLs: true
+      } : false
     }),
-    new MiniCssExtractPlugin({
-      filename: 'styles.css'
-    })
+    ...(isProduction ? [
+      new MiniCssExtractPlugin({
+        filename: '[name].[contenthash].css',
+        chunkFilename: '[name].[contenthash].chunk.css'
+      })
+    ] : [])
   ],
-  target: process.env.NODE_ENV === 'development' 
-    ? 'web'
-    : 'electron-renderer',
+  target: isProduction ? 'electron-renderer' : 'web',
   devServer: {
     static: {
       directory: path.join(__dirname, 'public'),
@@ -71,5 +132,5 @@ module.exports = {
       return middlewares;
     }
   },
-  devtool: 'eval-source-map'
+  devtool: isProduction ? 'source-map' : 'eval-source-map'
 }; 
