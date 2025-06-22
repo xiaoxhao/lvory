@@ -95,7 +95,7 @@ const App = () => {
   
   // 监听窗口可见性变化事件
   useEffect(() => {
-    if (window.electron && window.electron.onWindowVisibilityChange) {
+    if (window.electron && window.electron.window && window.electron.window.onVisibilityChange) {
       let isMounted = true;
       const handleVisibilityChange = (state) => {
         if (!isMounted) return;
@@ -111,7 +111,7 @@ const App = () => {
       };
       
       // 注册事件监听
-      const unsubscribe = window.electron.onWindowVisibilityChange(handleVisibilityChange);
+      const unsubscribe = window.electron.window.onVisibilityChange(handleVisibilityChange);
       
       return () => {
         isMounted = false;
@@ -155,9 +155,9 @@ const App = () => {
     let isMounted = true;
     
     const getProfilesCount = async () => {
-      if (window.electron && window.electron.getProfileFiles) {
-        try {
-          const result = await window.electron.getProfileFiles();
+          if (window.electron && window.electron.profiles && window.electron.profiles.getFiles) {
+      try {
+        const result = await window.electron.profiles.getFiles();
           if (!isMounted) return;
           
           if (result && result.success && Array.isArray(result.files)) {
@@ -181,8 +181,8 @@ const App = () => {
       if (isMounted) getProfilesCount();
     };
 
-    if (window.electron && window.electron.onProfilesChanged) {
-      window.electron.onProfilesChanged(updateProfilesCount);
+    if (window.electron && window.electron.profiles && window.electron.profiles.onChanged) {
+      window.electron.profiles.onChanged(updateProfilesCount);
     }
 
     return () => {
@@ -209,13 +209,13 @@ const App = () => {
       try {
         switch(action) {
           case 'minimize':
-            window.electron.minimizeWindow();
+            window.electron.window.minimize();
             break;
           case 'maximize':
-            window.electron.maximizeWindow();
+            window.electron.window.maximize();
             break;
           case 'close':
-            window.electron.closeWindow();
+            window.electron.window.close();
             break;
         }
       } catch (error) {

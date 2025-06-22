@@ -66,8 +66,8 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
 
   // 获取API地址设置
   useEffect(() => {
-    if (window.electron && window.electron.getSettings) {
-      window.electron.getSettings().then(result => {
+          if (window.electron && window.electron.settings && window.electron.settings.get) {
+        window.electron.settings.get().then(result => {
         if (result && result.success) {
           setApiAddress(result.settings.apiAddress || '127.0.0.1:9090');
         }
@@ -82,7 +82,7 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
     // 定义更新数据的函数
     const updateProfileData = () => {
       if (window.electron) {
-        window.electron.getProfileData().then((data) => {
+        window.electron.profiles.getData().then((data) => {
           if (data && data.success && Array.isArray(data.profiles)) {
             setProfileData(data.profiles);
             

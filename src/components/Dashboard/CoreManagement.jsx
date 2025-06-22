@@ -38,8 +38,8 @@ const useCoreManagement = () => {
   };
 
   const setupCoreDownloadListener = (callback) => {
-    if (window.electron && window.electron.onCoreDownloadProgress) {
-      return window.electron.onCoreDownloadProgress(progress => {
+    if (window.electron && window.electron.download && window.electron.download.onCoreProgress) {
+      return window.electron.download.onCoreProgress(progress => {
         setCoreDownloadProgress(progress.progress);
         if (callback) callback(progress);
       });

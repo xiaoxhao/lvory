@@ -17,9 +17,9 @@ export const AppProvider = ({ children }) => {
   // 加载持久化的设置
   useEffect(() => {
     const loadSettings = async () => {
-      if (window.electron && window.electron.getSettings) {
-        try {
-          const result = await window.electron.getSettings();
+          if (window.electron && window.electron.settings && window.electron.settings.get) {
+      try {
+        const result = await window.electron.settings.get();
           if (result.success) {
             setState(prev => ({
               ...prev,
@@ -56,9 +56,9 @@ export const AppProvider = ({ children }) => {
     }
 
     // 持久化设置
-    if (window.electron && window.electron.saveSettings) {
+    if (window.electron && window.electron.settings && window.electron.settings.save) {
       try {
-        await window.electron.saveSettings({
+        await window.electron.settings.save({
           ...state,
           ...newSettings
         });

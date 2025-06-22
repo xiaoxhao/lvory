@@ -209,14 +209,21 @@ class ConnectionLogger {
     this.monitoringState.isMonitoring = true;
     this.monitoringState.lastStartTime = Date.now();
     
-    // 如果这是首次连接，延迟3秒以确保内核完全启动
+    // 通知前端连接监听已启动
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send('connection-monitoring-started');
+    }
+    
+    // 减少延迟，快速启动连接监听
     const isFirstAttempt = this.connectionState.retryCount === 0;
-    const startDelay = isFirstAttempt ? 3000 : 1000;
+    const startDelay = isFirstAttempt ? 500 : 300;
     
     console.log(`ConnectionLogger: ${isFirstAttempt ? '首次' : '重试'}连接到 ${this.clashApi.host}:${this.clashApi.port}，延迟 ${startDelay}ms`);
     
     setTimeout(() => {
-      this.connectToLogStream();
+      if (this.enabled && !this.connectionState.gracefulShutdown) {
+        this.connectToLogStream();
+      }
     }, startDelay);
   }
 
@@ -623,7 +630,11 @@ class ConnectionLogger {
     
     // 检查是否已经在监听中
     if (this.isStreaming && this.monitoringState.isMonitoring) {
-      console.log('ConnectionLogger: 监听已在运行中，跳过重复启动');
+      console.log('ConnectionLogger: 监听已在运行中，重置连接状态以显示最新数据');
+      // 即使已在监听，也要通知前端清空状态以显示最新数据
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('connection-log-reset');
+      }
       return true;
     }
     
@@ -634,6 +645,16 @@ class ConnectionLogger {
       this.connectionState.gracefulShutdown = false;
       this.monitoringState.isMonitoring = true;
       this.monitoringState.preserveUntil = null; // 清除保留状态
+      
+      // 立即启动连接流（如果还没有启动）
+      if (!this.isStreaming) {
+        this.startConnectionLogStream();
+      } else {
+        // 通知前端重置连接状态
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('connection-log-reset');
+        }
+      }
       return true;
     }
     
@@ -648,8 +669,16 @@ class ConnectionLogger {
     this.connectionState.gracefulShutdown = false;
     this.monitoringState.pendingStart = true;
     this.monitoringState.startRequestId = requestId;
+    this.monitoringState.isMonitoring = true; // 立即设置为监听状态
     this.resetConnectionState();
     
+    // 立即尝试启动，不等待配置更新
+    if (!this.isStreaming) {
+      console.log('ConnectionLogger: 立即启动连接监听');
+      this.startConnectionLogStream();
+    }
+    
+    // 异步更新配置
     this.updateApiConfig().then(() => {
       // 检查请求是否仍然有效（防止并发请求）
       if (this.monitoringState.startRequestId !== requestId) {
@@ -657,11 +686,18 @@ class ConnectionLogger {
         return;
       }
       
-      if (!this.isStreaming && !this.monitoringState.isMonitoring) {
-        console.log('ConnectionLogger: 手动启动连接监听');
-        this.startConnectionLogStream();
+      // 如果配置更新后需要重启连接流
+      if (this.isStreaming) {
+        this.stopConnectionLogStream();
+        setTimeout(() => {
+          this.startConnectionLogStream();
+        }, 100);
       }
       
+      this.monitoringState.pendingStart = false;
+      this.monitoringState.startRequestId = null;
+    }).catch(error => {
+      console.error('ConnectionLogger: 更新配置时出错:', error);
       this.monitoringState.pendingStart = false;
       this.monitoringState.startRequestId = null;
     });

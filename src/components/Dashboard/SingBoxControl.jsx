@@ -44,8 +44,8 @@ const useSingBoxControl = () => {
       }
     };
 
-    if (window.electron && window.electron.onCoreDownloadProgress) {
-      window.electron.onCoreDownloadProgress(handleDownloadProgress);
+    if (window.electron && window.electron.download && window.electron.download.onCoreProgress) {
+      window.electron.download.onCoreProgress(handleDownloadProgress);
     }
 
     return () => {

@@ -56,11 +56,14 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
         connectionStopTimeoutRef.current = null;
       }
       
-      // 启动后端连接监听
+      // 立即启动后端连接监听
       if (isKernelRunning) {
         window.electron.logs.startConnectionMonitoring().then(success => {
           if (success) {
             console.log('后端连接监听已启动');
+            // 清空当前连接状态以确保显示最新数据
+            setCurrentConnections(new Map());
+            setConnectionLogs([]);
           } else {
             console.warn('后端连接监听启动失败');
           }
@@ -183,14 +186,14 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
       try {
         setLoading(true);
         if (activeTab === 'logs') {
-          const history = await window.electron.logs.getLogHistory();
+          const history = await window.electron.logs.getHistory();
           if (history?.length) {
             setLogs(history.slice(-pageSize));
           }
         } else if (shouldMonitorConnections()) {
           // 只有在内核运行且处于连接状态标签时才获取连接日志
           // 以避免不需要的性能开销
-          const history = await window.electron.logs.getConnectionLogHistory();
+          const history = await window.electron.logs.getConnectionHistory();
           if (history?.length) {
             setConnectionLogs(history.slice(-pageSize));
           }
@@ -280,9 +283,16 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
       }
     };
     
-    const unsubscribe = window.electron.logs.onLogMessage(onNewLog);
-    const unsubscribeActivity = window.electron.logs.onActivityLog(onNewLog);
-    const unsubscribeConnection = window.electron.logs.onConnectionLog(onNewConnectionLog);
+    const unsubscribe = window.electron.logs.onMessage(onNewLog);
+    const unsubscribeActivity = window.electron.logs.onActivity(onNewLog);
+    const unsubscribeConnection = window.electron.logs.onConnection(onNewConnectionLog);
+    
+    // 监听连接状态重置事件
+    const unsubscribeReset = window.electron.ipcRenderer?.on('connection-log-reset', () => {
+      console.log('收到连接状态重置信号，清空前端连接数据');
+      setCurrentConnections(new Map());
+      setConnectionLogs([]);
+    });
 
     return () => {
       if (updateTimer) {
@@ -291,6 +301,7 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
       unsubscribe?.();
       unsubscribeActivity?.();
       unsubscribeConnection?.();
+      unsubscribeReset?.();
     };
   }, [autoScroll, pageSize, activeTab, shouldMonitorConnections]);
 
@@ -316,7 +327,7 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
           setLoading(true);
           
           if (activeTab === 'logs') {
-            const history = await window.electron.logs.getLogHistory();
+            const history = await window.electron.logs.getHistory();
             
             if (history?.length > logs.length) {
               const startIndex = Math.max(0, history.length - logs.length - pageSize);
@@ -327,7 +338,7 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
               }
             }
           } else {
-            const history = await window.electron.logs.getConnectionLogHistory();
+            const history = await window.electron.logs.getConnectionHistory();
             
             if (history?.length > connectionLogs.length) {
               const startIndex = Math.max(0, history.length - connectionLogs.length - pageSize);
@@ -361,7 +372,7 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
   const handleClearLogs = async () => {
     try {
       // 只处理日志清除，移除连接相关清除逻辑
-      await window.electron.logs.clearLogs();
+      await window.electron.logs.clear();
       setLogs([]);
       setVisibleLogs([]);
     } catch (error) {

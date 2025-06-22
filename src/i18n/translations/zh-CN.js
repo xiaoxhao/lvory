@@ -92,7 +92,20 @@ export default {
     releaseNotes: '更新说明',
     information: '提示信息',
     skipVersion: '跳过此版本',
-    remindLater: '下次提醒'
+    remindLater: '下次提醒',
+    versionManager: '版本管理',
+    allVersions: '所有版本',
+    stableVersions: '正式版',
+    nightlyVersions: '夜间构建',
+    prereleaseVersions: '预发布版',
+    loading: '加载中...',
+    refresh: '刷新',
+
+    publishedAt: '发布时间',
+    viewDetails: '查看详情',
+    downloadFiles: '下载文件',
+    currentVersionLabel: '当前版本',
+    noVersionsFound: '没有找到匹配的版本'
   },
   
   // 活动页面相关
@@ -101,10 +114,11 @@ export default {
     retrying: '重试中',
     clearLogs: '清除日志',
     autoScrolling: '自动滚动',
-    keepOldConnections: '保留旧连接',
+    keepOldConnections: '保留历史',
     realTimeLogs: '实时日志',
     connectionStatus: '连接状态',
     searchConnections: '搜索连接...',
-    searchLogs: '搜索日志...'
+    searchLogs: '搜索日志...',
+    connectionHelp: '疑惑解答'
   }
 }; 

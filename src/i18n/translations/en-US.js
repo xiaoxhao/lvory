@@ -92,7 +92,20 @@ export default {
     releaseNotes: 'Release Notes',
     information: 'Information',
     skipVersion: 'Skip This Version',
-    remindLater: 'Remind Later'
+    remindLater: 'Remind Later',
+    versionManager: 'Version Manager',
+    allVersions: 'All Versions',
+    stableVersions: 'Stable',
+    nightlyVersions: 'Nightly',
+    prereleaseVersions: 'Prerelease',
+    loading: 'Loading...',
+    refresh: 'Refresh',
+
+    publishedAt: 'Published',
+    viewDetails: 'View Details',
+    downloadFiles: 'Download Files',
+    currentVersionLabel: 'Current Version',
+    noVersionsFound: 'No matching versions found'
   },
   
   // Activity page related
@@ -101,10 +114,11 @@ export default {
     retrying: 'Retrying',
     clearLogs: 'Clear Logs',
     autoScrolling: 'Auto-Scrolling',
-    keepOldConnections: 'Keep Old Connections',
+    keepOldConnections: 'Keep History',
     realTimeLogs: 'Real-time Logs',
     connectionStatus: 'Connection Status',
     searchConnections: 'search connections...',
-    searchLogs: 'search logs...'
+    searchLogs: 'search logs...',
+    connectionHelp: 'Connection Help'
   }
 }; 

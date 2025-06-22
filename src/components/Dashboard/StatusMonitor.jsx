@@ -93,11 +93,13 @@ const useStatusMonitor = (singBoxControl, setSystemStats, setProfileData, setNod
     };
 
     // 添加事件监听
+    let removeProfileListener = null;
+    
     if (window.electron) {
-      window.electron.onProfileData(handleProfileData);
+      removeProfileListener = window.electron.profiles.onData(handleProfileData);
       
       // 手动请求配置文件数据
-      window.electron.getProfileData().then((data) => {
+      window.electron.profiles.getData().then((data) => {
         console.log('Fetched profile data:', data);
         // 判断是否是新的返回格式，处理profileData提取
         if (data && data.success && Array.isArray(data.profiles)) {
@@ -139,8 +141,8 @@ const useStatusMonitor = (singBoxControl, setSystemStats, setProfileData, setNod
 
     // 组件卸载时移除事件监听
     return () => {
-      if (window.electron && window.electron.removeProfileData) {
-        window.electron.removeProfileData(handleProfileData);
+      if (removeProfileListener) {
+        removeProfileListener();
       }
     };
   }, [setProfileData, setNodeTypeStats, setTestResults]);
@@ -153,7 +155,7 @@ const useStatusMonitor = (singBoxControl, setSystemStats, setProfileData, setNod
       if (data.success) {
         // 重新获取配置数据
         if (window.electron) {
-          window.electron.getProfileData().then((data) => {
+          window.electron.profiles.getData().then((data) => {
             if (data && data.success && Array.isArray(data.profiles)) {
               setProfileData(data.profiles);
             }
@@ -165,14 +167,16 @@ const useStatusMonitor = (singBoxControl, setSystemStats, setProfileData, setNod
     };
 
     // 添加事件监听
+    let removeDownloadListener = null;
+    
     if (window.electron) {
-      window.electron.onDownloadComplete(handleDownloadComplete);
+      removeDownloadListener = window.electron.download.onComplete(handleDownloadComplete);
     }
 
     // 组件卸载时移除事件监听
     return () => {
-      if (window.electron && window.electron.removeDownloadComplete) {
-        window.electron.removeDownloadComplete(handleDownloadComplete);
+      if (removeDownloadListener) {
+        removeDownloadListener();
       }
     };
   }, [setProfileData]);
@@ -181,10 +185,10 @@ const useStatusMonitor = (singBoxControl, setSystemStats, setProfileData, setNod
   useEffect(() => {
     console.log('设置版本更新监听器');
     // 检查window.electron是否存在
-    if (window.electron && window.electron.onCoreVersionUpdate) {
+    if (window.electron && window.electron.singbox && window.electron.singbox.onVersionUpdate) {
       // 监听版本更新
-      console.log('注册onCoreVersionUpdate监听器');
-      const removeListener = window.electron.onCoreVersionUpdate(data => {
+      console.log('注册onVersionUpdate监听器');
+      const removeListener = window.electron.singbox.onVersionUpdate(data => {
         console.log('收到版本更新事件:', data);
         setSystemStats(prev => ({
           ...prev,
@@ -216,7 +220,7 @@ const useStatusMonitor = (singBoxControl, setSystemStats, setProfileData, setNod
         if (removeListener) removeListener();
       };
     } else {
-      console.warn('electron.onCoreVersionUpdate不可用');
+      console.warn('electron.singbox.onVersionUpdate不可用');
     }
   }, [setSystemStats]);
 

@@ -14,26 +14,43 @@ const useProfileUpdate = (setProfileData) => {
       return;
     }
     
-    const intervalMs = parseInt(updateInterval) * 60 * 60 * 1000;
+    // 计算间隔毫秒数
+    let intervalMs;
+    if (updateInterval.endsWith('h')) {
+      // 小时格式，如 "12h"
+      intervalMs = parseInt(updateInterval.replace('h', '')) * 60 * 60 * 1000;
+    } else if (updateInterval.endsWith('d')) {
+      // 天数格式，如 "7d"
+      intervalMs = parseInt(updateInterval.replace('d', '')) * 24 * 60 * 60 * 1000;
+    } else {
+      // 兼容旧格式（纯数字，按小时计算）
+      intervalMs = parseInt(updateInterval) * 60 * 60 * 1000;
+    }
     
     updateTimerRef.current = setInterval(() => {
       console.log(`自动更新配置文件: ${fileName} - ${new Date().toLocaleString()}`);
       downloadProfileSilently(url, fileName);
     }, intervalMs);
     
-    console.log(`已设置自动更新定时器，间隔 ${updateInterval} 小时`);
+    const displayText = updateInterval.endsWith('h') ? 
+      updateInterval.replace('h', '小时') : 
+      updateInterval.endsWith('d') ? 
+        updateInterval.replace('d', '天') : 
+        `${updateInterval}小时`;
+    
+    console.log(`已设置自动更新定时器，间隔 ${displayText}`);
   };
   
   const downloadProfileSilently = (url, customFileName) => {
     if (!url || !customFileName) return;
     
     if (window.electron) {
-      window.electron.updateProfile(customFileName)
+      window.electron.profiles.update(customFileName)
         .then(result => {
           console.log('自动更新结果:', result);
           if (result.success) {
             // 重新获取配置文件数据
-            window.electron.getProfileData().then((data) => {
+            window.electron.profiles.getData().then((data) => {
               if (data && data.success && Array.isArray(data.profiles)) {
                 setProfileData(data.profiles);
               }

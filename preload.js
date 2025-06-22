@@ -1,34 +1,36 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
+  // 统一的窗口管理接口
   window: {
     control: (action) => ipcRenderer.send('window.control', { action }),
-    action: (type) => ipcRenderer.invoke('window.action', { type })
+    action: (type) => ipcRenderer.invoke('window.action', { type }),
+    minimize: () => ipcRenderer.send('window.control', { action: 'minimize' }),
+    maximize: () => ipcRenderer.send('window.control', { action: 'maximize' }),
+    close: () => ipcRenderer.send('window.control', { action: 'close' }),
+    show: () => ipcRenderer.invoke('window.action', { type: 'show' }),
+    quit: () => ipcRenderer.invoke('window.action', { type: 'quit' }),
+    onVisibilityChange: (callback) => {
+      ipcRenderer.on('window-visibility-change', (event, state) => callback(state));
+      return () => ipcRenderer.removeListener('window-visibility-change', callback);
+    }
   },
   
   // 获取网络接口列表
   getNetworkInterfaces: () => ipcRenderer.invoke('get-network-interfaces'),
   
-  minimizeWindow: () => ipcRenderer.send('window-minimize'),
-  maximizeWindow: () => ipcRenderer.send('window-maximize'),
-  closeWindow: () => ipcRenderer.send('window-close'),
-  
-  showWindow: () => ipcRenderer.invoke('show-window'),
-  quitApp: () => ipcRenderer.invoke('quit-app'),
-  
-  // 监听窗口可见性变化事件
-  onWindowVisibilityChange: (callback) => {
-    ipcRenderer.on('window-visibility-change', (event, state) => callback(state));
-    return () => ipcRenderer.removeListener('window-visibility-change', callback);
-  },
-  
-  downloadProfile: (data) => ipcRenderer.invoke('download-profile', data),
-  
-  downloadCore: () => ipcRenderer.invoke('download-core'),
-  
-  onCoreDownloadProgress: (callback) => {
-    ipcRenderer.on('core-download-progress', (event, progress) => callback(progress));
-    return () => ipcRenderer.removeListener('core-download-progress', callback);
+  // 统一的下载管理接口
+  download: {
+    profile: (data) => ipcRenderer.invoke('download-profile', data),
+    core: () => ipcRenderer.invoke('download-core'),
+    onCoreProgress: (callback) => {
+      ipcRenderer.on('core-download-progress', (event, progress) => callback(progress));
+      return () => ipcRenderer.removeListener('core-download-progress', callback);
+    },
+    onComplete: (callback) => {
+      ipcRenderer.on('download-complete', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('download-complete', callback);
+    }
   },
   
   onStatusUpdate: (callback) => {
@@ -38,15 +40,13 @@ contextBridge.exposeInMainWorld('electron', {
   
   openConfigDir: () => ipcRenderer.invoke('openConfigDir'),
   
-  // 版本更新相关
-  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-  
   // 打开外部链接
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   
   // 调用main进程方法
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   
+  // 统一的SingBox管理接口
   singbox: {
     checkInstalled: () => ipcRenderer.invoke('singbox-check-installed'),
     getVersion: () => ipcRenderer.invoke('singbox-get-version'),
@@ -67,63 +67,51 @@ contextBridge.exposeInMainWorld('electron', {
     onExit: (callback) => {
       ipcRenderer.on('singbox-exit', (event, data) => callback(data));
       return () => ipcRenderer.removeListener('singbox-exit', callback);
+    },
+    
+    onVersionUpdate: (callback) => {
+      ipcRenderer.on('core-version-update', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('core-version-update', callback);
     }
   },
-
-  getSingBoxVersion: () => ipcRenderer.invoke('singbox-get-version'),
-
-  onCoreVersionUpdate: (callback) => {
-    ipcRenderer.on('core-version-update', (event, data) => callback(data));
-    return () => ipcRenderer.removeListener('core-version-update', callback);
+  
+  // 统一的配置文件管理接口
+  profiles: {
+    getData: () => ipcRenderer.invoke('get-profile-data'),
+    getFiles: () => ipcRenderer.invoke('getProfileFiles'),
+    getMetadata: (fileName) => ipcRenderer.invoke('getProfileMetadata', fileName),
+    update: (fileName) => ipcRenderer.invoke('updateProfile', fileName),
+    updateAll: () => ipcRenderer.invoke('updateAllProfiles'),
+    delete: (fileName) => ipcRenderer.invoke('deleteProfile', fileName),
+    openInEditor: (fileName) => ipcRenderer.invoke('openFileInEditor', fileName),
+    openAddDialog: () => ipcRenderer.send('open-add-profile-dialog'),
+    
+    onData: (callback) => {
+      ipcRenderer.on('profile-data', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('profile-data', callback);
+    },
+    
+    onUpdated: (callback) => {
+      ipcRenderer.on('profile-updated', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('profile-updated', callback);
+    },
+    
+    onChanged: (callback) => {
+      ipcRenderer.send('profiles-changed-listen');
+      ipcRenderer.on('profiles-changed', () => callback());
+      return () => {
+        ipcRenderer.send('profiles-changed-unlisten');
+        ipcRenderer.removeListener('profiles-changed', callback);
+      };
+    }
   },
   
-  onDownloadComplete: (callback) => ipcRenderer.on('download-complete', (event, data) => callback(data)),
-  removeDownloadComplete: (callback) => ipcRenderer.removeListener('download-complete', callback),
-  
-  getProfileData: () => ipcRenderer.invoke('get-profile-data'),
-  
-  onProfileData: (callback) => ipcRenderer.on('profile-data', (event, data) => callback(data)),
-  removeProfileData: (callback) => ipcRenderer.removeListener('profile-data', callback),
-  
-  // 获取配置文件列表
-  getProfileFiles: () => ipcRenderer.invoke('getProfileFiles'),
-  
-  // 获取配置文件元数据
-  getProfileMetadata: (fileName) => ipcRenderer.invoke('getProfileMetadata', fileName),
-  
-  // 更新配置文件
-  updateProfile: (fileName) => ipcRenderer.invoke('updateProfile', fileName),
-  
-  // 更新所有配置文件
-  updateAllProfiles: () => ipcRenderer.invoke('updateAllProfiles'),
-  
-  // 监听配置文件更新事件
-  onProfileUpdated: (callback) => {
-    ipcRenderer.on('profile-updated', (event, data) => callback(data));
-    return () => ipcRenderer.removeListener('profile-updated', callback);
+  // 统一的配置路径管理接口
+  config: {
+    getPath: () => ipcRenderer.invoke('get-config-path'),
+    setPath: (filePath) => ipcRenderer.invoke('set-config-path', filePath),
+    getCurrent: () => ipcRenderer.invoke('get-current-config')
   },
-  
-  // 删除配置文件
-  deleteProfile: (fileName) => ipcRenderer.invoke('deleteProfile', fileName),
-  
-  // 使用默认编辑器打开配置文件
-  openFileInEditor: (fileName) => ipcRenderer.invoke('openFileInEditor', fileName),
-  
-  // 打开添加配置文件对话框
-  openAddProfileDialog: () => ipcRenderer.send('open-add-profile-dialog'),
-  
-  // 监听配置文件变更事件
-  onProfilesChanged: (callback) => {
-    ipcRenderer.send('profiles-changed-listen');
-    ipcRenderer.on('profiles-changed', () => callback());
-    return () => {
-      ipcRenderer.send('profiles-changed-unlisten');
-      ipcRenderer.removeListener('profiles-changed', callback);
-    };
-  },
-  
-  getConfigPath: () => ipcRenderer.invoke('get-config-path'),
-  setConfigPath: (filePath) => ipcRenderer.invoke('set-config-path', filePath),
   
   // 配置映射引擎相关API
   userConfig: {
@@ -165,61 +153,44 @@ contextBridge.exposeInMainWorld('electron', {
   
   platform: process.platform,
 
-  // 日志系统接口
+  // 统一的日志管理接口
   logs: {
-    // 接收新的日志消息
-    onLogMessage: (callback) => {
+    onMessage: (callback) => {
       ipcRenderer.on('log-message', (event, log) => callback(log));
       return () => ipcRenderer.removeListener('log-message', callback);
     },
     
-    // 接收活动日志
-    onActivityLog: (callback) => {
+    onActivity: (callback) => {
       ipcRenderer.on('activity-log', (event, log) => callback(log));
       return () => ipcRenderer.removeListener('activity-log', callback);
     },
     
-    // 接收连接日志
-    onConnectionLog: (callback) => {
+    onConnection: (callback) => {
       ipcRenderer.on('connection-log', (event, log) => callback(log));
       return () => ipcRenderer.removeListener('connection-log', callback);
     },
     
-    // 获取之前的日志历史
-    getLogHistory: () => ipcRenderer.invoke('get-log-history'),
+    getHistory: () => ipcRenderer.invoke('get-log-history'),
+    getConnectionHistory: () => ipcRenderer.invoke('get-connection-log-history'),
     
-    // 获取连接日志历史
-    getConnectionLogHistory: () => ipcRenderer.invoke('get-connection-log-history'),
+    clear: () => ipcRenderer.invoke('clear-logs'),
+    clearConnection: () => ipcRenderer.invoke('clear-connection-logs'),
     
-    // 清除日志历史
-    clearLogs: () => ipcRenderer.invoke('clear-logs'),
-    
-    // 清除连接日志历史
-    clearConnectionLogs: () => ipcRenderer.invoke('clear-connection-logs'),
-    
-    // 启动连接监听
     startConnectionMonitoring: () => ipcRenderer.invoke('start-connection-monitoring'),
-    
-    // 停止连接监听
     stopConnectionMonitoring: () => ipcRenderer.invoke('stop-connection-monitoring')
   },
 
-  // 开机自启动相关API
-  setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
-  getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
-  
-  // 设置相关API
-  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
-  getSettings: () => ipcRenderer.invoke('get-settings'),
+  // 统一的设置管理接口
+  settings: {
+    save: (settings) => ipcRenderer.invoke('save-settings', settings),
+    get: () => ipcRenderer.invoke('get-settings'),
+    setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
+    getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch')
+  },
 
-  // 获取规则集
+  // 获取规则集和节点组信息
   getRuleSets: () => ipcRenderer.invoke('get-rule-sets'),
-
-  // 获取节点组信息
   getNodeGroups: () => ipcRenderer.invoke('get-node-groups'),
-
-  // 获取当前配置文件内容
-  getCurrentConfig: () => ipcRenderer.invoke('get-current-config'),
 
   // 添加引擎到窗口对象，用于前端直接使用
   engine: {
@@ -240,15 +211,15 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
 
-  // 节点历史数据相关API
-  getNodeHistory: (nodeTag) => ipcRenderer.invoke('get-node-history', nodeTag),
-  isNodeHistoryEnabled: () => ipcRenderer.invoke('is-node-history-enabled'),
-  loadAllNodeHistory: () => ipcRenderer.invoke('load-all-node-history'),
-  
-  // 节点累计流量相关API
-  getNodeTotalTraffic: (nodeTag) => ipcRenderer.invoke('get-node-total-traffic', nodeTag),
-  getAllNodesTotalTraffic: () => ipcRenderer.invoke('get-all-nodes-total-traffic'),
-  resetNodeTotalTraffic: (nodeTag) => ipcRenderer.invoke('reset-node-total-traffic', nodeTag),
+  // 统一的节点管理接口
+  nodes: {
+    getHistory: (nodeTag) => ipcRenderer.invoke('get-node-history', nodeTag),
+    loadAllHistory: () => ipcRenderer.invoke('load-all-node-history'),
+    isHistoryEnabled: () => ipcRenderer.invoke('is-node-history-enabled'),
+    getTotalTraffic: (nodeTag) => ipcRenderer.invoke('get-node-total-traffic', nodeTag),
+    getAllTotalTraffic: () => ipcRenderer.invoke('get-all-nodes-total-traffic'),
+    resetTotalTraffic: (nodeTag) => ipcRenderer.invoke('reset-node-total-traffic', nodeTag)
+  },
 
   // 监听代理状态恢复
   onProxyStateRestored: (callback) => {
@@ -257,4 +228,19 @@ contextBridge.exposeInMainWorld('electron', {
   removeProxyStateRestored: (callback) => {
     ipcRenderer.removeListener('proxy-state-restored', callback);
   },
+
+  // 统一的版本管理接口
+  version: {
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    getAll: () => ipcRenderer.invoke('get-all-versions')
+  },
+
+  // 暴露ipcRenderer用于监听特定事件
+  ipcRenderer: {
+    on: (channel, callback) => {
+      ipcRenderer.on(channel, callback);
+      return () => ipcRenderer.removeListener(channel, callback);
+    },
+    removeListener: (channel, callback) => ipcRenderer.removeListener(channel, callback)
+  }
 }); 

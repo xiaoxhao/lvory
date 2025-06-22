@@ -55,6 +55,7 @@ const HANDLERS_TO_REMOVE = [
   'get-build-date',
   // 版本更新相关
   'check-for-updates',
+  'get-all-versions',
   // 外部链接相关
   'open-external'
 ];
@@ -114,6 +115,9 @@ function setupHandlers() {
     
     // 设置版本更新检查处理程序
     utils.checkForUpdates();
+    
+    // 设置获取所有版本处理程序
+    utils.getAllVersions();
     
     // 设置打开外部链接处理程序
     utils.openExternal();

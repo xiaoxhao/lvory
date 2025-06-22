@@ -14,8 +14,8 @@ const Profiles = () => {
     loadProfileFiles();
     
     // 获取当前活跃的配置文件
-    if (window.electron && window.electron.getConfigPath) {
-      window.electron.getConfigPath().then(configPath => {
+    if (window.electron && window.electron.config && window.electron.config.getPath) {
+      window.electron.config.getPath().then(configPath => {
         if (configPath) {
           // 从路径中提取文件名
           const fileName = configPath.split(/[/\\]/).pop();
@@ -27,8 +27,8 @@ const Profiles = () => {
     }
     
     // 监听配置文件更新事件
-    if (window.electron && window.electron.onProfileUpdated) {
-      window.electron.onProfileUpdated((data) => {
+    if (window.electron && window.electron.profiles && window.electron.profiles.onUpdated) {
+      window.electron.profiles.onUpdated((data) => {
         if (data.success) {
           console.log(`配置文件已更新: ${data.fileName}`);
         } else {
@@ -38,8 +38,8 @@ const Profiles = () => {
     }
     
     // 监听配置文件变更事件
-    if (window.electron && window.electron.onProfilesChanged) {
-      window.electron.onProfilesChanged(() => {
+    if (window.electron && window.electron.profiles && window.electron.profiles.onChanged) {
+      window.electron.profiles.onChanged(() => {
         loadProfileFiles();
       });
     }
@@ -47,9 +47,9 @@ const Profiles = () => {
 
   const loadProfileFiles = async () => {
     setIsLoading(true);
-    if (window.electron && window.electron.getProfileFiles) {
+    if (window.electron && window.electron.profiles && window.electron.profiles.getFiles) {
       try {
-        const result = await window.electron.getProfileFiles();
+        const result = await window.electron.profiles.getFiles();
         if (result && result.success && Array.isArray(result.files)) {
           setProfileFiles(result.files);
         } else {
@@ -63,7 +63,7 @@ const Profiles = () => {
         setIsLoading(false);
       }
     } else {
-      console.error('getProfileFiles API不可用');
+      console.error('profiles.getFiles API不可用');
       setIsLoading(false);
     }
   };
@@ -72,12 +72,12 @@ const Profiles = () => {
   const activateProfile = async (fileName) => {
     try {
       // 从文件列表中查找完整路径
-      const result = await window.electron.getProfileFiles();
+      const result = await window.electron.profiles.getFiles();
       if (result && result.success && Array.isArray(result.files)) {
         const fileInfo = result.files.find(f => f.name === fileName);
         if (fileInfo && fileInfo.path) {
           // 使用setConfigPath设置为当前活跃配置
-          const setResult = await window.electron.setConfigPath(fileInfo.path);
+          const setResult = await window.electron.config.setPath(fileInfo.path);
           if (setResult && setResult.success) {
             setActiveProfile(fileName);
             // 成功切换配置，移除成功通知
@@ -107,9 +107,9 @@ const Profiles = () => {
     
     setIsUpdatingAll(true);
     
-    if (window.electron && window.electron.updateAllProfiles) {
+    if (window.electron && window.electron.profiles && window.electron.profiles.updateAll) {
       try {
-        const result = await window.electron.updateAllProfiles();
+        const result = await window.electron.profiles.updateAll();
         if (result.success) {
           showMessage(result.message || '所有配置文件已更新');
           loadProfileFiles(); // 刷新列表
@@ -156,8 +156,8 @@ const Profiles = () => {
   // 处理编辑文件
   const handleEdit = (fileName) => {
     closeDropdown();
-    if (window.electron && window.electron.openFileInEditor) {
-      window.electron.openFileInEditor(fileName)
+    if (window.electron && window.electron.profiles && window.electron.profiles.openInEditor) {
+      window.electron.profiles.openInEditor(fileName)
         .catch(error => {
           showMessage(`Failed to open editor: ${error.message || 'Unknown error'}`);
         });
@@ -170,8 +170,8 @@ const Profiles = () => {
   const handleUpdate = (fileName) => {
     closeDropdown();
     
-    if (window.electron && window.electron.updateProfile) {
-      window.electron.updateProfile(fileName)
+    if (window.electron && window.electron.profiles && window.electron.profiles.update) {
+      window.electron.profiles.update(fileName)
         .then(result => {
           if (result.success) {
             showMessage(`Successfully updated profile: ${fileName}`);
@@ -214,8 +214,8 @@ const Profiles = () => {
   const handleDelete = (fileName) => {
     closeDropdown();
     if (confirm(`Are you sure you want to delete ${fileName}?`)) {
-      if (window.electron && window.electron.deleteProfile) {
-        window.electron.deleteProfile(fileName)
+      if (window.electron && window.electron.profiles && window.electron.profiles.delete) {
+        window.electron.profiles.delete(fileName)
           .then(result => {
             if (result.success) {
               // 从列表中移除

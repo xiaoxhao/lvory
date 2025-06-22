@@ -36,11 +36,13 @@ const SystemStatus = () => {
       }
     };
 
+    let removeProfileListener = null;
+    
     if (window.electron) {
-      window.electron.onProfileData(handleProfileData);
+      removeProfileListener = window.electron.profiles.onData(handleProfileData);
       
       // 手动请求配置文件数据
-      window.electron.getProfileData().then((data) => {
+      window.electron.profiles.getData().then((data) => {
         if (data && data.success && Array.isArray(data.profiles)) {
           setProfileData(data.profiles);
         } else if (Array.isArray(data)) {
@@ -60,8 +62,8 @@ const SystemStatus = () => {
 
     // 组件卸载时移除事件监听
     return () => {
-      if (window.electron && window.electron.removeProfileData) {
-        window.electron.removeProfileData(handleProfileData);
+      if (removeProfileListener) {
+        removeProfileListener();
       }
     };
   }, []);
@@ -100,8 +102,8 @@ const SystemStatus = () => {
 
   // 监听内核下载进度
   useEffect(() => {
-    if (window.electron && window.electron.onCoreDownloadProgress) {
-      const removeListener = window.electron.onCoreDownloadProgress(progress => {
+    if (window.electron && window.electron.download && window.electron.download.onCoreProgress) {
+      const removeListener = window.electron.download.onCoreProgress(progress => {
         setCoreDownloadProgress(progress.progress);
       });
       

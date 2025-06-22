@@ -1,6 +1,6 @@
 {
   "name": "lvory",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Minimalist Cross-Platform Client for Singbox",
   "main": "index.js",
   "scripts": {
@@ -36,7 +36,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
-    "electron": "36.4.0",
+    "electron": "35.1.2",
     "electron-builder": "^25.1.8",
     "html-webpack-plugin": "^5.6.3",
     "mini-css-extract-plugin": "^2.9.2",
@@ -45,6 +45,20 @@
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0"
+  },
+  "dependencies": {
+    "@mihomo-party/sysproxy": "^2.0.8",
+    "adm-zip": "^0.5.16",
+    "echarts": "^5.6.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "i18next": "^25.0.2",
+    "i18next-browser-languagedetector": "^8.1.0",
+    "node-fetch": "^3.3.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-i18next": "^15.5.1",
+    "react-router-dom": "^7.5.3",
+    "system-proxy": "^2.0.0"
   },
   "build": {
     "appId": "com.lvory.app",
@@ -55,15 +69,11 @@
     "files": [
       "dist/**/*",
       "index.js",
-      "preload.js",
-      "!src/**/*",
-      "!public/**/*",
-      "!resource/icon/**/*",
-      "!docs/**/*",
-      "!test/**/*",
-      "!*.md",
-      "!.git*",
-      "!webpack.config.js"
+      "package.json",
+      "src/**/*",
+      "resource/**/*",
+      "public/**/*",
+      "preload.js"
     ],
     "extraResources": [
       {
@@ -78,6 +88,26 @@
     "asar": true,
     "compression": "maximum",
     "removePackageScripts": true,
+    "afterSign": null,
+    "win": {
+      "target": [
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resource/icon/index256.png",
+      "artifactName": "${productName}-${version}-setup.${ext}"
+    },
+    "msi": {
+      "oneClick": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "lvory",
+      "perMachine": false
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
@@ -87,20 +117,6 @@
       "installerIcon": "resource/icon/installer/installer.ico",
       "uninstallerIcon": "resource/icon/installer/installer.ico",
       "installerHeaderIcon": "resource/icon/installer/installer.ico",
-      "artifactName": "${productName}-${version}-setup.${ext}",
-      "differentialPackage": false
-    },
-    "afterSign": null,
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "resource/icon/index256.png",
       "artifactName": "${productName}-${version}-setup.${ext}"
     },
     "mac": {
@@ -108,8 +124,7 @@
         {
           "target": "dmg",
           "arch": [
-            "x64",
-            "arm64"
+            "universal"
           ]
         }
       ],
@@ -144,10 +159,7 @@
       "target": [
         {
           "target": "deb",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["x64", "arm64"]
         }
       ],
       "icon": "resource/icon/index256.png",
@@ -166,13 +178,7 @@
       "maintainer": "lvory Team"
     },
     "deb": {
-      "depends": [
-        "gconf2",
-        "gconf-service",
-        "libxss1",
-        "libappindicator1",
-        "libasound2"
-      ]
+      "depends": ["gconf2", "gconf-service", "libxss1", "libappindicator1", "libasound2"]
     },
     "fileAssociations": [],
     "asarUnpack": [

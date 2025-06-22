@@ -79,9 +79,11 @@ const ServiceNodes = () => {
       }
     };
 
+        let removeProfileListener = null;
+    
     if (window.electron) {
-      window.electron.onProfileData(handleProfileData);
-      window.electron.getProfileData().then((data) => {
+      removeProfileListener = window.electron.profiles.onData(handleProfileData);
+    window.electron.profiles.getData().then((data) => {
         if (data && data.success && Array.isArray(data.profiles)) {
           setNodes(data.profiles);
           setTestResults({});
@@ -101,11 +103,11 @@ const ServiceNodes = () => {
       loadTotalTraffic();
     }
 
-    return () => {
-      if (window.electron && window.electron.removeProfileData) {
-        window.electron.removeProfileData(handleProfileData);
-      }
-    };
+          return () => {
+        if (removeProfileListener) {
+          removeProfileListener();
+        }
+      };
   }, []);
 
   const testNode = async (node) => {

@@ -69,7 +69,7 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
     
     // 调用Electron的IPC通信来下载文件
     if (window.electron) {
-      window.electron.downloadProfile({
+      window.electron.download.profile({
         url: url,
         fileName: customFileName,
         isDefaultConfig: isDefaultConfig
@@ -155,7 +155,7 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
           )}
           {updateInterval !== '0' && (
             <p className="status-text update-schedule success-text">
-              自动更新已设置为每 {updateInterval} 小时一次
+              自动更新已设置为每 {updateInterval.endsWith('h') ? updateInterval.replace('h', '小时') : updateInterval.replace('d', '天')} 一次
             </p>
           )}
           <p className="status-text auto-close success-text">
@@ -218,7 +218,7 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
             />
           </div>
           <div className="url-input-container update-interval">
-            <label htmlFor="update-interval">自动更新间隔 (小时):</label>
+            <label htmlFor="update-interval">自动更新间隔:</label>
             <select
               id="update-interval"
               className="url-input"
@@ -226,11 +226,11 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
               onChange={(e) => setUpdateInterval(e.target.value)}
             >
               <option value="0">不自动更新</option>
-              <option value="1">1小时</option>
-              <option value="3">3小时</option>
-              <option value="6">6小时</option>
-              <option value="12">12小时</option>
-              <option value="24">24小时</option>
+              <option value="12h">12小时</option>
+              <option value="24h">24小时</option>
+              <option value="72h">72小时</option>
+              <option value="7d">7天</option>
+              <option value="21d">21天</option>
             </select>
           </div>
           <div className="url-input-container is-default-checkbox">

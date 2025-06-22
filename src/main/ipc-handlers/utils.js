@@ -117,115 +117,100 @@ function checkForUpdates() {
           });
         }
         
-        // 请求GitHub最新版本信息
+        // 使用GitHub API获取最新版本信息
         const options = {
-          hostname: 'github.com',
-          path: '/sxueck/lvory/releases/latest',
+          hostname: 'api.github.com',
+          path: '/repos/sxueck/lvory/releases',
           method: 'GET',
           headers: {
-            'User-Agent': 'lvory-updater'
+            'User-Agent': 'lvory-updater',
+            'Accept': 'application/vnd.github.v3+json'
           }
         };
 
         const req = https.request(options, (res) => {
-          // 处理重定向，获取最终URL
-          if (res.statusCode === 302 || res.statusCode === 301) {
-            const redirectUrl = res.headers.location;
-            if (redirectUrl) {
-              // 从重定向URL中提取版本号
-              const versionMatch = redirectUrl.match(/\/tag\/v([\d\.]+)$/);
-              const nightlyMatch = redirectUrl.match(/\/tag\/nightly-(\d{8})$/);
-              
-              let latestVersion = currentVersion;
-              let latestBuildDate = currentBuildDate;
-              let isNightlyBuild = false;
-              
-              if (versionMatch && versionMatch[1]) {
-                // 正式版本
-                latestVersion = versionMatch[1];
-                
-                // 比较版本号
-                const hasNewVersion = compareVersions(latestVersion, currentVersion) > 0;
-                
-                if (hasNewVersion) {
-                  logger.info(`检查更新: 当前版本=${currentVersion}, 最新版本=${latestVersion}, 有更新=true`);
-                  
-                  // 获取版本说明
-                  getVersionDescription(redirectUrl).then(description => {
-                    resolve({
-                      success: true,
-                      currentVersion,
-                      latestVersion,
-                      buildDate: currentBuildDate,
-                      hasUpdate: true,
-                      releaseUrl: redirectUrl,
-                      releaseDescription: description,
-                      updateType: 'release'
-                    });
-                  }).catch(error => {
-                    logger.error('获取版本说明失败:', error);
-                    resolve({
-                      success: true,
-                      currentVersion,
-                      latestVersion,
-                      buildDate: currentBuildDate,
-                      hasUpdate: true,
-                      releaseUrl: redirectUrl,
-                      updateType: 'release'
-                    });
-                  });
-                } else {
-                  logger.info(`检查更新: 当前版本=${currentVersion}, 最新版本=${latestVersion}, 有更新=false`);
-                  resolve({
-                    success: true,
-                    currentVersion,
-                    latestVersion,
-                    buildDate: currentBuildDate,
-                    hasUpdate: false,
-                    updateType: 'release'
-                  });
-                }
-              } else if (nightlyMatch && nightlyMatch[1]) {
-                // 夜间构建版本，忽略
-                resolve({
-                  success: true,
-                  currentVersion,
-                  buildDate: currentBuildDate,
-                  hasUpdate: false,
-                  updateType: 'ignore'
-                });
-              } else {
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          res.on('end', () => {
+            try {
+              const releases = JSON.parse(data);
+              if (!Array.isArray(releases) || releases.length === 0) {
                 resolve({
                   success: false,
-                  error: '无法解析版本号',
+                  error: '无法获取版本信息',
                   currentVersion,
                   buildDate: currentBuildDate
                 });
+                return;
               }
-            } else {
+
+              // 分离正式版本和夜间构建版本
+              const stableReleases = releases.filter(release => 
+                release.tag_name.match(/^v\d+\.\d+\.\d+$/)
+              );
+              const nightlyReleases = releases.filter(release => 
+                release.tag_name.match(/^nightly-\d{8}$/)
+              );
+
+              let hasUpdate = false;
+              let latestVersion = currentVersion;
+              let latestBuildDate = currentBuildDate;
+              let releaseUrl = '';
+              let updateType = 'none';
+
+              // 检查是否有新的正式版本
+              if (stableReleases.length > 0) {
+                const latestStable = stableReleases[0];
+                const latestStableVersion = latestStable.tag_name.replace(/^v/, '');
+                
+                if (compareVersions(latestStableVersion, currentVersion) > 0) {
+                  hasUpdate = true;
+                  latestVersion = latestStableVersion;
+                  releaseUrl = latestStable.html_url;
+                  updateType = 'stable';
+                }
+              }
+
+              // 如果是开发构建，检查夜间构建版本
+              if (isDevelopmentBuild && nightlyReleases.length > 0) {
+                const latestNightly = nightlyReleases[0];
+                const latestNightlyDate = latestNightly.tag_name.replace(/^nightly-/, '');
+                
+                if (latestNightlyDate > currentBuildDate) {
+                  hasUpdate = true;
+                  latestBuildDate = latestNightlyDate;
+                  releaseUrl = latestNightly.html_url;
+                  updateType = 'nightly';
+                }
+              }
+
+              logger.info(`检查更新: 当前版本=${currentVersion}, 最新版本=${latestVersion}, 有更新=${hasUpdate}, 类型=${updateType}`);
+
+              resolve({
+                success: true,
+                currentVersion,
+                latestVersion,
+                buildDate: currentBuildDate,
+                latestBuildDate,
+                hasUpdate,
+                releaseUrl,
+                updateType,
+                isDevelopmentBuild
+              });
+
+            } catch (parseError) {
+              logger.error('解析版本信息失败:', parseError);
               resolve({
                 success: false,
-                error: '重定向URL为空',
+                error: '解析版本信息失败',
                 currentVersion,
                 buildDate: currentBuildDate
               });
             }
-          } else {
-            let data = '';
-            res.on('data', (chunk) => {
-              data += chunk;
-            });
-            
-            res.on('end', () => {
-              // 如果无法通过重定向获取版本，尝试从页面内容解析
-              resolve({
-                success: false,
-                error: `请求返回状态码 ${res.statusCode}`,
-                currentVersion,
-                buildDate: currentBuildDate
-              });
-            });
-          }
+          });
         });
 
         req.on('error', (error) => {
@@ -377,6 +362,115 @@ function openExternal() {
   });
 }
 
+// 获取所有版本信息
+function getAllVersions() {
+  ipcMain.handle('get-all-versions', async () => {
+    return new Promise((resolve) => {
+      try {
+        const options = {
+          hostname: 'api.github.com',
+          path: '/repos/sxueck/lvory/releases?per_page=50',
+          method: 'GET',
+          headers: {
+            'User-Agent': 'lvory-updater',
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        };
+
+        const req = https.request(options, (res) => {
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          res.on('end', () => {
+            try {
+              const releases = JSON.parse(data);
+              if (!Array.isArray(releases)) {
+                resolve({
+                  success: false,
+                  error: '无效的响应格式'
+                });
+                return;
+              }
+
+              // 分类和处理版本信息
+              const processedReleases = releases.map(release => {
+                const isNightly = release.tag_name.startsWith('nightly-');
+                const isPrerelease = release.prerelease;
+                const isDraft = release.draft;
+                
+                let version = release.tag_name;
+                let type = 'stable';
+                
+                if (isNightly) {
+                  type = 'nightly';
+                  version = release.tag_name.replace('nightly-', '');
+                } else if (isPrerelease) {
+                  type = 'prerelease';
+                  version = version.replace(/^v/, '');
+                } else if (!isDraft) {
+                  version = version.replace(/^v/, '');
+                }
+
+                return {
+                  id: release.id,
+                  tag_name: release.tag_name,
+                  version,
+                  type,
+                  name: release.name || release.tag_name,
+                  body: release.body || '',
+                  html_url: release.html_url,
+                  published_at: release.published_at,
+                  created_at: release.created_at,
+                  assets: release.assets.map(asset => ({
+                    name: asset.name,
+                    size: asset.size,
+                    download_count: asset.download_count,
+                    browser_download_url: asset.browser_download_url,
+                    content_type: asset.content_type
+                  })),
+                  prerelease: isPrerelease,
+                  draft: isDraft
+                };
+              }).filter(release => !release.draft); // 过滤掉草稿版本
+
+              resolve({
+                success: true,
+                releases: processedReleases,
+                total: processedReleases.length
+              });
+
+            } catch (parseError) {
+              logger.error('解析版本列表失败:', parseError);
+              resolve({
+                success: false,
+                error: '解析版本列表失败'
+              });
+            }
+          });
+        });
+
+        req.on('error', (error) => {
+          logger.error('获取版本列表失败:', error);
+          resolve({
+            success: false,
+            error: error.message
+          });
+        });
+
+        req.end();
+      } catch (error) {
+        logger.error('获取版本列表异常:', error);
+        resolve({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+  });
+}
+
 module.exports = {
   getAppDataDir,
   getConfigDir,
@@ -387,5 +481,6 @@ module.exports = {
   getAppVersion,
   getBuildDate,
   checkForUpdates,
-  openExternal
+  openExternal,
+  getAllVersions
 }; 

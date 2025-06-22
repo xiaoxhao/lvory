@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useTranslation } from 'react-i18next';
 import { getAboutInfo } from '../../utils/version';
+import VersionManager from '../VersionManager';
 
 const styles = {
   container: {
-    padding: '24px',
+    padding: '0',
     flex: 1,
     backgroundColor: '#ffffff',
     minHeight: '100%',
@@ -358,6 +359,7 @@ const SettingsContent = ({ section }) => {
     proxyPort: { value: '', loading: true, error: null },
     apiAddress: { value: '', loading: true, error: null }
   });
+  const [showVersionManager, setShowVersionManager] = useState(false);
 
   // 从当前配置文件读取代理端口和API地址
   const loadConfigValues = async () => {
@@ -368,8 +370,8 @@ const SettingsContent = ({ section }) => {
         apiAddress: { value: '', loading: true, error: null }
       }));
 
-      if (window.electron && window.electron.getCurrentConfig) {
-        const result = await window.electron.getCurrentConfig();
+      if (window.electron && window.electron.config && window.electron.config.getCurrent) {
+        const result = await window.electron.config.getCurrent();
         if (result.success && result.config) {
           const config = result.config;
           
@@ -451,8 +453,8 @@ const SettingsContent = ({ section }) => {
   // 监听配置文件变化，刷新值
   useEffect(() => {
     // 监听配置文件变更事件
-    if (window.electron && window.electron.onProfilesChanged && section === 'basic') {
-      const removeListener = window.electron.onProfilesChanged(() => {
+          if (window.electron && window.electron.profiles && window.electron.profiles.onChanged && section === 'basic') {
+        const removeListener = window.electron.profiles.onChanged(() => {
         loadConfigValues();
       });
       
@@ -474,8 +476,8 @@ const SettingsContent = ({ section }) => {
         }
         
         // 加载系统级设置
-        if (window.electron && window.electron.getSettings) {
-          const result = await window.electron.getSettings();
+        if (window.electron && window.electron.settings && window.electron.settings.get) {
+          const result = await window.electron.settings.get();
           if (result.success) {
             setSettings(prev => ({
               ...prev,
@@ -485,8 +487,8 @@ const SettingsContent = ({ section }) => {
         }
         
         // 加载开机自启动设置
-        if (window.electron && window.electron.getAutoLaunch) {
-          const result = await window.electron.getAutoLaunch();
+        if (window.electron && window.electron.settings && window.electron.settings.getAutoLaunch) {
+          const result = await window.electron.settings.getAutoLaunch();
           if (result.success) {
             setSettings(prev => ({
               ...prev,
@@ -593,16 +595,16 @@ const SettingsContent = ({ section }) => {
       }
 
       // 处理自动启动设置
-      if (window.electron && window.electron.setAutoLaunch) {
-        const result = await window.electron.setAutoLaunch(settings.autoStart);
+              if (window.electron && window.electron.settings && window.electron.settings.setAutoLaunch) {
+          const result = await window.electron.settings.setAutoLaunch(settings.autoStart);
         if (!result.success) {
           console.error('设置开机自启动失败:', result.error);
         }
       }
 
       // 同时保存electron设置
-      if (window.electron && window.electron.saveSettings) {
-        await window.electron.saveSettings(settings);
+      if (window.electron && window.electron.settings && window.electron.settings.save) {
+        await window.electron.settings.save(settings);
       }
     } catch (error) {
       console.error('应用设置失败:', error);
@@ -627,8 +629,8 @@ const SettingsContent = ({ section }) => {
       }
       
       // 重新获取系统级设置
-      if (window.electron && window.electron.getSettings) {
-        const result = await window.electron.getSettings();
+      if (window.electron && window.electron.settings && window.electron.settings.get) {
+        const result = await window.electron.settings.get();
         if (result.success) {
           setSettings(prev => ({
             ...prev,
@@ -638,8 +640,8 @@ const SettingsContent = ({ section }) => {
       }
       
       // 重新获取开机自启动设置
-      if (window.electron && window.electron.getAutoLaunch) {
-        const result = await window.electron.getAutoLaunch();
+      if (window.electron && window.electron.settings && window.electron.settings.getAutoLaunch) {
+        const result = await window.electron.settings.getAutoLaunch();
         if (result.success) {
           setSettings(prev => ({
             ...prev,
@@ -721,7 +723,7 @@ const SettingsContent = ({ section }) => {
 
   // 创建通用的设置部分组件
   const SettingsSection = ({ title, description, children, badge }) => (
-    <div style={styles.section}>
+    <div style={{...styles.section, margin: '24px'}}>
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -923,111 +925,219 @@ const SettingsContent = ({ section }) => {
         
       case 'about':
         return (
-          <div>
-            <div style={styles.section}>
-              <div style={{ 
-                minHeight: 'calc(100vh - 150px)', 
-                display: 'flex', 
-                flexDirection: 'column'
+          <div style={{ 
+            padding: '0',
+            backgroundColor: 'transparent',
+            height: '100%'
+          }}>
+            {/* 主要内容区域 - 单页平面设计 */}
+            <div style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderRadius: '0',
+              padding: '32px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box'
+            }}>
+              {/* 头部标题区域 */}
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '48px'
               }}>
-                <h1 style={styles.title}>{t('settings.about')}</h1>
-                <p style={styles.description}>
-                  {t('settings.aboutDescription')}
-                </p>
-                
                 <div style={{
+                  width: '84px',
+                  height: '84px',
+                  backgroundColor: '#5a6c57',
+                  borderRadius: '20px',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '20px',
-                  marginTop: '24px',
-                  flex: 1,
-                  justifyContent: 'space-between'
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  color: 'white',
+                  fontSize: '36px',
+                  fontWeight: '600',
+                  margin: '0 auto 20px auto',
+                  boxShadow: '0 4px 20px rgba(90, 108, 87, 0.15)'
+                }}>L</div>
+                <h1 style={{
+                  fontSize: '32px',
+                  fontWeight: '600',
+                  margin: '0 0 8px 0',
+                  color: '#1e293b',
+                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                }}>{aboutInfo.APP_NAME}</h1>
+                <p style={{
+                  margin: '0',
+                  color: '#64748b',
+                  fontSize: '16px',
+                  fontWeight: '400'
+                }}>{aboutInfo.APP_DESCRIPTION}</p>
+              </div>
+              
+              {/* 信息展示区域 */}
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px'
+              }}>
+                {/* 版本信息卡片组 */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '20px'
                 }}>
-                  <div>
+                  {/* 应用版本卡片 */}
+                  <div style={{
+                    backgroundColor: '#f8faf9',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid rgba(90, 108, 87, 0.1)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                  }}>
                     <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '10px',
-                      marginBottom: '40px'
-                    }}>
-                      <div style={{
-                        width: '100px',
-                        height: '100px',
-                        backgroundColor: '#818cf8',
-                        borderRadius: '24px',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
+                      color: '#5a6c57',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>{t('settings.appVersion')}</div>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: '600',
+                      color: '#1e293b',
+                      marginBottom: '12px'
+                    }}>{aboutInfo.APP_VERSION}</div>
+                    <button
+                      onClick={() => setShowVersionManager(true)}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#5a6c57',
                         color: 'white',
-                        fontSize: '42px',
-                        fontWeight: 'bold',
-                        boxShadow: '0 10px 15px -3px rgba(129, 140, 248, 0.2)'
-                      }}>L</div>
-                      <h2 style={{
-                        fontSize: '28px',
-                        fontWeight: '700',
-                        margin: '10px 0 0 0'
-                      }}>{aboutInfo.APP_NAME}</h2>
-                      <p style={{
-                        margin: '0',
-                        color: '#64748b',
-                        fontSize: '16px'
-                      }}>{aboutInfo.APP_DESCRIPTION}</p>
-                    </div>
-                    
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '150px 1fr',
-                      gap: '16px',
-                      alignItems: 'center',
-                      maxWidth: '600px',
-                      margin: '0 auto',
-                      marginTop: '40px'
-                    }}>
-                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.appVersion')}</div>
-                      <div style={{fontSize: '15px'}}>{aboutInfo.APP_VERSION}</div>
-                      
-                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.coreVersion')}</div>
-                      <div style={{fontSize: '15px'}}>{aboutInfo.CORE_VERSION}</div>
-                      
-                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.license')}</div>
-                      <div style={{fontSize: '15px'}}>{aboutInfo.LICENSE}</div>
-                      
-                      <div style={{color: '#64748b', fontWeight: '600', fontSize: '15px'}}>{t('settings.projectUrl')}</div>
-                      <div>
-                        <a 
-                          href="#" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (window.electron && window.electron.openExternal) {
-                              window.electron.openExternal(aboutInfo.WEBSITE);
-                            }
-                          }}
-                          style={{
-                            color: '#818cf8',
-                            textDecoration: 'none',
-                            fontSize: '15px'
-                          }}
-                        >
-                          {aboutInfo.WEBSITE}
-                        </a>
-                      </div>
-                    </div>
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#4a5c4f'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = '#5a6c57'}
+                    >
+                      版本管理
+                    </button>
                   </div>
                   
+                  {/* 内核版本卡片 */}
                   <div style={{
-                    padding: '20px 24px',
-                    backgroundColor: '#f8fafc',
+                    backgroundColor: '#f8faf9',
                     borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    marginTop: 'auto',
-                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                    padding: '20px',
+                    border: '1px solid rgba(90, 108, 87, 0.1)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
                   }}>
-                    <p style={{margin: '0', color: '#64748b', fontSize: '14px', lineHeight: '1.7'}}>
-                      {t('settings.aboutDisclaimer')}
-                    </p>
+                    <div style={{
+                      color: '#5a6c57',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>{t('settings.coreVersion')}</div>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: '600',
+                      color: '#1e293b'
+                    }}>{aboutInfo.CORE_VERSION}</div>
                   </div>
+                </div>
+                
+                {/* 项目信息卡片组 */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '20px'
+                }}>
+                  {/* 许可证卡片 */}
+                  <div style={{
+                    backgroundColor: '#f8faf9',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid rgba(90, 108, 87, 0.1)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                  }}>
+                    <div style={{
+                      color: '#5a6c57',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>{t('settings.license')}</div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      color: '#1e293b'
+                    }}>{aboutInfo.LICENSE}</div>
+                  </div>
+                  
+                  {/* 项目链接卡片 */}
+                  <div style={{
+                    backgroundColor: '#f8faf9',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid rgba(90, 108, 87, 0.1)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                  }}>
+                    <div style={{
+                      color: '#5a6c57',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>{t('settings.projectUrl')}</div>
+                    <a 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (window.electron && window.electron.openExternal) {
+                          window.electron.openExternal(aboutInfo.WEBSITE);
+                        }
+                      }}
+                      style={{
+                        color: '#5a6c57',
+                        textDecoration: 'none',
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        transition: 'color 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.target.style.color = '#4a5c4f'}
+                      onMouseLeave={(e) => e.target.style.color = '#5a6c57'}
+                    >
+                      {aboutInfo.WEBSITE} →
+                    </a>
+                  </div>
+                </div>
+                
+                {/* 免责声明区域 */}
+                <div style={{
+                  padding: '24px',
+                  backgroundColor: '#f6f7ed',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(90, 108, 87, 0.15)'
+                }}>
+                  <p style={{
+                    margin: '0',
+                    color: '#5a6c57',
+                    fontSize: '14px',
+                    lineHeight: '1.6',
+                    fontWeight: '400'
+                  }}>
+                    {t('settings.aboutDisclaimer')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1047,6 +1157,10 @@ const SettingsContent = ({ section }) => {
           {notification}
         </div>
       )}
+      <VersionManager 
+        isVisible={showVersionManager} 
+        onClose={() => setShowVersionManager(false)} 
+      />
     </div>
   );
 };

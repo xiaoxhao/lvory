@@ -1,0 +1,62 @@
+/* Activity Icons - Base64 Embedded */
+
+.icon-ghost {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAERElEQVR4nM2aW6gWVRTHfx6Px7S8pFJmYSSVqUetlyRfwopKyQdTKksswUtWUr4khAYadiFN6UIJhccDGSFo6kOdvGIodB66eYEiK7WstDx2U4/p+WLFGplWa+abz2++mfnDfpm997rs2bPWf689kC4uB2YDzcBu4DBwEjgBfA98AqwApgA9KSCGA+uAv4FSwvY78DLQjwKgE/A0cLoCB2z7CRifpxOdgaYyRh4HvgMOAL/FjDsDTMvLkeccg+TNvAPcBfR15vQH7gFagA4z9ywwNmsnbnEM+QIYUYGMO4GfjYxfgMvICPXAHmNAK9DrPGRdBxwxsprJCJONYtn7V1Qh73YjrwNoJAO0GsUStarFRiOziRqj0SiUbdEjBbkj9WMvaTtxnls1MV40jixNUfYHRvZMapg3fjDKbjDJcYJSlEuc+RercfdqwLB4wMjeVStHbjWK9pr+5lCfJMCrTP74MtS/Aagz8y9U2hL+6K+phSMrjSMLYiKPtNWh/ledfnkzFk1mzMK0nRgItBsl4dVaFkFPAnzj9K9K8NZ/BLqn5cQgYKdRsM2MWR3BoQIj/nL6PnR01QHfmnFC+6+tlpq/Z8JisHfHmLGLHUPlLBLAMgFpb0TonROxKPJNPgZckNSBeiWEUdT8NWfOUMfh50P9TzpyRsfob43QXVI2fVs5J3o68Txocmh6yYk2AR5ROh5sm3CilFVcq33i8FNl7OjrbOdwExmPR03uAmxxJv2pbyHJPhXmOkxzShRJTMrL6oBxwFsOsQzaQ97EV5yB6/Qcnjc6A1P1uwvb94el/aOdPf5szMrmhf7A18ZOeWPnsM10vk1xcb1Z9PaAYA51Elkfio31xub70AgSfric4mOmsfl1efi+eWiTXRFxs7F5Kw4lGK+huMhoNDYLl/sPdQ6aPFsD3EgxMcghlxwrk0HDdD1v1AEDdNeE7WyTzocTlDxn52z8VGBHjJ1SKP8XF2lxbYIWltucrXZpDk50d0Kt105FCRCjvzKD55E9ViRwoqTfcyTuMIO3ky2GOWVZqQW8CcwH5uri3g80xAlqUFIWCPmVbLHEOLE2ovqSCJ8ZYWkU45Jij9FdSYH8f9hghMnrzorldoT0HqpWoD2jyL1HFngi7Qq9LQR8rgUASUq1Qi+HNk2sVujVzoEryPgtelmT5uFrFPCpU2yIjUpJsbxMDP8YGFyFfIlEs/TquuS0SaRIEeY52d5emcnJrVIIo/goRu4z1ADdgLuBd5USWKWyr3tXuECbIxxoA6aTAYTCvOB8P1IDTopHHQcOAYvy4HUPGkPaNUCUwwCtDYTnCq/K9UDXYgzaVCbK1OuY8Jx9QFdyxhDnnLBJT5e2vHqT48TZmDpw5lga8dHKdcJ+3fv2fiVo5erAmaLB2WJJ2rICVjPpore+Sf4UOqo/HhQaV+rBR3KE/MIkd+aSdw4qm55Ri+PAP3BUZtyzI2IZAAAAAElFTkSuQmCC');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: all 0.2s ease;
+}
+
+/* Confusion icon for "疑惑解答" function */
+.icon-confusion {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAD0ElEQVR4nO2ay2/NURDHP1QIUnGp3qIUSzsrNt6kSSUkaCXaioUFrYZgIbFDKeIfEK8qTejKowur1sazpNqQVKzbiqAXm0raypFp8svJnPt73N/v1uJ+k7O5nZlz5pw5M98zv0IBBRSQT6SBGqAZ6ACeAT0yuuU387dqoJT/DAuAY8AbYCLEGAdeA01AaqoduAL8CumANn4CLVPh0EHgawwO2OMLcCAfDswD7vss5jvwCLgIHAb2yzgiu/4Y+OFjox0oTsqJxUCvY+JR4BawEZgewFYRsAloFV3N5jugLAknPjsu7E1gaQ62l4lDxpZt/1Oczphweq9MMghsiWsSYBsw5DiZWMJMuxO9ckpxYwnQp8x3L47spDkxn+SQcjhTH9XgQiXFDiZ0EtrJDCupOVKduaJc7DjvhB+2KwnApO/QVduu2CY75Rt3rDVkwp7KMcvAH2A5+Ue5UmcawxjosZRNsXNhFrBGmG9YlImuseFCq7WWl0GNp5XYNBVbww4rIVwHZgSYw8jc8OgZG1UO2a3KXS0J4kiNwp2mO3Yzo6TJkwHmOKXoGVtpB50ZsWT3BnGk2VIyBFDDPgdHMg8oP3Q7dGsc8k8suXNBHOmwlAyLdYWVthjDbv1gL2xyVDnkL1lyhm344pmlZKi4hjlC6uzF7Awwxy5FbwCY7ZBviHDq/0iaV6k2i+xKCT0Twx98ZG3UiY7RfQisyCJbqxDJWB3JF+qsNb2NM7TyiYYoodWRK79JAJejXPbzEbJQ0ui01nQ2iFK1UhBNUYqKacA6qU9Phf68AI77UBMvC7AL7x4CoFShKJsJj5nyMNMeSd5YLw7wBJ7wjLGgFAXpAHqVb2eRXQucltpQCRwSovctiwPecc1nLW2W/HNCoMlSHhVKraEoRLvUnPQr4IyE8AlJpYsctivkCRGZxqekjek1YHbZhVU+ncffwFVZmHYHzLNaw13LTiZKv6BF2U0Try6sBj5aOj8kCwaOaQ8qlbt6gQhIyYPfa2hIGgNkCbP1EjYb5MJHQbky93Au3Zt6JUz6Eu6ap4B+ZV7TP84J7Q5nsp0MOZxEvzKfaULkjGKFSE4etWnZxAVzJ+xwmpACOjeuSdKOt8e47JZpREdFhWQnrYk9kMQnujLHyUzWmTvSwAtCZ2ZIBmxT6sSE5yQS+85YLA3lbEVvRJ6yl+TjTq2MBvmt09G0sO9EbOHkl820eM51DE/FQy4lRdNmAFFGRtjx/Hw7YTt0VDqA2oV1jTGh841T7YCGEnkrGFryAOjy/MNAl7zsTE9qd0TaUkABBRANfwF2JFbCkkqrdQAAAABJRU5ErkJggg==');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: all 0.2s ease;
+}
+
+/* Icon button styles for using CSS classes instead of img tags */
+.icon-button .icon-ghost,
+.icon-button .icon-confusion {
+  user-select: none;
+  pointer-events: none;
+}
+
+.activity-actions .icon-button {
+  margin-left: -4px;
+}
+
+/* Ghost icon states */
+.icon-button:not(.active) .icon-ghost {
+  filter: grayscale(100%) opacity(0.6);
+}
+
+.icon-button.active .icon-ghost {
+  filter: none;
+  transform: scale(1.05);
+}
+
+.icon-button:hover .icon-ghost {
+  filter: brightness(1.1) saturate(1.2);
+  transform: scale(1.1);
+}
+
+/* Confusion icon states */
+.icon-button.info-button .icon-confusion {
+  filter: sepia(20%) hue-rotate(240deg) saturate(1.2);
+}
+
+.icon-button.info-button:hover .icon-confusion {
+  filter: sepia(20%) hue-rotate(240deg) saturate(1.5) brightness(1.1);
+  transform: scale(1.1);
+} 

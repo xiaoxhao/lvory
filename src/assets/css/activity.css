@@ -326,6 +326,51 @@
   flex: 0 0 100px;
 }
 
+/* 图标按钮样式 */
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #586069;
+  background-color: transparent;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  margin-left: 8px;
+}
+
+.icon-button:hover {
+  color: #0366d6;
+  background-color: rgba(3, 102, 214, 0.1);
+  border-color: rgba(3, 102, 214, 0.2);
+}
+
+.icon-button.active {
+  color: #0366d6;
+  background-color: rgba(3, 102, 214, 0.15);
+  border-color: rgba(3, 102, 214, 0.3);
+}
+
+.icon-button.info-button {
+  color: #6f42c1;
+}
+
+.icon-button.info-button:hover {
+  color: #5a2d91;
+  background-color: rgba(111, 66, 193, 0.1);
+  border-color: rgba(111, 66, 193, 0.2);
+}
+
+.icon-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+
+
 /* 连接行样式 */
 .connection-row {
   display: flex;
