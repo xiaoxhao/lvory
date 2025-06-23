@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 const { getAppDataDir, getConfigDir, getUserSettingsPath } = require('../utils/paths');
 const profileEngine = require('./engine/profiles-engine');
 const mappingDefinition = require('./engine/mapping-definition');
+const LvorySyncProcessor = require('./adapters/lvory-sync-processor');
 
 // 当前配置文件路径
 let currentConfigPath = null;
@@ -385,10 +386,132 @@ const updateAppSetting = (key, value) => {
   return saveUserSettings(userSettings);
 };
 
+/**
+ * 检测配置文件是否为 Lvory 同步协议
+ * @param {String} configPath 配置文件路径
+ * @returns {Boolean} 是否为 Lvory 同步协议
+ */
+function isLvorySyncConfig(configPath) {
+  try {
+    if (!fs.existsSync(configPath)) {
+      return false;
+    }
+
+    const content = fs.readFileSync(configPath, 'utf8');
+    const isYaml = configPath.endsWith('.yaml') || configPath.endsWith('.yml');
+    
+    if (isYaml) {
+      const yaml = require('js-yaml');
+      const config = yaml.load(content);
+      return config && config.lvory_sync;
+    }
+    
+    return false;
+  } catch (error) {
+    logger.error(`检测 Lvory 同步协议失败: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * 处理 Lvory 同步协议配置
+ * @param {String} syncConfigPath 同步配置文件路径
+ * @returns {Object|null} 处理后的 SingBox 配置，失败时返回 null
+ */
+async function processLvorySyncConfig(syncConfigPath) {
+  try {
+    logger.info(`开始处理 Lvory 同步配置: ${syncConfigPath}`);
+    const mergedConfig = await LvorySyncProcessor.processSync(syncConfigPath);
+    
+    // 保存处理后的配置到标准位置
+    const configPath = getConfigPath();
+    fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), 'utf8');
+    
+    // 更新配置文件副本
+    updateConfigCopy(mergedConfig);
+    
+    logger.info(`Lvory 同步配置处理完成，已保存到: ${configPath}`);
+    return mergedConfig;
+  } catch (error) {
+    logger.error(`处理 Lvory 同步配置失败: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * 智能设置配置文件路径（支持 Lvory 同步协议）
+ * @param {String} configPath 配置文件路径
+ * @returns {Boolean} 是否设置成功
+ */
+async function setConfigPathSmart(configPath) {
+  if (!configPath || !fs.existsSync(configPath)) {
+    return false;
+  }
+
+  // 检测是否为 Lvory 同步协议
+  if (isLvorySyncConfig(configPath)) {
+    logger.info(`检测到 Lvory 同步协议配置文件: ${configPath}`);
+    
+    // 处理同步配置
+    const processedConfig = await processLvorySyncConfig(configPath);
+    if (!processedConfig) {
+      logger.error('Lvory 同步配置处理失败');
+      return false;
+    }
+    
+    // 保存同步配置文件路径到用户设置
+    const userSettings = loadUserSettings();
+    userSettings.lastSyncConfigPath = configPath;
+    saveUserSettings(userSettings);
+    
+    logger.info('Lvory 同步配置已成功应用');
+    return true;
+  } else {
+    // 普通配置文件，使用原有逻辑
+    return setConfigPath(configPath);
+  }
+}
+
+/**
+ * 刷新 Lvory 同步配置（手动触发同步）
+ * @returns {Boolean} 是否刷新成功
+ */
+async function refreshLvorySyncConfig() {
+  try {
+    const userSettings = loadUserSettings();
+    const syncConfigPath = userSettings.lastSyncConfigPath;
+    
+    if (!syncConfigPath || !fs.existsSync(syncConfigPath)) {
+      logger.warn('未找到 Lvory 同步配置文件');
+      return false;
+    }
+    
+    if (!isLvorySyncConfig(syncConfigPath)) {
+      logger.warn('指定的文件不是有效的 Lvory 同步配置');
+      return false;
+    }
+    
+    logger.info('开始刷新 Lvory 同步配置...');
+    const processedConfig = await processLvorySyncConfig(syncConfigPath);
+    
+    if (processedConfig) {
+      logger.info('Lvory 同步配置刷新成功');
+      return true;
+    } else {
+      logger.error('Lvory 同步配置刷新失败');
+      return false;
+    }
+  } catch (error) {
+    logger.error(`刷新 Lvory 同步配置失败: ${error.message}`);
+    return false;
+  }
+}
+
 module.exports = {
   scanProfileConfig,
   getConfigPath,
   setConfigPath,
+  setConfigPathSmart,
   getConfigCopyPath,
   updateConfigCopy,
   loadUserSettings,
@@ -400,5 +523,8 @@ module.exports = {
   saveUserConfig,
   applyConfigMapping,
   loadMappingDefinition,
-  getMappingDefinitionPath
+  getMappingDefinitionPath,
+  isLvorySyncConfig,
+  processLvorySyncConfig,
+  refreshLvorySyncConfig
 }; 

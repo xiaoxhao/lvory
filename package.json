@@ -51,15 +51,17 @@
   "dependencies": {
     "@mihomo-party/sysproxy": "^2.0.8",
     "adm-zip": "^0.5.16",
+    "buffer": "^6.0.3",
     "echarts": "^5.6.0",
     "electron-squirrel-startup": "^1.0.1",
     "i18next": "^25.0.2",
     "i18next-browser-languagedetector": "^8.1.0",
+    "js-yaml": "^4.1.0",
     "node-fetch": "^3.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.5.1",
-    "react-router-dom": "^7.5.3",
+    "react-router-dom": "^7.6.2",
     "system-proxy": "^2.0.0"
   },
   "optionalDependencies": {

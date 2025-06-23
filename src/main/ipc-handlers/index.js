@@ -154,6 +154,8 @@ function cleanupHandlers() {
     }
   });
   
+
+  
   ipcHandlersRegistered = false;
   logger.info('IPC处理程序已清理');
 }

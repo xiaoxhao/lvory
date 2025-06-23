@@ -84,18 +84,24 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.js', '.jsx'],
+    extensions: ['.js', '.jsx', '.mjs'],
     alias: {
       '@': path.resolve(__dirname, 'src')
     },
     fallback: {
-      "process": require.resolve("process/browser"),
-      "Buffer": false
+      "process": require.resolve("process/browser.js"),
+      "Buffer": require.resolve("buffer"),
+      "global": require.resolve("global/window")
     }
   },
   plugins: [
+    new DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+      global: 'globalThis'
+    }),
     new ProvidePlugin({
-      process: 'process/browser'
+      process: 'process/browser.js',
+      Buffer: ['buffer', 'Buffer']
     }),
     new HtmlWebpackPlugin({
       template: './public/index.html',

@@ -1,5 +1,7 @@
-const fetch = require('node-fetch');
 const logger = require('../../utils/logger');
+
+// fetch 将在需要时动态导入
+let fetch;
 const nodeHistoryManager = require('./node-history-manager');
 const settingsManager = require('../settings-manager');
 
@@ -60,6 +62,12 @@ class NodeConnectionMonitor {
       const settings = settingsManager.getSettings();
       if (!settings.keepNodeTrafficHistory) {
         return;
+      }
+      
+      // 确保 fetch 已被初始化
+      if (!fetch) {
+        const nodeFetch = await import('node-fetch');
+        fetch = nodeFetch.default;
       }
       
       const response = await fetch(`http://${this.apiAddress}/connections`);

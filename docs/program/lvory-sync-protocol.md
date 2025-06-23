@@ -19,13 +19,14 @@
 
 ## 1. 协议简介
 
-Lvory 同步协议是一套专门用于 Lvory 应用的智能配置管理系统，让您可以轻松管理复杂的代理配置。它的核心功能是将一个主配置文件与多个节点订阅源自动合并，通过智能匹配算法保持节点信息的同步更新。
+Lvory 同步协议是一套专门用于 Lvory 应用的智能配置管理系统，让您可以轻松管理复杂的代理配置。它作为声明式配置与 SingBox 配置平级存在，通过智能匹配算法实现多源节点的同步更新。
 
 ### 1.1 主要功能
 
 - **主配置管理**：使用一个主配置文件管理路由规则、DNS设置等基础架构
 - **多源节点池**：从多个订阅源获取节点信息，自动补充到主配置
 - **智能匹配**：通过节点名称等标识符自动匹配和更新节点
+- **节点映射**：支持为副源节点与主配置节点建立映射关系
 - **自动同步**：定时检查各个配置源的更新，保持配置最新
 - **冲突处理**：当不同源有相同节点时，智能选择最优配置
 
@@ -33,247 +34,146 @@ Lvory 同步协议是一套专门用于 Lvory 应用的智能配置管理系统�
 
 ### 2.1 总体架构
 
-Lvory 同步协议使用一个专门的配置文件来管理所有的同步设置。这个配置文件包含以下几个主要部分：
+Lvory 同步协议使用一个专门的配置文件来管理所有的同步设置。这个配置文件作为声明式配置与 SingBox 配置平级存在，包含以下几个主要部分：
 
 - **基础设置**：协议版本和同步模式
 - **主配置源**：指定主要的配置文件来源
 - **副节点源**：定义多个节点订阅源
 - **合并策略**：设置如何处理冲突和重复
-- **输出配置**：指定最终配置的保存位置
 
 ### 2.2 基础设置
 
-#### version (协议版本)
-- **类型**：字符串
-- **必填**：是
-- **说明**：标识当前使用的协议版本，确保配置文件的兼容性
-- **格式**：主版本号.次版本号（如："1.0"）
-- **示例**：`"1.0"`
-
-#### sync_mode (同步模式)
-- **类型**：字符串
-- **必填**：是
-- **可选值**：
-  - `auto`：自动同步，根据设定的时间间隔自动更新所有配置源
-  - `manual`：手动同步，仅在用户手动触发时更新
-  - `scheduled`：定时同步，按照预设的时间表执行更新操作
-- **默认值**：`auto`
-- **示例**：`"auto"`
+| 参数名称 | 类型 | 必填 | 可选值/格式 | 默认值 | 说明 | 示例 |
+|---------|------|------|-------------|--------|------|------|
+| version | 字符串 | 是 | 主版本号.次版本号 | - | 标识当前使用的协议版本，确保配置文件的兼容性 | `"1.0"` |
+| sync_mode | 字符串 | 是 | `auto` / `manual` / `scheduled` | `auto` | 同步模式设置：auto-自动同步，manual-手动同步，scheduled-定时同步 | `"auto"` |
 
 ### 2.3 主配置文件设置
 
 主配置文件是整个代理配置的基础架构，包含路由规则、DNS设置、入站配置等核心内容。
 
-#### source (配置来源)
-- **类型**：字符串
-- **必填**：是
-- **可选值**：
-  - `local`：使用本地文件作为主配置
-  - `url`：从远程URL获取主配置
-- **示例**：`"local"` 或 `"url"`
-
-#### path (本地文件路径)
-- **类型**：字符串
-- **必填**：当source为"local"时必填
-- **说明**：指定本地配置文件的完整路径
-- **示例**：`"./configs/master.json"`
-
-#### url (远程配置地址)
-- **类型**：字符串
-- **必填**：当source为"url"时必填
-- **说明**：指定远程配置文件的URL地址
-- **格式**：必须以http://或https://开头
-- **示例**：`"https://example.com/master.json"`
-
-#### update_interval (更新间隔)
-- **类型**：字符串
-- **必填**：否
-- **说明**：设置检查主配置更新的频率
-- **格式**：数字+单位
-  - 小时：`6h`、`12h`、`24h`
-  - 天数：`1d`、`7d`、`30d`
-- **默认值**：不自动更新
-- **示例**：`"24h"`
+| 参数名称 | 类型 | 必填 | 可选值/格式 | 默认值 | 说明 | 示例 |
+|---------|------|------|-------------|--------|------|------|
+| source | 字符串 | 是 | `local` / `url` | - | 配置来源类型：local-本地文件，url-远程URL | `"local"` |
+| path | 字符串 | 条件必填 | 有效文件路径 | - | 本地配置文件的完整路径（source为"local"时必填） | `"./configs/master.json"` |
+| url | 字符串 | 条件必填 | http://或https://开头的URL | - | 远程配置文件的URL地址（source为"url"时必填） | `"https://example.com/master.json"` |
+| update_interval | 字符串 | 否 | 数字+单位（如6h、12h、24h、1d、7d、30d） | 不自动更新 | 设置检查主配置更新的频率 | `"24h"` |
 
 ### 2.4 副节点源配置
 
 副节点源是提供节点信息的订阅源，可以配置多个源以获得更丰富的节点选择。
 
-#### name (节点源名称)
-- **类型**：字符串
-- **必填**：是
-- **说明**：为节点源设置一个易识别的名称，用于日志记录和状态显示
-- **限制**：同一配置中的名称必须唯一
-- **示例**：`"高级节点池"`
+| 参数名称 | 类型 | 必填 | 可选值/格式 | 默认值 | 说明 | 示例 |
+|---------|------|------|-------------|--------|------|------|
+| name | 字符串 | 是 | 任意唯一字符串 | - | 节点源的易识别名称，用于日志记录和状态显示，同一配置中必须唯一 | `"高级节点池"` |
+| source | 字符串 | 是 | `local` / `url` | - | 来源类型：local-本地文件，url-远程订阅 | `"url"` |
+| url | 字符串 | 条件必填 | http://或https://开头的URL | - | 节点订阅的URL地址（source为"url"时必填） | `"https://example.com/nodes.json"` |
+| path | 字符串 | 条件必填 | 有效文件路径 | - | 本地节点文件的路径（source为"local"时必填） | `"./nodes/backup.json"` |
+| config_type | 字符串 | 否 | `singbox` / `clash` / `v2ray` / `xray` / `hysteria` / `auto` | `auto` | 指定配置文件的协议内核类型，用于正确解析不同格式的配置文件 | `"singbox"` |
+| update_interval | 字符串 | 否 | 数字+单位 | - | 该源的检查更新频率，建议免费源4-6小时，付费源6-12小时 | `"6h"` |
+| priority | 数字 | 否 | 1-999 | 99 | 优先级设置，数字越小优先级越高，用于冲突解决时的选择 | `1` |
+| enabled | 布尔值 | 否 | `true` / `false` | `true` | 是否启用该节点源 | `true` |
+| node_maps | 对象 | 否 | 键值对对象 | `{}` | 节点映射配置，定义主配置中的节点如何映射到副源节点 | `{"主配置节点名": "副源节点名"}` |
+| sync_mode | 字符串 | 否 | `all` / `mapped_only` / `selective` | `mapped_only` | 同步模式：all-同步所有节点，mapped_only-仅同步映射的节点，selective-根据过滤条件选择性同步 | `"mapped_only"` |
+| node_scope | 对象 | 否 | 节点范围配置对象 | - | 定义哪些节点需要参与同步，用于限制同步范围 | - |
 
-#### source (来源类型)
-- **类型**：字符串
-- **必填**：是
-- **可选值**：
-  - `local`：本地文件
-  - `url`：远程订阅
-- **示例**：`"url"`
+### 2.5 节点范围配置
 
-#### url (订阅地址)
-- **类型**：字符串
-- **必填**：当source为"url"时必填
-- **说明**：节点订阅的URL地址
-- **格式**：必须以http://或https://开头
-- **示例**：`"https://example.com/nodes.json"`
+节点范围配置（`node_scope`）用于精确控制哪些节点参与同步过程，避免不必要的节点被添加或更新。
 
-#### path (本地文件路径)
-- **类型**：字符串
-- **必填**：当source为"local"时必填
-- **说明**：本地节点文件的路径
-- **示例**：`"./nodes/backup.json"`
+| 参数名称 | 类型 | 必填 | 可选值/格式 | 默认值 | 说明 | 示例 |
+|---------|------|------|-------------|--------|------|------|
+| include_patterns | 字符串数组 | 否 | 正则表达式或通配符 | - | 包含匹配模式，只有匹配的节点才会被同步 | `["HK-*", "US-*", ".*IEPL.*"]` |
+| exclude_patterns | 字符串数组 | 否 | 正则表达式或通配符 | - | 排除匹配模式，匹配的节点将被跳过 | `["*-test", ".*expired.*"]` |
+| target_tags | 字符串数组 | 否 | 具体的节点标签 | - | 明确指定要同步的节点标签列表 | `["IEPL-HK", "IEPL-US", "premium-sg"]` |
+| max_nodes | 数字 | 否 | 正整数 | - | 从该源最多同步的节点数量限制 | `10` |
+| node_selection | 字符串 | 否 | `first` / `last` / `random` / `priority` | `first` | 当节点数量超过限制时的选择策略 | `"priority"` |
 
-#### update_interval (更新间隔)
-- **类型**：字符串
-- **必填**：否
-- **说明**：该源的检查更新频率
-- **格式**：同主配置的update_interval
-- **建议值**：免费源4-6小时，付费源6-12小时
-- **示例**：`"6h"`
-
-#### priority (优先级)
-- **类型**：数字
-- **必填**：否
-- **说明**：数字越小优先级越高，用于冲突解决时的选择
-- **范围**：1-999
-- **默认值**：99
-- **示例**：`1`
-
-#### enabled (启用状态)
-- **类型**：布尔值
-- **必填**：否
-- **说明**：是否启用该节点源
-- **默认值**：`true`
-- **示例**：`true`
-
-### 2.5 节点过滤规则
+### 2.6 节点过滤规则
 
 为了获得更精确的节点选择，可以为每个副节点源设置过滤规则。过滤规则是可选的，如果不设置则接受该源的所有节点。
 
-#### include_tags (包含标签)
-- **类型**：字符串数组
-- **必填**：否
-- **说明**：只保留带有指定标签的节点
-- **示例**：`["premium", "fast", "stable"]`
+| 参数名称 | 类型 | 必填 | 可选值/格式 | 默认值 | 说明 | 示例 |
+|---------|------|------|-------------|--------|------|------|
+| include_tags | 字符串数组 | 否 | 标签字符串数组 | - | 只保留带有指定标签的节点 | `["premium", "fast", "stable"]` |
+| exclude_tags | 字符串数组 | 否 | 标签字符串数组 | - | 移除带有指定标签的节点 | `["expired", "slow", "test"]` |
+| include_types | 字符串数组 | 否 | 协议类型数组 | - | 只保留指定协议类型的节点：shadowsocks、vmess、trojan、vless、hysteria等 | `["shadowsocks", "vmess", "trojan"]` |
+| exclude_types | 字符串数组 | 否 | 协议类型数组 | - | 移除指定协议类型的节点 | `["http", "socks"]` |
+| region_filter | 字符串数组 | 否 | ISO 3166-1 alpha-2国家代码 | - | 根据节点所在地区进行筛选 | `["CN", "HK", "JP", "US"]` |
 
-#### exclude_tags (排除标签)
-- **类型**：字符串数组
-- **必填**：否
-- **说明**：移除带有指定标签的节点
-- **示例**：`["expired", "slow", "test"]`
-
-#### include_types (包含类型)
-- **类型**：字符串数组
-- **必填**：否
-- **说明**：只保留指定协议类型的节点
-- **可选值**：`shadowsocks`、`vmess`、`trojan`、`vless`、`hysteria`等
-- **示例**：`["shadowsocks", "vmess", "trojan"]`
-
-#### exclude_types (排除类型)
-- **类型**：字符串数组
-- **必填**：否
-- **说明**：移除指定协议类型的节点
-- **示例**：`["http", "socks"]`
-
-#### region_filter (地区过滤)
-- **类型**：字符串数组
-- **必填**：否
-- **说明**：根据节点所在地区进行筛选
-- **格式**：使用ISO 3166-1 alpha-2国家代码
-- **示例**：`["CN", "HK", "JP", "US"]`
-
-### 2.6 合并策略
+### 2.7 合并策略
 
 当多个源有相同或冲突的节点时，合并策略决定如何处理。
 
-#### node_conflict_resolution (节点冲突解决)
-- **类型**：字符串
-- **必填**：否
-- **可选值**：
-  - `priority`：按照源的优先级选择（数字小的优先）
-  - `latest`：选择最新更新的版本
-  - `master_priority`：主配置中的节点始终优先
-- **默认值**：`priority`
-- **示例**：`"priority"`
+| 参数名称 | 类型 | 必填 | 可选值 | 默认值 | 说明 | 示例 |
+|---------|------|------|--------|--------|------|------|
+| node_conflict_resolution | 字符串 | 否 | `priority` / `latest` / `master_priority` | `priority` | 节点冲突解决策略：priority-按优先级选择，latest-选择最新版本，master_priority-主配置优先 | `"priority"` |
+| preserve_master_structure | 布尔值 | 否 | `true` / `false` | `true` | 确保主配置的基础架构（路由规则、DNS等）不被副源影响 | `true` |
+| auto_tag_generation | 布尔值 | 否 | `true` / `false` | `false` | 为合并的节点自动生成标识标签，避免命名冲突 | `true` |
+| duplicate_handling | 字符串 | 否 | `skip` / `replace` / `rename` | `replace` | 重复节点处理：skip-跳过重复节点，replace-替换旧节点，rename-重命名新节点 | `"replace"` |
 
-#### preserve_master_structure (保持主配置结构)
-- **类型**：布尔值
-- **必填**：否
-- **说明**：确保主配置的基础架构（路由规则、DNS等）不被副源影响
-- **默认值**：`true`
-- **示例**：`true`
+## 3. 节点同步机制
 
-#### auto_tag_generation (自动标签生成)
-- **类型**：布尔值
-- **必填**：否
-- **说明**：为合并的节点自动生成标识标签，避免命名冲突
-- **默认值**：`false`
-- **示例**：`true`
+### 3.1 同步模式
 
-#### duplicate_handling (重复节点处理)
-- **类型**：字符串
-- **必填**：否
-- **可选值**：
-  - `skip`：跳过重复的节点，保持原有节点
-  - `replace`：用新节点替换旧节点
-  - `rename`：重命名新节点避免冲突
-- **默认值**：`replace`
-- **示例**：`"replace"`
+Lvory 同步协议支持三种不同的同步模式，以满足不同的使用场景：
 
-### 2.7 输出配置
+**mapped_only 模式**（推荐）：
+- 仅同步在 `node_maps` 中明确定义的节点映射
+- 副源节点信息更新主配置中对应的节点
+- 保持主配置节点名称不变，仅更新连接参数
+- 最安全和可控的同步方式
 
-#### path (输出路径)
-- **类型**：字符串
-- **必填**：是
-- **说明**：合并后配置文件的保存路径
-- **示例**：`"./merged.json"`
+**selective 模式**：
+- 根据 `node_scope` 配置选择性同步节点
+- 结合过滤规则和范围限制
+- 适合需要灵活控制同步范围的场景
 
-#### backup_original (备份原文件)
-- **类型**：布尔值
-- **必填**：否
-- **说明**：在覆盖前是否备份原始配置文件
-- **默认值**：`true`
-- **示例**：`true`
+**all 模式**：
+- 同步副源的所有节点（受过滤规则限制）
+- 会向主配置添加新节点
+- 适合需要完整节点池的场景
 
-#### validate_config (验证配置)
-- **类型**：布尔值
-- **必填**：否
-- **说明**：是否在保存前验证生成的配置文件
-- **默认值**：`true`
-- **示例**：`true`
-
-## 3. 节点匹配机制
-
-### 3.1 匹配原理
+### 3.2 匹配原理
 
 Lvory 同步协议通过智能匹配算法自动识别主配置和副节点源中的相同节点，实现配置的无缝合并。
 
-### 3.2 匹配标识符
+### 3.3 匹配标识符
 
 系统使用多种标识符来判断节点是否相同：
 
 **主要标识符**：
-- **节点名称（tag）**：最主要的匹配依据，精确匹配节点名称
+- **节点名称（tag）**：最主要的匹配依据，精确匹配节点名称（支持映射关系）
 - **服务器地址+端口**：通过服务器IP/域名和端口的组合进行匹配
 - **协议特定标识**：如VMess协议的UUID、Shadowsocks的密码等
 
-### 3.3 匹配策略
+### 3.4 节点映射机制
+
+**映射工作原理**：
+1. 如果在 `node_maps` 中定义了映射关系，副源节点将更新主配置中对应的节点
+2. 映射关系：`{"主配置节点名": "副源节点名"}`，表示用副源的节点信息更新主配置的节点
+3. 节点映射在同步过程中具有最高优先级
+
+**映射应用场景**：
+- 使用副源的最新节点信息更新主配置中的对应节点
+- 保持主配置节点名称不变，仅更新连接参数
+- 实现多源节点信息的智能同步和更新
+
+### 3.5 匹配策略
 
 匹配过程按照以下优先级顺序进行：
 
-1. **精确名称匹配**：节点名称完全相同时，确认为同一节点
-2. **服务器匹配**：服务器地址和端口都相同时，判定为同一节点
-3. **协议匹配**：针对特定协议使用其独有标识符进行匹配
-4. **模糊匹配**：通过相似度算法进行智能判断
+1. **映射匹配**：优先使用节点映射关系进行匹配
+2. **精确名称匹配**：节点名称完全相同时，确认为同一节点
+3. **服务器匹配**：服务器地址和端口都相同时，判定为同一节点
+4. **协议匹配**：针对特定协议使用其独有标识符进行匹配
+5. **模糊匹配**：通过相似度算法进行智能判断
 
-### 3.4 匹配置信度
+### 3.6 匹配置信度
 
 系统为每种匹配方式分配不同的置信度：
-- 精确名称匹配：100% 置信度
+- 映射匹配：100% 置信度
+- 精确名称匹配：95% 置信度
 - 服务器+端口匹配：90% 置信度  
 - 协议特定匹配：80% 置信度
 - 模糊匹配：60% 置信度
@@ -284,7 +184,7 @@ Lvory 同步协议通过智能匹配算法自动识别主配置和副节点源�
 
 ### 4.1 同步过程概览
 
-Lvory 同步协议的执行过程分为五个主要阶段，确保配置的安全性和准确性。
+Lvory 同步协议的执行过程分为五个主要阶段，作为声明式配置直接影响 SingBox 配置的运行时状态。
 
 ### 4.2 初始化准备
 
@@ -295,8 +195,8 @@ Lvory 同步协议的执行过程分为五个主要阶段，确保配置的安�
 
 **环境准备**：
 - 创建必要的工作目录
-- 准备备份文件夹
 - 初始化日志记录
+- 准备节点映射表
 
 ### 4.3 数据收集
 
@@ -314,11 +214,12 @@ Lvory 同步协议的执行过程分为五个主要阶段，确保配置的安�
 
 **节点提取**：
 - 从各个配置源中提取节点信息
+- 应用节点范围限制和过滤规则
 - 为每个节点标记来源和优先级
-- 应用配置的过滤规则
+- 根据同步模式选择参与同步的节点
 
 **智能匹配**：
-- 使用匹配算法识别相同节点
+- 使用匹配算法识别相同节点（优先使用映射关系）
 - 计算匹配置信度
 - 生成匹配报告
 
@@ -331,20 +232,17 @@ Lvory 同步协议的执行过程分为五个主要阶段，确保配置的安�
 
 **配置组装**：
 - 保持主配置的基础结构
-- 更新匹配的节点信息
-- 添加新发现的节点
+- 使用副源信息更新映射的节点
+- 根据同步模式添加或更新节点
+- 生成最终的运行时配置
 
-### 4.6 结果输出
+### 4.6 运行时更新
 
-**质量保证**：
-- 验证最终配置的语法正确性
+**配置应用**：
+- 直接更新运行时配置状态
+- 验证配置的语法正确性
 - 检查配置的逻辑完整性
 - 确保所有必要字段都存在
-
-**安全保存**：
-- 备份原始配置文件
-- 保存合并后的新配置
-- 更新同步元数据和日志
 
 ## 5. 冲突解决策略
 
@@ -558,13 +456,13 @@ Lvory 同步协议采用多层验证机制确保配置的正确性和安全性�
 ### 9.1 场景一：个人用户多源管理
 
 **使用背景**：
-个人用户需要管理多个节点订阅源，希望将不同来源的节点统一到一个配置文件中。
+个人用户需要管理多个节点订阅源，希望将不同来源的节点统一管理，并建立映射关系。
 
 **配置特点**：
 - 使用本地主配置文件管理基础设置
 - 添加2-3个节点订阅源
+- 为常用节点建立映射关系
 - 设置简单的优先级策略
-- 启用自动备份
 
 **推荐设置**：
 - 同步模式：auto（自动）
@@ -575,11 +473,12 @@ Lvory 同步协议采用多层验证机制确保配置的正确性和安全性�
 ### 9.2 场景二：团队共享配置
 
 **使用背景**：
-团队需要共享一套基础配置，同时允许个人添加额外的节点源。
+团队需要共享一套基础配置，同时允许个人添加额外的节点源和自定义映射。
 
 **配置特点**：
 - 主配置来自团队共享的远程URL
 - 个人可添加本地或私人订阅源
+- 统一的节点命名规范通过映射实现
 - 保持团队配置的权威性
 - 定期同步团队更新
 
@@ -592,10 +491,11 @@ Lvory 同步协议采用多层验证机制确保配置的正确性和安全性�
 ### 9.3 场景三：高可用性配置
 
 **使用背景**：
-对网络稳定性要求很高，需要多个备用节点源确保服务连续性。
+对网络稳定性要求很高，需要多个备用节点源确保服务连续性，并通过映射快速识别节点功能。
 
 **配置特点**：
 - 配置多个高质量节点源作为备份
+- 设置功能性映射（如"IEPL-HK"对应"主力-香港"、"BACKUP-SG"对应"备用-新加坡"）
 - 设置智能故障转移机制
 - 启用实时监控和快速更新
 - 优化节点过滤规则
@@ -621,19 +521,137 @@ lvory_sync:
     - name: "主要节点源"
       source: "url"
       url: "https://example.com/nodes.json"
+      config_type: "singbox"
       update_interval: "12h"
       priority: 1
       enabled: true
+      sync_mode: "mapped_only"
+      node_maps:
+        "HK-主力": "Hong Kong Premium Server 01"
+        "SG-高速": "Singapore High Speed Node"
+        "JP-游戏": "Tokyo Gaming Optimized"
+        "US-流媒体": "Los Angeles Media Streaming"
+      node_scope:
+        target_tags: ["HK-主力", "SG-高速", "JP-游戏", "US-流媒体"]
+        max_nodes: 8
+        node_selection: "priority"
       filter:
         include_types: ["shadowsocks", "vmess", "trojan"]
         exclude_tags: ["expired", "test"]
+    - name: "备用节点源"
+      source: "url"
+      url: "https://backup.example.com/nodes.json"
+      config_type: "clash"
+      update_interval: "6h"
+      priority: 2
+      enabled: true
+      sync_mode: "mapped_only"
+      node_maps:
+        "HK-备用": "Backup HK Node"
+        "US-应急": "Emergency US Gateway"
+      node_scope:
+        target_tags: ["HK-备用", "US-应急"]
+        max_nodes: 5
+      filter:
+        include_types: ["shadowsocks", "vmess"]
+    - name: "本地V2Ray配置"
+      source: "local"
+      path: "./v2ray-nodes.json"
+      config_type: "v2ray"
+      priority: 3
+      enabled: true
+      sync_mode: "selective"
+      node_maps:
+        "V2-01": "v2ray-node-01"
+        "V2-02": "v2ray-node-02"
+      node_scope:
+        include_patterns: ["v2ray-*"]
+        max_nodes: 3
   merge_strategy:
     node_conflict_resolution: "priority"
     preserve_master_structure: true
     auto_tag_generation: false
     duplicate_handling: "replace"
-  output:
-    path: "./merged.json"
-    backup_original: true
-    validate_config: true
 ```
+
+**多协议混合示例**：
+```yaml
+lvory_sync:
+  version: "1.0"
+  sync_mode: "auto"
+  master_config:
+    source: "url"
+    url: "https://team.example.com/base-config.json"
+    update_interval: "24h"
+  secondary_sources:
+    - name: "SingBox节点源"
+      source: "url"
+      url: "https://provider1.com/singbox-nodes.json"
+      config_type: "singbox"
+      priority: 1
+      enabled: true
+      sync_mode: "mapped_only"
+      node_maps:
+        "SB-港01": "singbox-hk-premium-01"
+        "SB-新01": "singbox-sg-speed-01"
+      node_scope:
+        target_tags: ["SB-港01", "SB-新01"]
+    - name: "Clash节点源"
+      source: "url"
+      url: "https://provider2.com/clash-config.yaml"
+      config_type: "clash"
+      priority: 2
+      enabled: true
+      sync_mode: "selective"
+      node_maps:
+        "港01": "🇭🇰 Hong Kong 01"
+        "新01": "🇸🇬 Singapore 01"
+      node_scope:
+        include_patterns: ["🇭🇰*", "🇸🇬*"]
+        max_nodes: 5
+    - name: "个人V2Ray节点"
+      source: "local"
+      path: "./personal-v2ray-nodes.json"
+      config_type: "v2ray"
+      priority: 3
+      enabled: true
+      sync_mode: "mapped_only"
+      node_maps:
+        "V2-港01": "v2ray-hongkong-premium-server-node-01"
+        "V2-新01": "shadowsocks-singapore-high-speed-optimized"
+      node_scope:
+        target_tags: ["V2-港01", "V2-新01"]
+    - name: "Hysteria高速节点"
+      source: "url"
+      url: "https://provider3.com/hysteria-nodes.json"
+      config_type: "hysteria"
+      priority: 4
+      enabled: true
+      sync_mode: "all"
+      node_maps:
+        "Hy-日游戏": "hysteria-japan-gaming"
+        "Hy-美流媒体": "hysteria-usa-streaming"
+      node_scope:
+        max_nodes: 10
+        node_selection: "priority"
+  merge_strategy:
+    node_conflict_resolution: "priority"
+    preserve_master_structure: true
+    duplicate_handling: "replace"
+```
+
+## 10. 使用建议
+
+### 10.1 配置类型选择建议
+
+**支持的配置类型**：
+- **`singbox`**：SingBox 原生配置格式
+- **`clash`**：Clash 配置格式，兼容性最好（未实现）
+- **`v2ray`**：V2Ray 原生配置格式（未实现）
+- **`xray`**：Xray 配置格式，与 V2Ray 基本兼容（未实现）
+
+**选择建议**：
+1. **明确指定类型**：推荐明确指定 `config_type`，避免自动检测可能的误判
+2. **格式优先级**：SingBox > Clash > V2Ray/Xray > Hysteria
+3. **兼容性考虑**：Clash 格式兼容性最好，适合作为通用格式
+4. **性能考虑**：SingBox 原生格式解析效率最高
