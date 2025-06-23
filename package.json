@@ -38,8 +38,10 @@
     "css-loader": "^7.1.2",
     "electron": "35.1.2",
     "electron-builder": "^25.1.8",
+    "global": "^4.4.0",
     "html-webpack-plugin": "^5.6.3",
     "mini-css-extract-plugin": "^2.9.2",
+    "process": "^0.11.10",
     "style-loader": "^4.0.0",
     "wait-on": "^8.0.3",
     "webpack": "^5.98.0",
@@ -112,17 +114,6 @@
       "shortcutName": "lvory",
       "perMachine": false
     },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "lvory",
-      "installerIcon": "resource/icon/installer/installer.ico",
-      "uninstallerIcon": "resource/icon/installer/installer.ico",
-      "installerHeaderIcon": "resource/icon/installer/installer.ico",
-      "artifactName": "${productName}-${version}-setup.${ext}"
-    },
     "mac": {
       "target": [
         {
@@ -163,7 +154,10 @@
       "target": [
         {
           "target": "deb",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "resource/icon/index256.png",
@@ -182,7 +176,13 @@
       "maintainer": "lvory Team"
     },
     "deb": {
-      "depends": ["gconf2", "gconf-service", "libxss1", "libappindicator1", "libasound2"]
+      "depends": [
+        "gconf2",
+        "gconf-service",
+        "libxss1",
+        "libappindicator1",
+        "libasound2"
+      ]
     },
     "fileAssociations": [],
     "asarUnpack": [

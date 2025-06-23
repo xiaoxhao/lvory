@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { DefinePlugin, ProvidePlugin } = require('webpack');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -86,9 +87,16 @@ module.exports = {
     extensions: ['.js', '.jsx'],
     alias: {
       '@': path.resolve(__dirname, 'src')
+    },
+    fallback: {
+      "process": require.resolve("process/browser"),
+      "Buffer": false
     }
   },
   plugins: [
+    new ProvidePlugin({
+      process: 'process/browser'
+    }),
     new HtmlWebpackPlugin({
       template: './public/index.html',
       filename: 'index.html',
