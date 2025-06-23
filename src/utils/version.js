@@ -3,7 +3,7 @@ const VERSION_INFO = {
   APP_VERSION: '0.1.7', // 默认版本号
   APP_NAME: 'lvory',
   APP_DESCRIPTION: '基于Sing-Box内核的通用桌面GUI客户端',
-  LICENSE: 'MIT License',
+  LICENSE: 'Apache-2.0',
   WEBSITE: 'https://github.com/sxueck/lvory',
   BUILD_DATE: '20240101', // 默认构建日期，将被CI替换
 };

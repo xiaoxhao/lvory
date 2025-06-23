@@ -318,7 +318,7 @@ const SettingsContent = ({ section }) => {
     proxyPort: '7890',
     apiAddress: '127.0.0.1:9090',
     allowLan: false,
-    tunMode: false,
+
     autoStart: false,
     autoRestart: false,
     checkUpdateOnBoot: true,
@@ -516,7 +516,7 @@ const SettingsContent = ({ section }) => {
       proxyPort: 'proxy_port',
       allowLan: 'allow_lan',
       apiAddress: 'api_address',
-      tunMode: 'tun_mode',
+
       autoRestart: 'auto_restart',
       checkUpdateOnBoot: 'check_update_on_boot',
       nodeAdvancedMonitoring: 'node_advanced_monitoring',
@@ -671,7 +671,7 @@ const SettingsContent = ({ section }) => {
       proxyPort: config.proxy_port || prevSettings.proxyPort,
       allowLan: config.allow_lan || false,
       apiAddress: config.api_address || prevSettings.apiAddress,
-      tunMode: config.tun_mode || false,
+
       autoRestart: config.auto_restart || false,
       checkUpdateOnBoot: config.check_update_on_boot !== undefined ? config.check_update_on_boot : prevSettings.checkUpdateOnBoot,
       
@@ -790,15 +790,7 @@ const SettingsContent = ({ section }) => {
               {/* 允许局域网连接开关 */}
               {renderToggle(t('settings.allowLan'), 'allowLan', settings.allowLan)}
 
-              {/* TUN模式开关 - Disabled */}
-              <ToggleWithTooltip
-                label={t('settings.tunMode')}
-                tKey="tunMode"
-                value={settings.tunMode}
-                onChange={(val) => handleSettingChange('tunMode', val)}
-                disabled={true}
-                tooltipText={t('settings.featureUnderDevelopment')}
-              />
+
 
               {/* 开机自启动开关 */}
               {renderToggle(t('settings.autoStart'), 'autoStart', settings.autoStart)}

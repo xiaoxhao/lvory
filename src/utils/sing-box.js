@@ -527,8 +527,7 @@ class SingBox {
               outputCallback(output);
             }
             
-            // 检查并处理tun设备模式的输出
-            this.handleTunOutput(output);
+
           } catch (err) {
             logger.error(`[SingBox] 处理stdout时出错: ${err.message}`);
           }
@@ -1113,17 +1112,7 @@ class SingBox {
     logger.info('SingBox模块已连接到主窗口');
   }
 
-  /**
-   * 处理TUN设备相关的输出
-   * @param {String} output - 进程输出内容
-   */
-  handleTunOutput(output) {
-    // 目前只是一个占位方法，未来可能会处理TUN设备的特殊输出
-    // 比如提取TUN接口信息、路由信息等
-    if (output && output.includes('tun')) {
-      logger.info(`[SingBox] 检测到TUN相关输出: ${output.trim()}`);
-    }
-  }
+
 
   // 保存状态
   async saveState() {

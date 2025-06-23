@@ -9,7 +9,7 @@ export default {
     enterApiAddress: '输入 API 地址（例如 127.0.0.1:9090）',
     apiAddressWarning: '*注意：此值从当前活跃的配置文件中自动读取',
     allowLan: '允许局域网连接',
-    tunMode: 'TUN 模式',
+
     autoStart: '开机自启动',
     autoRestart: '自动重启内核',
     checkUpdates: '启动时检查更新',

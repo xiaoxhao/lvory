@@ -40,31 +40,7 @@ function getDefaultMappingDefinition() {
         "default": "127.0.0.1:9090",
         "description": "API地址设置"
       },
-      {
-        "user_path": "settings.tun_mode",
-        "target_path": "inbounds.[type=tun].enabled",
-        "type": "boolean",
-        "default": false,
-        "description": "TUN模式开关",
-        "dependencies": [
-          {
-            "condition": "value === true",
-            "target_path": "inbounds.[type=tun]",
-            "value": {
-              "type": "tun",
-              "tag": "tun-in",
-              "interface_name": "tun0",
-              "stack": "system",
-              "inet4_address": "172.19.0.1/30",
-              "mtu": 9000,
-              "auto_route": true,
-              "strict_route": true
-            },
-            "type": "object",
-            "override_if_exists": false
-          }
-        ]
-      },
+
       {
         "user_path": "nodes[*]",
         "target_path": "outbounds.[tag={nodes[*].name}]",

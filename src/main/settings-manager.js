@@ -11,7 +11,7 @@ class SettingsManager {
       proxyPort: '7890',
       apiAddress: '127.0.0.1:9090',
       allowLan: false,
-      tunMode: false,
+
       autoStart: false,
       autoRestart: false,
       checkUpdateOnBoot: true,
