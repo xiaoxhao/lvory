@@ -1,0 +1,197 @@
+/* 配置文件表格样式 */
+.profiles-table-container {
+  flex: 1;
+  overflow: auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.profiles-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.profiles-table th,
+.profiles-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.profiles-table th {
+  font-weight: 500;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+.profiles-table tr:hover {
+  background-color: #f5f7f9;
+}
+
+.profiles-table tr.selected-row {
+  background-color: #e8f0fe;
+}
+
+/* 协议列样式 */
+.protocol-column {
+  width: 80px;
+  text-align: center;
+}
+
+.protocol-column .protocol-badge {
+  margin-left: 0;
+  display: inline-block;
+}
+
+/* 表格状态行 */
+.loading-row, .empty-row {
+  text-align: center;
+  color: #888;
+  padding: 30px 0;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+
+/* 文件名单元格 */
+.file-name-cell {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+  font-weight: 500;
+}
+
+.file-name-cell:hover {
+  color: #50b2d0;
+}
+
+.file-name-cell:active {
+  color: #3a8ba8;
+}
+
+.file-name-cell.active-profile {
+  color: #50b2d0;
+  font-weight: 600;
+}
+
+.active-label {
+  font-size: 10px;
+  color: #50b2d0;
+  background-color: rgba(80, 178, 208, 0.1);
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* 协议标识 */
+.protocol-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.protocol-badge.lvory {
+  background-color: #e8f4f8;
+  color: #2980b9;
+  border: 1px solid #bde3f0;
+}
+
+.protocol-badge.singbox {
+  background-color: #f0f8e8;
+  color: #27ae60;
+  border: 1px solid #c8e6c9;
+}
+
+/* 状态标识 */
+.status-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: normal;
+}
+
+.status-badge.expired {
+  background-color: #ffebee;
+  color: #e53935;
+}
+
+.status-badge.incomplete {
+  background-color: #fff8e1;
+  color: #ff8f00;
+}
+
+.status-badge.cached {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+/* 本地载入按钮样式 */
+.load-local-button {
+  padding: 6px 12px;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  transition: background-color 0.2s;
+  margin-right: 8px;
+}
+
+.load-local-button:hover {
+  background-color: #229954;
+}
+
+.load-local-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.load-local-button .icon {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+/* 隐藏的文件输入 */
+.hidden-file-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+} 

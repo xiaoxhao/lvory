@@ -1,0 +1,359 @@
+/* 配置文件下载对话框样式 */
+.profile-modal-content {
+  max-width: 520px;
+  width: 100%;
+}
+
+/* 协议选择区域 */
+.protocol-selection {
+  margin-bottom: 20px;
+}
+
+.protocol-selection-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.protocol-options {
+  display: flex;
+  gap: 12px;
+}
+
+.protocol-option {
+  flex: 1;
+  position: relative;
+}
+
+.protocol-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.protocol-option-label {
+  display: block;
+  padding: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #fafafa;
+  text-align: center;
+}
+
+.protocol-option input[type="radio"]:checked + .protocol-option-label {
+  border-color: #50b2d0;
+  background-color: #f0f8ff;
+}
+
+.protocol-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.protocol-option input[type="radio"]:checked + .protocol-option-label .protocol-option-title {
+  color: #50b2d0;
+}
+
+.protocol-option-description {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* 输入容器 */
+.url-input-container {
+  margin-bottom: 16px;
+}
+
+.url-input-container label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.url-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: #50b2d0;
+  box-shadow: 0 0 0 2px rgba(80, 178, 208, 0.1);
+}
+
+.url-input:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* 更新间隔选择 */
+.update-interval {
+  margin-bottom: 16px;
+}
+
+.update-interval select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+/* 复选框容器 */
+.is-default-checkbox {
+  margin-bottom: 20px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* 下载进度和状态 */
+.download-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.progress-bar.loading::after {
+  content: '';
+  display: block;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, #50b2d0, #3498db);
+  border-radius: 2px;
+  animation: progress-loading 1.5s infinite;
+}
+
+.progress-bar.success {
+  background-color: #27ae60;
+}
+
+.progress-bar.error {
+  background-color: #e74c3c;
+}
+
+@keyframes progress-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(333%); }
+}
+
+.status-text {
+  margin: 8px 0;
+  font-size: 14px;
+  text-align: center;
+  word-break: break-word;
+  color: #333;
+}
+
+.success-text {
+  color: #27ae60;
+  font-weight: 500;
+}
+
+.update-schedule {
+  font-size: 12px;
+  color: #57a45d;
+  margin-top: 5px;
+}
+
+.auto-close {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* 下载成功状态 - 旧样式已移除，新样式在文件末尾 */
+
+/* 错误详情 */
+.error-details-container {
+  margin-top: 16px;
+  width: 100%;
+}
+
+.error-details-toggle {
+  background: none;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.error-details-toggle:hover {
+  background-color: #f5f5f5;
+  border-color: #ccc;
+}
+
+.error-details {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #e74c3c;
+  word-break: break-word;
+}
+
+/* 操作按钮 */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.modal-actions.error-actions {
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.cancel-button,
+.download-button,
+.try-again-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-button {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.cancel-button:hover {
+  background-color: #eeeeee;
+}
+
+.download-button {
+  background-color: #50b2d0;
+  color: white;
+}
+
+.download-button:hover {
+  background-color: #3a8ba8;
+}
+
+.try-again-button {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.try-again-button:hover {
+  background-color: #c0392b;
+}
+
+/* 成功状态样式 */
+.download-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.success-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #27ae60;
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+
+.success-filename {
+  font-size: 14px;
+  color: #333;
+  background-color: #f8f9fa;
+  padding: 8px 16px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.success-update {
+  font-size: 13px;
+  color: #57a45d;
+  margin-bottom: 0;
+}
+
+/* 错误状态样式 */
+.download-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.error-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e74c3c;
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+
+/* 下载按钮禁用状态 */
+.download-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.download-button:disabled:hover {
+  background-color: #cccccc;
+}
+
+/* 成功状态的模态框 */
+.modal.success-state .modal-content {
+  border-top: 4px solid #27ae60;
+} 
