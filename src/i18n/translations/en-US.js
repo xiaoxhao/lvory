@@ -73,6 +73,99 @@ export default {
     coreNotInstalled: 'Core Not Installed'
   },
   
+  // Profiles page related
+  profiles: {
+    allFiles: 'All Files',
+    updateAll: 'Update All',
+    updating: 'Updating...',
+    fileName: 'File Name',
+    size: 'Size',
+    createDate: 'Create Date',
+    protocol: 'Protocol',
+    actions: 'Actions',
+    loadingProfiles: 'Loading profiles...',
+    noProfilesFound: 'No profiles found',
+    active: 'ACTIVE',
+    expired: 'Expired',
+    incomplete: 'INCOMPLETE',
+    cached: 'CACHED',
+    lvoryProtocol: 'Lvory',
+    singboxProtocol: 'SingBox',
+    loadLocalFile: 'Load Local File',
+    selectConfigFile: 'Select Config File',
+    loadSuccess: 'Successfully loaded config file: ',
+    loadFailed: 'Failed to load config file: ',
+    invalidFileType: 'Unsupported file type. Please select .json or .yaml/.yml files',
+    // Action menu
+    copyFileName: 'Copy Filename',
+    editFile: 'Edit File',
+    updateProfile: 'Update Profile',
+    fixProfile: 'Fix Profile',
+    deleteProfile: 'Delete Profile',
+    copied: 'Copied: ',
+    failedToCopy: 'Failed to copy',
+    confirmDelete: 'Are you sure you want to delete {fileName}?',
+    deleteSuccess: 'Successfully deleted file: ',
+    deleteFailed: 'Delete failed: ',
+    updateSuccess: 'Successfully updated profile: ',
+    updateFailed: 'Update failed: ',
+    fixSuccess: 'Successfully fixed profile: ',
+    fixFailed: 'Fix failed: ',
+    editNotAvailable: 'Edit function not available',
+    updateNotAvailable: 'Update API not available, please check if the application needs an update',
+    fixNotAvailable: 'Fix API not available, please check if the application needs an update',
+    configActivated: 'Configuration file switched: ',
+    lvoryConfigActivated: 'Lvory config activated and parsed to SingBox: ',
+    refreshLvoryCache: 'Refresh Cache',
+    refreshLvoryCacheSuccess: 'Lvory cache refreshed successfully',
+    refreshLvoryCacheFailed: 'Failed to refresh Lvory cache:',
+    refreshLvoryCacheNotAvailable: 'Refresh cache feature not available'
+  },
+
+  // Profile download modal related
+  profileModal: {
+    title: 'ADD PROFILE',
+    // Protocol selection
+    protocolSelection: 'Protocol Type',
+    singboxProtocol: 'SingBox Native',
+    singboxDescription: 'Standard SingBox configuration format with full proxy features and routing rules',
+    lvoryProtocol: 'Lvory Protocol',
+    lvoryDescription: 'Lvory smart sync protocol with multi-source configuration merging and auto-updates',
+    // Input fields
+    enterUrl: 'Enter URL to download profile:',
+    urlPlaceholder: 'https://example.com/profile.config',
+    customFileName: 'Custom filename (optional):',
+    fileNamePlaceholder: 'my_profile.config',
+    // Update settings
+    autoUpdateInterval: 'Auto Update Interval:',
+    noAutoUpdate: 'No Auto Update',
+    interval12h: '12 Hours',
+    interval24h: '24 Hours',
+    interval72h: '72 Hours',
+    interval7d: '7 Days',
+    interval21d: '21 Days',
+
+    // Buttons
+    cancel: 'Cancel',
+    download: 'Download',
+    tryAgain: 'Try Again',
+    // Status messages
+    downloading: 'Downloading profile...',
+    downloadSuccess: 'Profile successfully downloaded!',
+    successTitle: 'Download Complete',
+
+    autoUpdateSet: 'Auto update set to every {interval}',
+    downloadFailed: 'Download failed. Please try again.',
+    showErrorDetails: 'Show Error Details',
+    hideErrorDetails: 'Hide Error Details',
+    // Validation messages
+    pleaseEnterUrl: 'Please enter a URL',
+    invalidUrlFormat: 'Invalid URL format. Please enter a valid URL, including http:// or https://',
+    // Time unit conversion
+    hours: 'hours',
+    days: 'days'
+  },
+  
   // Update Related
   update: {
     newVersionAvailable: 'New Version Available',

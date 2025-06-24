@@ -5,6 +5,7 @@
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const logger = require('../utils/logger');
 const { getAppDataDir, getConfigDir, getUserSettingsPath } = require('../utils/paths');
 const profileEngine = require('./engine/profiles-engine');
@@ -217,9 +218,6 @@ function saveUserConfig(userConfig) {
     // 保存映射后的sing-box配置
     fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
     
-    // 更新配置文件副本
-    updateConfigCopy(mappedConfig);
-    
     logger.info(`用户配置和映射后的sing-box配置已保存`);
     return true;
   } catch (error) {
@@ -414,24 +412,154 @@ function isLvorySyncConfig(configPath) {
 }
 
 /**
+ * 生成Lvory配置的缓存文件名
+ * @param {String} lvorySyncPath Lvory同步配置文件路径
+ * @returns {String} 缓存文件名
+ */
+function generateLvoryCacheFileName(lvorySyncPath) {
+  const crypto = require('crypto');
+  // 生成随机UUID作为文件名
+  const uuid = crypto.randomUUID();
+  const cacheFileName = `${uuid}.json`;
+  return cacheFileName;
+}
+
+/**
+ * 检查Lvory配置是否有有效缓存
+ * @param {String} syncConfigPath 同步配置文件路径
+ * @returns {Object|null} 缓存信息或null
+ */
+function checkLvoryCache(syncConfigPath) {
+  try {
+    const { readMetaCache } = require('./ipc-handlers/utils');
+    const metaCache = readMetaCache();
+    const fileName = path.basename(syncConfigPath);
+    
+    if (metaCache[fileName] && metaCache[fileName].singboxCache) {
+      const cacheFileName = metaCache[fileName].singboxCache;
+      const configDir = getConfigDir();
+      const cachePath = path.join(configDir, cacheFileName);
+      
+      // 检查缓存文件是否存在
+      if (fs.existsSync(cachePath)) {
+        const lvoryStat = fs.statSync(syncConfigPath);
+        const cacheStat = fs.statSync(cachePath);
+        
+        // 如果缓存文件比原文件新，说明缓存有效
+        if (cacheStat.mtime >= lvoryStat.mtime) {
+          logger.info(`找到有效的Lvory缓存文件: ${cacheFileName}`);
+          return {
+            cachePath: cachePath,
+            cacheFileName: cacheFileName,
+            isValid: true
+          };
+        } else {
+          logger.info(`Lvory缓存文件已过期: ${cacheFileName}`);
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    logger.error(`检查Lvory缓存失败: ${error.message}`);
+    return null;
+  }
+}
+
+/**
  * 处理 Lvory 同步协议配置
  * @param {String} syncConfigPath 同步配置文件路径
- * @returns {Object|null} 处理后的 SingBox 配置，失败时返回 null
+ * @param {Boolean} forceRefresh 是否强制刷新缓存
+ * @returns {Object|null} 处理结果包含配置和缓存路径，失败时返回 null
  */
-async function processLvorySyncConfig(syncConfigPath) {
+async function processLvorySyncConfig(syncConfigPath, forceRefresh = false) {
   try {
     logger.info(`开始处理 Lvory 同步配置: ${syncConfigPath}`);
-    const mergedConfig = await LvorySyncProcessor.processSync(syncConfigPath);
     
-    // 保存处理后的配置到标准位置
-    const configPath = getConfigPath();
-    fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), 'utf8');
+    // 检查是否有有效缓存
+    const cacheInfo = !forceRefresh ? checkLvoryCache(syncConfigPath) : null;
     
-    // 更新配置文件副本
-    updateConfigCopy(mergedConfig);
+    let mergedConfig;
+    let cacheFileName;
+    let cachePath;
     
-    logger.info(`Lvory 同步配置处理完成，已保存到: ${configPath}`);
-    return mergedConfig;
+    if (cacheInfo && cacheInfo.isValid) {
+      // 使用缓存
+      logger.info(`使用缓存的SingBox配置: ${cacheInfo.cacheFileName}`);
+      const cacheContent = fs.readFileSync(cacheInfo.cachePath, 'utf8');
+      mergedConfig = JSON.parse(cacheContent);
+      cacheFileName = cacheInfo.cacheFileName;
+      cachePath = cacheInfo.cachePath;
+    } else {
+      // 重新处理并创建缓存
+      logger.info(`重新处理Lvory同步配置并创建缓存`);
+      mergedConfig = await LvorySyncProcessor.processSync(syncConfigPath);
+      
+      // 生成缓存文件
+      const configDir = getConfigDir();
+      cacheFileName = generateLvoryCacheFileName(syncConfigPath);
+      cachePath = path.join(configDir, cacheFileName);
+      
+      // 保存缓存文件
+      fs.writeFileSync(cachePath, JSON.stringify(mergedConfig, null, 2), 'utf8');
+      logger.info(`Lvory缓存文件已创建: ${cacheFileName}`);
+      
+      // 更新meta.cache映射关系
+      const { readMetaCache, writeMetaCache } = require('./ipc-handlers/utils');
+      const metaCache = readMetaCache();
+      const originalFileName = path.basename(syncConfigPath);
+      
+      // 清理旧的缓存文件（如果存在）
+      if (metaCache[originalFileName] && metaCache[originalFileName].singboxCache) {
+        const oldCacheFile = metaCache[originalFileName].singboxCache;
+        const oldCachePath = path.join(configDir, oldCacheFile);
+        if (fs.existsSync(oldCachePath)) {
+          try {
+            fs.unlinkSync(oldCachePath);
+            logger.info(`已删除旧的缓存文件: ${oldCacheFile}`);
+            // 清理meta中的旧缓存记录
+            if (metaCache[oldCacheFile]) {
+              delete metaCache[oldCacheFile];
+            }
+          } catch (err) {
+            logger.warn(`删除旧缓存文件失败: ${err.message}`);
+          }
+        }
+      }
+      
+      // 更新原始Lvory文件的meta信息
+      metaCache[originalFileName] = {
+        status: 'active',
+        protocol: 'lvory',
+        lastProcessed: new Date().toISOString(),
+        singboxCache: cacheFileName,
+        source: 'loaded'
+      };
+      
+      // 添加缓存文件的meta信息
+      metaCache[cacheFileName] = {
+        status: 'cached',
+        protocol: 'singbox',
+        generatedFrom: originalFileName,
+        lastGenerated: new Date().toISOString(),
+        source: 'lvory_processed',
+        isCache: true
+      };
+      
+      writeMetaCache(metaCache);
+      logger.info(`已更新meta.cache映射关系: ${originalFileName} -> ${cacheFileName}`);
+    }
+    
+    // 设置当前使用的配置为缓存文件
+    setConfigPath(cachePath);
+    
+    logger.info(`Lvory 同步配置处理完成，当前使用缓存: ${cacheFileName}`);
+    return {
+      config: mergedConfig,
+      cachePath: cachePath,
+      cacheFileName: cacheFileName,
+      originalPath: syncConfigPath
+    };
   } catch (error) {
     logger.error(`处理 Lvory 同步配置失败: ${error.message}`);
     return null;
@@ -441,9 +569,10 @@ async function processLvorySyncConfig(syncConfigPath) {
 /**
  * 智能设置配置文件路径（支持 Lvory 同步协议）
  * @param {String} configPath 配置文件路径
+ * @param {Boolean} forceRefresh 是否强制刷新Lvory缓存
  * @returns {Boolean} 是否设置成功
  */
-async function setConfigPathSmart(configPath) {
+async function setConfigPathSmart(configPath, forceRefresh = false) {
   if (!configPath || !fs.existsSync(configPath)) {
     return false;
   }
@@ -453,8 +582,8 @@ async function setConfigPathSmart(configPath) {
     logger.info(`检测到 Lvory 同步协议配置文件: ${configPath}`);
     
     // 处理同步配置
-    const processedConfig = await processLvorySyncConfig(configPath);
-    if (!processedConfig) {
+    const result = await processLvorySyncConfig(configPath, forceRefresh);
+    if (!result || !result.config) {
       logger.error('Lvory 同步配置处理失败');
       return false;
     }
@@ -462,9 +591,10 @@ async function setConfigPathSmart(configPath) {
     // 保存同步配置文件路径到用户设置
     const userSettings = loadUserSettings();
     userSettings.lastSyncConfigPath = configPath;
+    userSettings.lastCacheConfigPath = result.cachePath; // 保存缓存路径
     saveUserSettings(userSettings);
     
-    logger.info('Lvory 同步配置已成功应用');
+    logger.info(`Lvory 同步配置已成功应用，使用缓存: ${result.cacheFileName}`);
     return true;
   } else {
     // 普通配置文件，使用原有逻辑
@@ -474,9 +604,10 @@ async function setConfigPathSmart(configPath) {
 
 /**
  * 刷新 Lvory 同步配置（手动触发同步）
+ * @param {Boolean} forceRefresh 是否强制刷新缓存
  * @returns {Boolean} 是否刷新成功
  */
-async function refreshLvorySyncConfig() {
+async function refreshLvorySyncConfig(forceRefresh = true) {
   try {
     const userSettings = loadUserSettings();
     const syncConfigPath = userSettings.lastSyncConfigPath;
@@ -492,10 +623,14 @@ async function refreshLvorySyncConfig() {
     }
     
     logger.info('开始刷新 Lvory 同步配置...');
-    const processedConfig = await processLvorySyncConfig(syncConfigPath);
+    const result = await processLvorySyncConfig(syncConfigPath, forceRefresh);
     
-    if (processedConfig) {
-      logger.info('Lvory 同步配置刷新成功');
+    if (result && result.config) {
+      // 更新用户设置中的缓存路径
+      userSettings.lastCacheConfigPath = result.cachePath;
+      saveUserSettings(userSettings);
+      
+      logger.info(`Lvory 同步配置刷新成功，新缓存: ${result.cacheFileName}`);
       return true;
     } else {
       logger.error('Lvory 同步配置刷新失败');

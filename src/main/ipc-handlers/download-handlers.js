@@ -28,10 +28,9 @@ function setup() {
       }
 
       const fileUrl = data.url;
-      const isDefaultConfig = data.isDefaultConfig === true;
+      const isDefaultConfig = data.isDefaultConfig || false; // 从传入参数中获取
       
       logger.info('Starting download:', fileUrl);
-      logger.info('Set as default config:', isDefaultConfig);
       
       if (!fileUrl || !fileUrl.trim() || typeof fileUrl !== 'string') {
         return {
@@ -69,12 +68,7 @@ function setup() {
       } else {
         customFileName = data.fileName;
       }
-      
-      // 如果设置为默认配置，强制文件名为sing-box.json
-      if (isDefaultConfig) {
-        customFileName = 'sing-box.json';
-        logger.info('Setting as default config, renamed to:', customFileName);
-      }
+
       
       // 确保文件名是安全的
       customFileName = customFileName.replace(/[/\\?%*:|"<>]/g, '-');
@@ -139,11 +133,6 @@ function setup() {
             }
             
             customFileName = customFileName.replace(/[/\\?%*:|"<>]/g, '-');
-            
-            // 如果设置为默认配置，强制文件名为sing-box.json
-            if (isDefaultConfig) {
-              customFileName = 'sing-box.json';
-            }
             
             // 确定最终文件路径
             filePath = path.join(configDir, customFileName);

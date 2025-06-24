@@ -24,6 +24,16 @@ function setup() {
     }
   });
   
+  // 获取配置目录路径
+  ipcMain.handle('get-config-dir', async () => {
+    try {
+      return utils.getConfigDir();
+    } catch (error) {
+      logger.error('获取配置目录路径失败:', error);
+      return null;
+    }
+  });
+  
   // 设置配置文件路径
   ipcMain.handle('set-config-path', async (event, filePath) => {
     try {
@@ -39,15 +49,17 @@ function setup() {
         return { success: false, error: `文件不存在: ${fullPath}` };
       }
       
-      // 使用profileManager的setConfigPath方法
-      const success = profileManager.setConfigPath(fullPath);
+      // 使用profileManager的智能设置方法处理Lvory和SingBox配置
+      const success = await profileManager.setConfigPathSmart(fullPath);
       if (success) {
-        logger.info(`设置当前配置文件路径: ${fullPath}`);
+        logger.info(`配置文件已成功设置: ${fullPath}`);
         
-        // 通知前端配置文件已切换
+        // 通知前端配置文件已切换 - 使用多个事件确保所有组件都能收到通知
         const mainWindow = utils.getMainWindow();
         if (mainWindow) {
           mainWindow.webContents.send('profiles-changed');
+          mainWindow.webContents.send('config-changed');
+          mainWindow.webContents.send('dashboard-refresh');
         }
         
         return { success: true, configPath: fullPath };
@@ -98,11 +110,20 @@ function setup() {
         return { success: true, files: [] };
       }
       
+      const metaCache = utils.readMetaCache();
+      
       const files = fs.readdirSync(configDir)
-        // 仅显示JSON配置文件
+        // 显示JSON和YAML配置文件，但排除缓存文件
         .filter(file => {
           const ext = path.extname(file).toLowerCase();
-          return ext === '.json';
+          const isConfigFile = ext === '.json' || ext === '.yaml' || ext === '.yml';
+          
+          // 排除Lvory缓存文件（通过meta标记识别）
+          if (metaCache[file] && metaCache[file].isCache) {
+            return false;
+          }
+          
+          return isConfigFile;
         })
         .map(file => {
           const filePath = path.join(configDir, file);
@@ -110,22 +131,54 @@ function setup() {
           
           // 尝试获取元数据
           let status = 'active';
+          let protocol = 'singbox'; // 默认协议
+          let hasCache = false;
+          let cacheInfo = null;
+          
           try {
-            const metaCache = utils.readMetaCache();
-            if (metaCache[file] && metaCache[file].status) {
-              status = metaCache[file].status;
+            if (metaCache[file]) {
+              status = metaCache[file].status || 'active';
+              protocol = metaCache[file].protocol || 'singbox';
+              
+              // 检查是否有缓存文件
+              if (metaCache[file].singboxCache) {
+                hasCache = true;
+                const cacheFileName = metaCache[file].singboxCache;
+                const cachePath = path.join(configDir, cacheFileName);
+                
+                if (fs.existsSync(cachePath)) {
+                  const cacheStats = fs.statSync(cachePath);
+                  cacheInfo = {
+                    fileName: cacheFileName,
+                    size: `${Math.round(cacheStats.size / 1024)} KB`,
+                    lastGenerated: metaCache[cacheFileName] ? metaCache[cacheFileName].lastGenerated : null
+                  };
+                } else {
+                  hasCache = false; // 缓存文件不存在
+                }
+              }
             }
           } catch (err) {
             logger.error(`读取文件状态失败: ${err.message}`);
           }
           
-          // 检查文件是否包含inbounds字段
+          // 检查文件是否包含必要字段
           let isComplete = true;
           try {
             const content = fs.readFileSync(filePath, 'utf8');
-            const configObj = JSON.parse(content);
-            if (!configObj.inbounds || configObj.inbounds.length === 0) {
-              isComplete = false;
+            const ext = path.extname(file).toLowerCase();
+            
+            if (ext === '.json') {
+              // JSON文件检查inbounds字段
+              const configObj = JSON.parse(content);
+              if (!configObj.inbounds || configObj.inbounds.length === 0) {
+                isComplete = false;
+              }
+            } else if (ext === '.yaml' || ext === '.yml') {
+              // YAML文件检查lvory_sync或proxies字段
+              if (!content.includes('lvory_sync:') && !content.includes('proxies:')) {
+                isComplete = false;
+              }
             }
           } catch (err) {
             logger.error(`检查配置文件结构失败: ${err.message}`);
@@ -139,7 +192,10 @@ function setup() {
             createDate: new Date(stats.birthtime).toLocaleDateString(),
             modifiedDate: new Date(stats.mtime).toLocaleDateString(),
             status: status,
-            isComplete: isComplete
+            protocol: protocol,
+            isComplete: isComplete,
+            hasCache: hasCache,
+            cacheInfo: cacheInfo
           };
         });
       
@@ -426,6 +482,31 @@ function setup() {
     }
   });
   
+  // 刷新Lvory同步配置
+  ipcMain.handle('refresh-lvory-sync', async () => {
+    try {
+      const success = await profileManager.refreshLvorySyncConfig(true); // 强制刷新缓存
+      if (success) {
+        logger.info('Lvory同步配置刷新成功');
+        
+        // 通知前端配置已更新
+        const mainWindow = utils.getMainWindow();
+        if (mainWindow) {
+          mainWindow.webContents.send('profiles-changed');
+          mainWindow.webContents.send('config-changed');
+          mainWindow.webContents.send('dashboard-refresh');
+        }
+        
+        return { success: true, message: 'Lvory同步配置已刷新，缓存已更新' };
+      } else {
+        return { success: false, error: '未找到Lvory同步配置或刷新失败' };
+      }
+    } catch (error) {
+      logger.error('刷新Lvory同步配置失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+  
   // 获取规则集
   ipcMain.handle('get-rule-sets', async () => {
     try {
@@ -534,6 +615,101 @@ function setup() {
       };
     } catch (error) {
       logger.error('获取当前配置文件内容失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 载入本地文件
+  ipcMain.handle('loadLocalProfile', async (event, { fileName, content, protocol }) => {
+    try {
+      if (!fileName || !content) {
+        return { success: false, error: '文件名和内容不能为空' };
+      }
+
+      const configDir = utils.getConfigDir();
+      
+      // 确保配置目录存在
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
+
+      // 构建完整文件路径
+      const filePath = path.join(configDir, fileName);
+      
+      // 检查文件是否已存在
+      if (fs.existsSync(filePath)) {
+        return { success: false, error: `文件已存在: ${fileName}` };
+      }
+
+      // 根据协议类型验证和处理内容
+      let validatedContent = content;
+      if (protocol === 'lvory') {
+        // 对于lvory协议，验证格式
+        try {
+          if (content.includes('lvory_sync:')) {
+            // Lvory同步协议配置
+            const yaml = require('js-yaml');
+            const parsed = yaml.load(content);
+            if (!parsed || !parsed.lvory_sync) {
+              return { success: false, error: '无效的Lvory同步协议格式' };
+            }
+          } else if (content.includes('proxies:')) {
+            // Clash格式配置
+            const yaml = require('js-yaml');
+            const parsed = yaml.load(content);
+            if (!parsed || !parsed.proxies) {
+              return { success: false, error: '无效的Clash配置格式' };
+            }
+          } else {
+            logger.warn('文件内容可能不是有效的lvory格式');
+          }
+        } catch (err) {
+          return { success: false, error: `无效的YAML格式: ${err.message}` };
+        }
+      } else {
+        // 对于singbox协议，验证JSON格式
+        try {
+          const parsedContent = JSON.parse(content);
+          validatedContent = JSON.stringify(parsedContent, null, 2);
+          
+          // 验证SingBox配置基本结构
+          if (!parsedContent.inbounds && !parsedContent.outbounds) {
+            logger.warn('文件内容可能不是有效的SingBox配置格式');
+          }
+        } catch (err) {
+          return { success: false, error: `无效的JSON格式: ${err.message}` };
+        }
+      }
+
+      // 写入文件
+      fs.writeFileSync(filePath, validatedContent, 'utf8');
+      
+      // 更新meta.cache记录
+      const metaCache = utils.readMetaCache();
+      metaCache[fileName] = {
+        status: 'active',
+        protocol: protocol,
+        loadedAt: new Date().toISOString(),
+        source: 'local'
+      };
+      utils.writeMetaCache(metaCache);
+
+      logger.info(`本地文件已载入: ${fileName} (协议: ${protocol})`);
+
+      // 通知前端配置文件列表已更新
+      const mainWindow = utils.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('profiles-changed');
+      }
+
+      return { 
+        success: true, 
+        fileName: fileName,
+        filePath: filePath,
+        protocol: protocol
+      };
+    } catch (error) {
+      logger.error(`载入本地文件失败: ${error.message}`);
       return { success: false, error: error.message };
     }
   });

@@ -30,12 +30,12 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
     return isKernelRunning && connectionMonitorActive && activeTab === 'connections';
   }, [isKernelRunning, connectionMonitorActive, activeTab]);
 
-  // 当切换到Activity视图且内核运行时，自动切换到connections标签
+  // 当切换到Activity视图时，默认显示实时日志
   useEffect(() => {
-    if (isActivityView && isKernelRunning) {
-      setActiveTab('connections');
+    if (isActivityView) {
+      setActiveTab('logs');
     }
-  }, [isActivityView, isKernelRunning]);
+  }, [isActivityView]);
 
   // 当不满足监听条件时，清理连接状态
   useEffect(() => {

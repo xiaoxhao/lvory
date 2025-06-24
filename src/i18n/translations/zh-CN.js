@@ -73,10 +73,103 @@ export default {
     coreNotInstalled: '内核未安装'
   },
   
+  // Profiles页面相关
+  profiles: {
+    allFiles: '所有文件',
+    updateAll: '全部更新',
+    updating: '更新中...',
+    fileName: '文件名',
+    size: '大小',
+    createDate: '创建日期',
+    protocol: '协议',
+    actions: '操作',
+    loadingProfiles: '加载配置文件中...',
+    noProfilesFound: '未发现配置文件',
+    active: '当前使用',
+    expired: '已过期',
+    incomplete: '不完整',
+    cached: '已缓存',
+    lvoryProtocol: 'Lvory',
+    singboxProtocol: 'SingBox',
+    loadLocalFile: '载入本地文件',
+    selectConfigFile: '选择配置文件',
+    loadSuccess: '成功载入配置文件: ',
+    loadFailed: '载入配置文件失败: ',
+    invalidFileType: '不支持的文件类型。请选择 .json 或 .yaml/.yml 文件',
+    // 操作菜单
+    copyFileName: '复制文件名',
+    editFile: '编辑文件',
+    updateProfile: '更新配置',
+    fixProfile: '修复配置',
+    deleteProfile: '删除配置',
+    copied: '已复制: ',
+    failedToCopy: '复制失败',
+    confirmDelete: '确定要删除 {fileName} 吗？',
+    deleteSuccess: '成功删除文件: ',
+    deleteFailed: '删除失败: ',
+    updateSuccess: '成功更新配置文件: ',
+    updateFailed: '更新失败: ',
+    fixSuccess: '成功修复配置文件: ',
+    fixFailed: '修复失败: ',
+    editNotAvailable: '编辑功能不可用',
+    updateNotAvailable: '更新API不可用，请检查应用是否需要更新',
+    fixNotAvailable: '修复API不可用，请检查应用是否需要更新',
+    configActivated: '配置文件已切换: ',
+    lvoryConfigActivated: 'Lvory配置已激活并解析为SingBox: ',
+    refreshLvoryCache: '刷新缓存',
+    refreshLvoryCacheSuccess: 'Lvory缓存已刷新',
+    refreshLvoryCacheFailed: 'Lvory缓存刷新失败:',
+    refreshLvoryCacheNotAvailable: '刷新缓存功能不可用'
+  },
+
+  // 配置文件下载对话框相关
+  profileModal: {
+    title: '添加配置文件',
+    // 协议选择
+    protocolSelection: '协议类型',
+    singboxProtocol: 'SingBox 原生',
+    singboxDescription: 'SingBox 标准配置格式，支持完整的代理功能和路由规则',
+    lvoryProtocol: 'Lvory 协议',
+    lvoryDescription: 'Lvory 智能同步协议，支持多源配置合并和自动更新',
+    // 输入字段
+    enterUrl: '输入要下载配置文件的URL：',
+    urlPlaceholder: 'https://example.com/profile.config',
+    customFileName: '自定义文件名（可选）：',
+    fileNamePlaceholder: 'my_profile.config',
+    // 更新设置
+    autoUpdateInterval: '自动更新间隔：',
+    noAutoUpdate: '不自动更新',
+    interval12h: '12小时',
+    interval24h: '24小时', 
+    interval72h: '72小时',
+    interval7d: '7天',
+    interval21d: '21天',
+
+    // 按钮
+    cancel: '取消',
+    download: '下载',
+    tryAgain: '重试',
+    // 状态信息
+    downloading: '正在下载配置文件...',
+    downloadSuccess: '配置文件下载成功！',
+    successTitle: '下载完成',
+
+    autoUpdateSet: '自动更新已设置为每 {interval} 一次',
+    downloadFailed: '下载失败，请重试。',
+    showErrorDetails: '显示错误详情',
+    hideErrorDetails: '隐藏错误详情',
+    // 验证信息
+    pleaseEnterUrl: '请输入URL',
+    invalidUrlFormat: 'URL格式无效，请输入有效的URL，包括 http:// 或 https://',
+    // 时间单位转换
+    hours: '小时',
+    days: '天'
+  },
+  
   // 更新相关
   update: {
     newVersionAvailable: '发现新版本',
-    newVersionMessage: '有新版本的 lvory 可供下载，建议更新以获得最新功能和修复。',
+    newVersionMessage: '有新版本的 lvory 可供下载，建议更新以获得最新功能和修复',
     currentVersion: '当前版本',
     newVersion: '新版本',
     viewUpdate: '查看更新',
@@ -85,7 +178,7 @@ export default {
     downloadComplete: '下载完成',
     downloadFailed: '下载失败',
     developmentBuild: '开发版本',
-    developmentMessage: '当前运行的是开发版本，可能包含不稳定功能。前往 GitHub 仓库获取正式发布版。',
+    developmentMessage: '当前运行的是开发版本，可能包含不稳定功能。前往 GitHub 仓库获取正式发布版',
     gotIt: '我知道了',
     version: '版本',
     development: '开发版',

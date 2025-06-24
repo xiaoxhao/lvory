@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('electron', {
   // 调用main进程方法
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   
+  // 获取配置目录
+  getConfigDir: () => ipcRenderer.invoke('get-config-dir'),
+  
   // 统一的SingBox管理接口
   singbox: {
     checkInstalled: () => ipcRenderer.invoke('singbox-check-installed'),
@@ -85,6 +88,7 @@ contextBridge.exposeInMainWorld('electron', {
     delete: (fileName) => ipcRenderer.invoke('deleteProfile', fileName),
     openInEditor: (fileName) => ipcRenderer.invoke('openFileInEditor', fileName),
     openAddDialog: () => ipcRenderer.send('open-add-profile-dialog'),
+    refreshLvorySync: () => ipcRenderer.invoke('refresh-lvory-sync'),
     
     onData: (callback) => {
       ipcRenderer.on('profile-data', (event, data) => callback(data));
@@ -111,6 +115,17 @@ contextBridge.exposeInMainWorld('electron', {
     getPath: () => ipcRenderer.invoke('get-config-path'),
     setPath: (filePath) => ipcRenderer.invoke('set-config-path', filePath),
     getCurrent: () => ipcRenderer.invoke('get-current-config')
+  },
+  
+  // Dashboard刷新事件监听
+  onConfigChanged: (callback) => {
+    ipcRenderer.on('config-changed', callback);
+    return () => ipcRenderer.removeListener('config-changed', callback);
+  },
+  
+  onDashboardRefresh: (callback) => {
+    ipcRenderer.on('dashboard-refresh', callback);
+    return () => ipcRenderer.removeListener('dashboard-refresh', callback);
   },
   
   // 配置映射引擎相关API

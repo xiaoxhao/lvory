@@ -22,8 +22,8 @@ const HANDLERS_TO_REMOVE = [
   // 配置文件相关
   'get-profile-data', 'getProfileFiles', 'deleteProfile', 
   'openFileInEditor', 'openConfigDir', 'getProfileMetadata', 
-  'updateProfile', 'updateAllProfiles', 'profiles-changed-listen', 
-  'profiles-changed-unlisten',
+  'updateProfile', 'updateAllProfiles', 'loadLocalProfile',
+  'profiles-changed-listen', 'profiles-changed-unlisten',
   // Singbox相关
   'singbox-start-core', 'singbox-stop-core', 'singbox-get-status', 
   'singbox-get-version', 'singbox-check-installed', 'singbox-check-config', 

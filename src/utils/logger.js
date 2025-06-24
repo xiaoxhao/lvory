@@ -61,15 +61,17 @@ class Logger {
   
   /**
    * 记录日志并发送到Activity
-   * @param {String} type 日志类型
+   * @param {String} level 日志级别 (INFO, WARN, ERROR, DEBUG)
+   * @param {String} type 日志类型 (SYSTEM, SINGBOX, NETWORK, etc.)
    * @param {String} message 日志消息
    * @param {Object} data 额外数据
    */
-  log(type, message, data = {}) {
+  log(level, type, message, data = {}) {
     if (!this.enabled) return;
     
     const timestamp = new Date().toISOString();
     const logEntry = {
+      level,
       type,
       timestamp,
       message,
@@ -111,7 +113,7 @@ class Logger {
     
     try {
       const logLines = currentBuffer.map(entry => 
-        `[${entry.timestamp}] [${entry.type}] ${entry.message}\n`
+        `[${entry.timestamp}] [${entry.level}] [${entry.type}] ${entry.message}\n`
       ).join('');
       
       // 异步写入文件
@@ -144,28 +146,41 @@ class Logger {
   /**
    * 记录信息日志
    * @param {String} message 日志消息
+   * @param {String} type 日志类型
    * @param {Object} data 额外数据
    */
-  info(message, data = {}) {
-    this.log('INFO', message, data);
+  info(message, type = 'SYSTEM', data = {}) {
+    this.log('INFO', type, message, data);
   }
   
   /**
    * 记录警告日志
    * @param {String} message 日志消息
+   * @param {String} type 日志类型
    * @param {Object} data 额外数据
    */
-  warn(message, data = {}) {
-    this.log('WARN', message, data);
+  warn(message, type = 'SYSTEM', data = {}) {
+    this.log('WARN', type, message, data);
   }
   
   /**
    * 记录错误日志
    * @param {String} message 日志消息
+   * @param {String} type 日志类型
    * @param {Object} data 额外数据
    */
-  error(message, data = {}) {
-    this.log('ERROR', message, data);
+  error(message, type = 'SYSTEM', data = {}) {
+    this.log('ERROR', type, message, data);
+  }
+  
+  /**
+   * 记录调试日志
+   * @param {String} message 日志消息
+   * @param {String} type 日志类型
+   * @param {Object} data 额外数据
+   */
+  debug(message, type = 'SYSTEM', data = {}) {
+    this.log('DEBUG', type, message, data);
   }
   
   /**
@@ -174,7 +189,7 @@ class Logger {
    * @param {Object} data 额外数据
    */
   singbox(message, data = {}) {
-    this.log('SINGBOX', message, data);
+    this.log('INFO', 'SINGBOX', message, data);
   }
   
   /**
@@ -183,7 +198,7 @@ class Logger {
    * @param {Object} data 额外数据
    */
   system(message, data = {}) {
-    this.log('SYSTEM', message, data);
+    this.log('INFO', 'SYSTEM', message, data);
   }
   
   /**
@@ -192,16 +207,7 @@ class Logger {
    * @param {Object} data 额外数据
    */
   network(message, data = {}) {
-    this.log('NETWORK', message, data);
-  }
-  
-  /**
-   * 记录调试日志
-   * @param {String} message 日志消息
-   * @param {Object} data 额外数据
-   */
-  debug(message, data = {}) {
-    this.log('DEBUG', message, data);
+    this.log('INFO', 'NETWORK', message, data);
   }
   
   /**

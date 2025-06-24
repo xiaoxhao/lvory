@@ -120,6 +120,30 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
       updateProfileData();
     }
 
+    // 监听配置变更事件 - 立即刷新数据
+    let unsubscribeConfig, unsubscribeDashboard, unsubscribeProfiles;
+    
+    if (window.electron && window.electron.onConfigChanged) {
+      unsubscribeConfig = window.electron.onConfigChanged(() => {
+        console.log('Dashboard: 配置已切换，刷新profile数据');
+        updateProfileData();
+      });
+    }
+    
+    if (window.electron && window.electron.onDashboardRefresh) {
+      unsubscribeDashboard = window.electron.onDashboardRefresh(() => {
+        console.log('Dashboard: 收到刷新事件');
+        updateProfileData();
+      });
+    }
+    
+    if (window.electron && window.electron.onProfilesChanged) {
+      unsubscribeProfiles = window.electron.onProfilesChanged(() => {
+        console.log('Dashboard: 配置文件已变更');
+        updateProfileData();
+      });
+    }
+
     // 设置定期更新
     const updateInterval = setInterval(() => {
       if (activeView === 'dashboard') {
@@ -129,6 +153,16 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
 
     return () => {
       clearInterval(updateInterval);
+      // 清理事件监听
+      if (unsubscribeConfig && typeof unsubscribeConfig === 'function') {
+        unsubscribeConfig();
+      }
+      if (unsubscribeDashboard && typeof unsubscribeDashboard === 'function') {
+        unsubscribeDashboard();
+      }
+      if (unsubscribeProfiles && typeof unsubscribeProfiles === 'function') {
+        unsubscribeProfiles();
+      }
     };
   }, [activeView]); // 当activeView变化时重新设置
 

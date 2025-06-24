@@ -578,7 +578,7 @@ class LvorySyncProcessor {
     let candidateNodes = nodes;
     if (nodeScope) {
       candidateNodes = this.applyNodeScope(nodes, nodeScope);
-      console.log(`[DEBUG] 节点范围过滤: ${nodes.length} -> ${candidateNodes.length} 个候选节点`);
+      logger.debug(`节点范围过滤: ${nodes.length} -> ${candidateNodes.length} 个候选节点`, 'CONFIG');
     }
     
     for (const targetName of mappedNodeNames) {
@@ -592,9 +592,9 @@ class LvorySyncProcessor {
       
       if (matchedNode) {
         selectedNodes.push(matchedNode);
-        console.log(`[DEBUG] 节点匹配成功: "${targetName}" -> "${matchedNode.tag}"`);
+        logger.debug(`节点匹配成功: "${targetName}" -> "${matchedNode.tag}"`, 'CONFIG');
       } else {
-        console.log(`[WARN] 未找到匹配节点: "${targetName}"`);
+        logger.warn(`未找到匹配节点: "${targetName}"`, 'CONFIG');
       }
     }
     
@@ -629,7 +629,7 @@ class LvorySyncProcessor {
     }
     
     if (bestMatch) {
-      console.log(`[DEBUG] 最佳匹配: "${targetName}" -> "${bestMatch.tag}" (相似度: ${bestScore.toFixed(3)})`);
+      logger.debug(`最佳匹配: "${targetName}" -> "${bestMatch.tag}" (相似度: ${bestScore.toFixed(3)})`, 'CONFIG');
     }
     
     return bestMatch;
@@ -846,12 +846,12 @@ class LvorySyncProcessor {
             sourceNode = this.findBestMatchForMapping(sourceTag, nodes);
           }
           
-          console.log(`[DEBUG] 查找映射节点: ${masterTag} <- ${sourceTag}`);
-          console.log(`[DEBUG] 副源节点列表: ${nodes.map(n => n.tag).join(', ')}`);
-          console.log(`[DEBUG] 主配置节点列表: ${Array.from(masterNodeMap.keys()).join(', ')}`);
-          
-          if (sourceNode) {
-            console.log(`[DEBUG] 找到副源节点: ${sourceNode.tag} (${sourceNode.type})`);
+                  logger.debug(`查找映射节点: ${masterTag} <- ${sourceTag}`, 'CONFIG');
+        logger.debug(`副源节点列表: ${nodes.map(n => n.tag).join(', ')}`, 'CONFIG');
+        logger.debug(`主配置节点列表: ${Array.from(masterNodeMap.keys()).join(', ')}`, 'CONFIG');
+        
+        if (sourceNode) {
+          logger.debug(`找到副源节点: ${sourceNode.tag} (${sourceNode.type})`, 'CONFIG');
             if (masterNodeMap.has(masterTag)) {
               // 更新主配置中的对应节点，保持主配置的tag名称
               const updatedConfig = { ...sourceNode.config };
@@ -861,12 +861,12 @@ class LvorySyncProcessor {
               mergedConfig.outbounds[existing.index] = updatedConfig;
               updatedCount++;
               
-              console.log(`[SUCCESS] ✓ 更新节点映射: ${masterTag} <- ${sourceNode.tag}`);
+              logger.info(`✓ 更新节点映射: ${masterTag} <- ${sourceNode.tag}`, 'CONFIG');
             } else {
-              console.log(`[WARN] 主配置中未找到节点: ${masterTag}`);
+                              logger.warn(`主配置中未找到节点: ${masterTag}`, 'CONFIG');
             }
           } else {
-            console.log(`[WARN] 副源中未找到节点: ${sourceTag}`);
+            logger.warn(`副源中未找到节点: ${sourceTag}`, 'CONFIG');
           }
         }
       } else {

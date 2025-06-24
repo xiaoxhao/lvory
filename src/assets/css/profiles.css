@@ -1,3 +1,9 @@
+/* 导入拆分的CSS模块 */
+@import './profile-table.css';
+@import './profile-actions.css';
+@import './profile-modal.css';
+
+/* 主容器样式 */
 .profiles-container {
   width: 100%;
   height: 100%;
@@ -55,6 +61,7 @@
   background-color: #e8f0fe;
 }
 
+/* 复选框样式 */
 .checkbox-column {
   width: 40px;
 }
@@ -222,39 +229,51 @@ input[type="checkbox"] {
   margin: 4px 0;
 }
 
-/* 移除旧的操作按钮样式 */
+/* 行操作按钮 */
 .action-buttons {
-  display: none;
+  margin-left: auto;
 }
 
 .row-action-button {
-  display: none;
-}
-
-.add-profile-button {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-}
-
-.add-profile-button button {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: #3e4c6d;
+  padding: 8px 16px;
+  background-color: #50b2d0;
   color: white;
   border: none;
-  font-size: 24px;
+  border-radius: 4px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
   transition: background-color 0.2s;
 }
 
+.row-action-button:hover {
+  background-color: #3a8ba8;
+}
+
+/* 添加配置文件按钮 */
+.add-profile-button {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.add-profile-button button {
+  padding: 12px 24px;
+  background-color: #50b2d0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .add-profile-button button:hover {
-  background-color: #2e3b52;
+  background-color: #3a8ba8;
+  transform: translateY(-1px);
 }
 
 /* 为文件名单元格添加样式，使其看起来可点击 */

@@ -11,8 +11,9 @@ const logIcons = {
   SYSTEM: '🖥️',
   SINGBOX: '📦',
   NETWORK: '🌐',
-  CONNECTION: '🔗',
+  CONNECTION: '��',
   STATUS: '📊',
+  CONFIG: '⚙️',
 };
 
 const formatTimestamp = (timestamp) => {

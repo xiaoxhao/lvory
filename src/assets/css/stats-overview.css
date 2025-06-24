@@ -225,5 +225,3 @@
 .stats-overview-container:hover .gauge-chart {
   animation: pulse 3s ease-in-out infinite;
 }
-
-/* 删除点的波动动画 */

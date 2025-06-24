@@ -226,18 +226,41 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     refreshData();
 
     // 监听配置文件变更事件
-    let unsubscribe;
+    let unsubscribeProfiles, unsubscribeConfig, unsubscribeDashboard;
+    
     if (window.electron && window.electron.onProfilesChanged) {
-      unsubscribe = window.electron.onProfilesChanged(() => {
+      unsubscribeProfiles = window.electron.onProfilesChanged(() => {
         console.log('配置文件已变更，刷新节点组数据');
+        refreshData();
+      });
+    }
+    
+    // 监听配置变更事件
+    if (window.electron && window.electron.onConfigChanged) {
+      unsubscribeConfig = window.electron.onConfigChanged(() => {
+        console.log('配置已切换，刷新Dashboard数据');
+        refreshData();
+      });
+    }
+    
+    // 监听Dashboard刷新事件
+    if (window.electron && window.electron.onDashboardRefresh) {
+      unsubscribeDashboard = window.electron.onDashboardRefresh(() => {
+        console.log('Dashboard刷新事件触发');
         refreshData();
       });
     }
 
     // 组件卸载时清理事件监听
     return () => {
-      if (unsubscribe && typeof unsubscribe === 'function') {
-        unsubscribe();
+      if (unsubscribeProfiles && typeof unsubscribeProfiles === 'function') {
+        unsubscribeProfiles();
+      }
+      if (unsubscribeConfig && typeof unsubscribeConfig === 'function') {
+        unsubscribeConfig();
+      }
+      if (unsubscribeDashboard && typeof unsubscribeDashboard === 'function') {
+        unsubscribeDashboard();
       }
     };
   }, []);
