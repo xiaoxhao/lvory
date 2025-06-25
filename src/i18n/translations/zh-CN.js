@@ -91,7 +91,7 @@ export default {
     cached: '已缓存',
     lvoryProtocol: 'Lvory',
     singboxProtocol: 'SingBox',
-    loadLocalFile: '载入本地文件',
+    loadLocalFile: '本地文件',
     selectConfigFile: '选择配置文件',
     loadSuccess: '成功载入配置文件: ',
     loadFailed: '载入配置文件失败: ',

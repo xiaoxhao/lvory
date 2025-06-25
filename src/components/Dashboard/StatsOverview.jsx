@@ -574,7 +574,7 @@ const StatsOverview = ({ apiAddress }) => {
       
       setTimeout(() => {
         chart.resize();
-      }, 100);
+      }, 300);
       
       // 添加双击事件监听器
       chart.getZr().on('dblclick', () => {
@@ -963,7 +963,11 @@ const StatsOverview = ({ apiAddress }) => {
     isInitialized.current = true;
 
     initTrafficChart();
-    initGaugeChart();
+    
+    // 延迟 gauge-container 的初始化，给系统更多时间准备
+    setTimeout(() => {
+      initGaugeChart();
+    }, 1500);
     
     const latencyTimer = setInterval(testLatency, 180000);
     

@@ -8,12 +8,12 @@ const logColors = {
 };
 
 const logIcons = {
-  SYSTEM: '🖥️',
-  SINGBOX: '📦',
-  NETWORK: '🌐',
-  CONNECTION: '��',
-  STATUS: '📊',
-  CONFIG: '⚙️',
+  SYSTEM: '',
+  SINGBOX: '',
+  NETWORK: '',
+  CONNECTION: '',
+  STATUS: '',
+  CONFIG: '',
 };
 
 const formatTimestamp = (timestamp) => {

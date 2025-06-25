@@ -1,37 +1,92 @@
 /**
  * 系统代理设置工具
- * 封装@mihomo-party/sysproxy模块的实现
+ * 使用原生系统命令实现跨平台代理设置
  */
 
 const logger = require('./logger');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
-const fs = require('fs');
-const path = require('path');
 const os = require('os');
-let sysproxy = null;
 
 /**
- * 懒加载sysproxy模块
- * @returns {Object|null} sysproxy模块或null
+ * Windows下使用注册表设置系统代理
+ * @param {Object} options 代理选项
+ * @returns {Promise<Object>} 设置结果
  */
-function loadSysProxy() {
-  if (sysproxy) {
-    return sysproxy;
-  }
-  
+async function setWindowsProxyFallback(options) {
   try {
-    sysproxy = require('@mihomo-party/sysproxy');
-    return sysproxy;
+    logger.info(`设置Windows系统代理: ${options.host}:${options.port}`);
+    
+    const proxyServer = `${options.host}:${options.port}`;
+    const bypassList = 'localhost;127.*;10.*;172.16.*;172.17.*;172.18.*;172.19.*;172.20.*;172.21.*;172.22.*;172.23.*;172.24.*;172.25.*;172.26.*;172.27.*;172.28.*;172.29.*;172.30.*;172.31.*;192.168.*;<local>';
+    
+    // 启用代理
+    await execAsync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f`);
+    
+    // 设置代理服务器
+    await execAsync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d "${proxyServer}" /f`);
+    
+    // 设置代理绕过列表
+    await execAsync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyOverride /t REG_SZ /d "${bypassList}" /f`);
+    
+    // 通知系统代理设置已更改
+    try {
+      await execAsync('rundll32.exe wininet.dll,InternetSetOption 39 0 0 0');
+    } catch (notifyError) {
+      logger.warn(`通知系统代理变更失败: ${notifyError.message}`);
+    }
+    
+    logger.info('Windows系统代理设置成功');
+    return { success: true };
   } catch (error) {
-    logger.error(`加载@mihomo-party/sysproxy模块失败: ${error.message}`);
-    return null;
+    logger.error(`Windows系统代理设置失败: ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
 /**
- * Linux下使用gsettings设置系统代理（备选方案）
+ * Windows下使用注册表清除系统代理
+ * @returns {Promise<Object>} 清除结果
+ */
+async function removeWindowsProxyFallback() {
+  try {
+    logger.info('清除Windows系统代理');
+    
+    // 禁用代理
+    await execAsync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f`);
+    
+    // 清除代理服务器设置
+    try {
+      await execAsync(`reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /f`);
+    } catch (deleteError) {
+      logger.warn(`删除ProxyServer注册表项失败: ${deleteError.message}`);
+    }
+    
+    // 清除代理绕过列表
+    try {
+      await execAsync(`reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyOverride /f`);
+    } catch (deleteError) {
+      logger.warn(`删除ProxyOverride注册表项失败: ${deleteError.message}`);
+    }
+    
+    // 通知系统代理设置已更改
+    try {
+      await execAsync('rundll32.exe wininet.dll,InternetSetOption 39 0 0 0');
+    } catch (notifyError) {
+      logger.warn(`通知系统代理变更失败: ${notifyError.message}`);
+    }
+    
+    logger.info('Windows系统代理已清除');
+    return { success: true };
+  } catch (error) {
+    logger.error(`清除Windows系统代理失败: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Linux下使用gsettings设置系统代理
  * @param {Object} options 代理选项
  * @returns {Promise<Object>} 设置结果
  */
@@ -74,7 +129,7 @@ async function setLinuxProxyFallback(options) {
 }
 
 /**
- * Linux下使用gsettings清除系统代理（备选方案）
+ * Linux下使用gsettings清除系统代理
  * @returns {Promise<Object>} 清除结果
  */
 async function removeLinuxProxyFallback() {
@@ -211,43 +266,18 @@ async function setGlobalProxy(options) {
   try {
     logger.info(`正在设置系统代理: ${options.host}:${options.port}`);
     
-    const proxy = loadSysProxy();
-    if (!proxy) {
-      // 如果是Linux系统且模块加载失败，尝试使用gsettings备选方案
-      if (process.platform === 'linux') {
-        logger.info('尝试使用gsettings备选方案设置Linux系统代理');
-        return await setLinuxProxyFallback(options);
-      }
-      if (process.platform === 'darwin') {
-        logger.info('尝试使用networksetup备选方案设置macOS系统代理');
-        return await setMacOSProxyFallback(options);
-      }
-      return { success: false, error: '代理模块不可用' };
-    }
+    const platform = process.platform;
     
-    // 默认的bypass列表
-    const bypass = "localhost;127.*;10.*;172.16.*;172.17.*;172.18.*;172.19.*;172.20.*;172.21.*;172.22.*;172.23.*;172.24.*;172.25.*;172.26.*;172.27.*;172.28.*;172.29.*;172.30.*;172.31.*;192.168.*";
-    
-    try {
-      // 使用新模块的triggerManualProxy方法设置系统代理
-      proxy.triggerManualProxy(true, options.host, options.port, bypass);
-      logger.info(`系统代理设置成功: ${options.host}:${options.port}`);
-      return { success: true };
-    } catch (error) {
-      logger.error(`设置系统代理失败: ${error.message}`);
-      
-      // 如果是Linux系统且主模块失败，尝试使用备选方案
-      if (process.platform === 'linux') {
-        logger.info('主模块失败，尝试使用gsettings备选方案');
-        return await setLinuxProxyFallback(options);
-      }
-      
-      if (process.platform === 'darwin') {
-        logger.info('主模块失败，尝试使用networksetup备选方案');
+    switch (platform) {
+      case 'win32':
+        return await setWindowsProxyFallback(options);
+      case 'darwin':
         return await setMacOSProxyFallback(options);
-      }
-      
-      return { success: false, error: error.message };
+      case 'linux':
+        return await setLinuxProxyFallback(options);
+      default:
+        logger.error(`不支持的平台: ${platform}`);
+        return { success: false, error: `不支持的平台: ${platform}` };
     }
   } catch (error) {
     logger.error(`设置系统代理失败: ${error.message}`);
@@ -263,39 +293,18 @@ async function removeGlobalProxy() {
   try {
     logger.info('正在清除系统代理');
     
-    const proxy = loadSysProxy();
-    if (!proxy) {
-      // 如果是Linux系统且模块加载失败，尝试使用gsettings备选方案
-      if (process.platform === 'linux') {
-        logger.info('尝试使用gsettings备选方案清除Linux系统代理');
-        return await removeLinuxProxyFallback();
-      }
-      if (process.platform === 'darwin') {
-        logger.info('尝试使用networksetup备选方案清除macOS系统代理');
-        return await removeMacOSProxyFallback();
-      }
-      return { success: false, error: '代理模块不可用' };
-    }
+    const platform = process.platform;
     
-    try {
-      // 使用新模块的triggerManualProxy方法禁用系统代理
-      proxy.triggerManualProxy(false, "", 0, "");
-      logger.info('系统代理已清除');
-      return { success: true };
-    } catch (error) {
-      logger.error(`清除系统代理失败: ${error.message}`);
-      
-      if (process.platform === 'linux') {
-        logger.info('主模块失败，尝试使用gsettings备选方案');
-        return await removeLinuxProxyFallback();
-      }
-      
-      if (process.platform === 'darwin') {
-        logger.info('主模块失败，尝试使用networksetup备选方案');
+    switch (platform) {
+      case 'win32':
+        return await removeWindowsProxyFallback();
+      case 'darwin':
         return await removeMacOSProxyFallback();
-      }
-      
-      return { success: false, error: error.message };
+      case 'linux':
+        return await removeLinuxProxyFallback();
+      default:
+        logger.error(`不支持的平台: ${platform}`);
+        return { success: false, error: `不支持的平台: ${platform}` };
     }
   } catch (error) {
     logger.error(`清除系统代理失败: ${error.message}`);
