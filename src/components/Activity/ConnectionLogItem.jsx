@@ -80,7 +80,9 @@ const parseConnectionLog = (payload) => {
 const ConnectionLogItem = ({ log, index }) => {
   if (!log) return null;
   
-  const type = (log.type || 'info').toLowerCase();
+  // Ensure log.type is a string before calling toLowerCase()
+  const logType = log.type || 'info';
+  const type = typeof logType === 'string' ? logType.toLowerCase() : String(logType).toLowerCase();
   const payload = log.payload || log.originalPayload || '';
   
   // 解析连接日志

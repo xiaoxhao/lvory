@@ -65,7 +65,7 @@ const createWindow = () => {
       enableBlinkFeatures: 'JSHeavyAdThrottling',
       enablePreferredSizeMode: true,
       spellcheck: false,
-      devTools: isDev,
+      devTools: true,
       webSecurity: true,
       // 内存优化设置
       partition: 'persist:main',
