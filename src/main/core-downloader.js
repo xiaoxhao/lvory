@@ -89,7 +89,8 @@ const downloadCore = async (mainWindow) => {
       archiveName = 'sing-box.zip';
       extractedFolderName = `sing-box-${version}-windows-${arch}`;
     } else if (platform === 'darwin') {
-      downloadUrl = `https://github.com/SagerNet/sing-box/releases/download/v${version}/sing-box-${version}-darwin-${arch}.tar.gz`;
+      downloadUrl = `https://oss.sxueck.com/singbox/sing-box-${version}-darwin-${arch}.tar.gz`;
+      githubDownloadUrl = `https://github.com/SagerNet/sing-box/releases/download/v${version}/sing-box-${version}-darwin-${arch}.tar.gz`;
       binaryName = 'sing-box';
       archiveName = 'sing-box.tar.gz';
       extractedFolderName = `sing-box-${version}-darwin-${arch}`;
@@ -209,7 +210,7 @@ const downloadCore = async (mainWindow) => {
     };
     
     try {
-      if (platform === 'win32' || platform === 'linux') {
+      if (platform === 'win32' || platform === 'linux' || platform === 'darwin') {
         logger.info(`检查OSS连通性: ${downloadUrl}`);
         
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -242,21 +243,10 @@ const downloadCore = async (mainWindow) => {
           logger.warn(`OSS连通性检查失败，直接尝试从GitHub下载`);
           throw new Error('OSS不可达');
         }
-      } else {
-        // macOS平台直接从GitHub下载
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('core-download-progress', {
-            progress: 0,
-            message: `开始下载: ${downloadUrl}`
-          });
-        }
-        
-        await downloadWithRedirects(downloadUrl);
-        logger.info(`从 ${downloadUrl} 下载成功`);
       }
     } catch (error) {
       // 如果有GitHub备用地址，尝试从GitHub下载
-      if ((platform === 'win32' || platform === 'linux') && githubDownloadUrl) {
+      if ((platform === 'win32' || platform === 'linux' || platform === 'darwin') && githubDownloadUrl) {
         logger.info(`尝试从GitHub下载: ${githubDownloadUrl}`);
         
         if (mainWindow && !mainWindow.isDestroyed()) {
