@@ -11,7 +11,6 @@ export const AppProvider = ({ children }) => {
     privateMode: false,
     theme: 'light',
     language: 'zh_CN',
-    // ... 其他状态
   });
 
   // 加载持久化的设置

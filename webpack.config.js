@@ -90,7 +90,6 @@ module.exports = {
     },
     fallback: {
       "process": require.resolve("process/browser.js"),
-      "Buffer": require.resolve("buffer"),
       "global": require.resolve("global/window")
     }
   },
@@ -100,8 +99,7 @@ module.exports = {
       global: 'globalThis'
     }),
     new ProvidePlugin({
-      process: 'process/browser.js',
-      Buffer: ['buffer', 'Buffer']
+      process: 'process/browser.js'
     }),
     new HtmlWebpackPlugin({
       template: './public/index.html',

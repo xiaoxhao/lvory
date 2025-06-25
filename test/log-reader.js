@@ -31,11 +31,11 @@ class LogReader extends EventEmitter {
 
       res.setEncoding('utf8');
       
-      let buffer = '';
+      let stringBuffer = '';
       res.on('data', (chunk) => {
-        buffer += chunk;
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
+        stringBuffer += chunk;
+        const lines = stringBuffer.split('\n');
+        stringBuffer = lines.pop();
         
         lines.forEach(line => {
           if (line.trim()) {
