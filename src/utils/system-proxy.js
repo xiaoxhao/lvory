@@ -100,6 +100,107 @@ async function removeLinuxProxyFallback() {
 }
 
 /**
+ * macOS下使用networksetup设置系统代理
+ * @param {Object} options 代理选项
+ * @returns {Promise<Object>} 设置结果
+ */
+async function setMacOSProxyFallback(options) {
+  try {
+    logger.info(`使用networksetup设置macOS系统代理: ${options.host}:${options.port}`);
+    
+    // 检查是否有networksetup命令
+    try {
+      await execAsync('which networksetup');
+    } catch (error) {
+      return { success: false, error: 'networksetup命令不可用，无法设置系统代理' };
+    }
+    
+    // 获取活动的网络服务
+    const { stdout: services } = await execAsync('networksetup -listallnetworkservices');
+    const serviceLines = services.split('\n').slice(1).filter(line => line.trim() && !line.startsWith('*'));
+    
+    if (serviceLines.length === 0) {
+      return { success: false, error: '未找到可用的网络服务' };
+    }
+    
+    // 为每个网络服务设置代理
+    for (const service of serviceLines) {
+      const serviceName = service.trim();
+      if (serviceName) {
+        try {
+          // 设置HTTP代理
+          await execAsync(`networksetup -setwebproxy "${serviceName}" ${options.host} ${options.port}`);
+          // 设置HTTPS代理
+          await execAsync(`networksetup -setsecurewebproxy "${serviceName}" ${options.host} ${options.port}`);
+          // 设置SOCKS代理
+          await execAsync(`networksetup -setsocksfirewallproxy "${serviceName}" ${options.host} ${options.port}`);
+          
+          logger.info(`已为服务 ${serviceName} 设置代理`);
+        } catch (serviceError) {
+          logger.warn(`为服务 ${serviceName} 设置代理失败: ${serviceError.message}`);
+        }
+      }
+    }
+    
+    logger.info('macOS系统代理设置成功');
+    return { success: true };
+  } catch (error) {
+    logger.error(`macOS系统代理设置失败: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * macOS下使用networksetup清除系统代理
+ * @returns {Promise<Object>} 清除结果
+ */
+async function removeMacOSProxyFallback() {
+  try {
+    logger.info('使用networksetup清除macOS系统代理');
+    
+    // 检查是否有networksetup命令
+    try {
+      await execAsync('which networksetup');
+    } catch (error) {
+      return { success: false, error: 'networksetup命令不可用' };
+    }
+    
+    // 获取活动的网络服务
+    const { stdout: services } = await execAsync('networksetup -listallnetworkservices');
+    const serviceLines = services.split('\n').slice(1).filter(line => line.trim() && !line.startsWith('*'));
+    
+    if (serviceLines.length === 0) {
+      return { success: false, error: '未找到可用的网络服务' };
+    }
+    
+    // 为每个网络服务禁用代理
+    for (const service of serviceLines) {
+      const serviceName = service.trim();
+      if (serviceName) {
+        try {
+          // 禁用HTTP代理
+          await execAsync(`networksetup -setwebproxystate "${serviceName}" off`);
+          // 禁用HTTPS代理
+          await execAsync(`networksetup -setsecurewebproxystate "${serviceName}" off`);
+          // 禁用SOCKS代理
+          await execAsync(`networksetup -setsocksfirewallproxystate "${serviceName}" off`);
+          
+          logger.info(`已为服务 ${serviceName} 禁用代理`);
+        } catch (serviceError) {
+          logger.warn(`为服务 ${serviceName} 禁用代理失败: ${serviceError.message}`);
+        }
+      }
+    }
+    
+    logger.info('macOS系统代理已清除');
+    return { success: true };
+  } catch (error) {
+    logger.error(`清除macOS系统代理失败: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * 设置系统代理
  * @param {Object} options 代理选项
  * @param {String} options.host 代理主机
@@ -116,6 +217,10 @@ async function setGlobalProxy(options) {
       if (process.platform === 'linux') {
         logger.info('尝试使用gsettings备选方案设置Linux系统代理');
         return await setLinuxProxyFallback(options);
+      }
+      if (process.platform === 'darwin') {
+        logger.info('尝试使用networksetup备选方案设置macOS系统代理');
+        return await setMacOSProxyFallback(options);
       }
       return { success: false, error: '代理模块不可用' };
     }
@@ -135,6 +240,11 @@ async function setGlobalProxy(options) {
       if (process.platform === 'linux') {
         logger.info('主模块失败，尝试使用gsettings备选方案');
         return await setLinuxProxyFallback(options);
+      }
+      
+      if (process.platform === 'darwin') {
+        logger.info('主模块失败，尝试使用networksetup备选方案');
+        return await setMacOSProxyFallback(options);
       }
       
       return { success: false, error: error.message };
@@ -160,6 +270,10 @@ async function removeGlobalProxy() {
         logger.info('尝试使用gsettings备选方案清除Linux系统代理');
         return await removeLinuxProxyFallback();
       }
+      if (process.platform === 'darwin') {
+        logger.info('尝试使用networksetup备选方案清除macOS系统代理');
+        return await removeMacOSProxyFallback();
+      }
       return { success: false, error: '代理模块不可用' };
     }
     
@@ -171,10 +285,14 @@ async function removeGlobalProxy() {
     } catch (error) {
       logger.error(`清除系统代理失败: ${error.message}`);
       
-      // 如果是Linux系统且主模块失败，尝试使用备选方案
       if (process.platform === 'linux') {
         logger.info('主模块失败，尝试使用gsettings备选方案');
         return await removeLinuxProxyFallback();
+      }
+      
+      if (process.platform === 'darwin') {
+        logger.info('主模块失败，尝试使用networksetup备选方案');
+        return await removeMacOSProxyFallback();
       }
       
       return { success: false, error: error.message };

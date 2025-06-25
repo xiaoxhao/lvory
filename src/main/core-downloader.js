@@ -243,6 +243,17 @@ const downloadCore = async (mainWindow) => {
           logger.warn(`OSS连通性检查失败，直接尝试从GitHub下载`);
           throw new Error('OSS不可达');
         }
+      } else {
+        // 其他平台直接从GitHub下载
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('core-download-progress', {
+            progress: 0,
+            message: `开始下载: ${downloadUrl}`
+          });
+        }
+        
+        await downloadWithRedirects(downloadUrl);
+        logger.info(`从 ${downloadUrl} 下载成功`);
       }
     } catch (error) {
       // 如果有GitHub备用地址，尝试从GitHub下载

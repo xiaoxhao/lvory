@@ -189,13 +189,6 @@
     "asarUnpack": [
       "node_modules/system-proxy/**/*",
       "node_modules/@mihomo-party/sysproxy/**/*"
-    ],
-    "extraFiles": [
-      {
-        "from": "node_modules/@mihomo-party/sysproxy",
-        "to": "resources/app.asar.unpacked/node_modules/@mihomo-party/sysproxy",
-        "filter": ["**/*"]
-      }
     ]
   },
   "pnpm": {
