@@ -187,7 +187,8 @@
     },
     "fileAssociations": [],
     "asarUnpack": [
-      "node_modules/system-proxy/**/*"
+      "node_modules/system-proxy/**/*",
+      "node_modules/@mihomo-party/sysproxy/**/*"
     ]
   },
   "pnpm": {

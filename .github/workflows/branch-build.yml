@@ -5,6 +5,9 @@ on:
     branches-ignore: 
       - master
       - main
+    tags:
+      - 'v*'
+      - 'release-*'
   workflow_dispatch:
 
 permissions:
@@ -26,6 +29,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
       
       - name: Install dependencies
         run: npm install
@@ -80,6 +84,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
       
       - name: Install dependencies
         run: npm install
@@ -130,6 +135,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
       
       - name: Install dependencies
         run: npm install
@@ -175,9 +181,14 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
       
-      - name: Get branch name
+      - name: Get branch or tag name
         id: branch
-        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "branch=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          fi
       
       - name: Create artifacts directory
         run: mkdir -p artifacts
@@ -206,7 +217,12 @@ jobs:
       
       - name: Delete existing release if exists
         run: |
-          gh release delete "${{ steps.branch.outputs.branch }}-build" --yes || true
+          # 只有在分支构建时才删除现有的release，tag构建时不删除
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            gh release delete "${{ steps.branch.outputs.branch }}-build" --yes || true
+          else
+            echo "Tag build detected, skipping existing release deletion"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -216,19 +232,19 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.branch.outputs.branch }}-build
-          name: ${{ steps.branch.outputs.branch }} Branch Build
+          name: ${{ steps.branch.outputs.branch }} Build
           body: |
-            Automated build for ${{ steps.branch.outputs.branch }} branch
-            This version is built from the latest code in the ${{ steps.branch.outputs.branch }} branch and may contain unstable features.
+            Automated build for ${{ steps.branch.outputs.branch }}
+            ${{ startsWith(github.ref, 'refs/tags/') && 'This is a tagged release build.' || format('This version is built from the latest code in the {0} branch and may contain unstable features.', steps.branch.outputs.branch) }}
             
             ## Supported Platforms
-            - Windows Portable & Setup
+            - Windows MSI Setup
             - macOS DMG (Universal Binary - supports Intel x64 and Apple Silicon arm64)
             - Linux DEB (x64 & arm64)
             
-            **Note:** This release is automatically updated with each push to the ${{ steps.branch.outputs.branch }} branch.
+            ${{ startsWith(github.ref, 'refs/tags/') && '**Note:** This is a tagged release.' || format('**Note:** This release is automatically updated with each push to the {0} branch.', steps.branch.outputs.branch) }}
           draft: false
-          prerelease: true
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
           files: |
             artifacts/windows/*.msi
             artifacts/macos/*.dmg
