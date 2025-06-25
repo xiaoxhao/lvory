@@ -1,10 +1,8 @@
-name: Branch Build and Release
+name: 日常构建与发布
 
 on:
   push:
-    branches-ignore: 
-      - master
-      - main
+    branches: [ master, main ]
     tags:
       - 'v*'
       - 'release-*'
@@ -13,6 +11,7 @@ on:
 permissions:
   contents: write
   packages: write
+  actions: read
 
 jobs:
   build-windows:
@@ -23,18 +22,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Setup Node.js
+      - name: Configuring nodejs
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
       
-      - name: Install dependencies
+      - name: Installation of dependencies
         run: npm install
       
-      - name: Get current date
+      - name: Get the current date
         id: date
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
@@ -52,7 +51,7 @@ jobs:
           }
         shell: pwsh
       
-      - name: Build Windows
+      - name: Build
         run: npm run build:win
       
       - name: List build directory contents
@@ -71,25 +70,25 @@ jobs:
   build-macos:
     runs-on: macos-latest
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Setup Node.js
+      - name: Configuring nodejs
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
       
-      - name: Install dependencies
+      - name: Installation of dependencies
         run: npm install
       
-      - name: Get current date
+      - name: Get the current date
         id: date
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
@@ -122,25 +121,25 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Setup Node.js
+      - name: Configuring nodejs
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
       
-      - name: Install dependencies
+      - name: Installation of dependencies
         run: npm install
       
-      - name: Get current date
+      - name: Get the current date
         id: date
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
@@ -154,7 +153,7 @@ jobs:
           done
         shell: bash
       
-      - name: Build Linux
+      - name: Build
         run: npm run build:linux
       
       - name: List build directory contents
@@ -179,16 +178,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
-      
-      - name: Get branch or tag name
-        id: branch
-        run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            echo "branch=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
-          fi
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Create artifacts directory
         run: mkdir -p artifacts
@@ -215,37 +205,63 @@ jobs:
         run: |
           find artifacts -type f
       
-      - name: Delete existing release if exists
-        run: |
-          # 只有在分支构建时才删除现有的release，tag构建时不删除
-          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
-            gh release delete "${{ steps.branch.outputs.branch }}-build" --yes || true
-          else
-            echo "Tag build detected, skipping existing release deletion"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get the current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
       
-      - name: Create or Update Release
+      - name: Check if triggered by tag
+        id: check_tag
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+            echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+            echo "tag_name=nightly-${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+      
+      - name: Set release details
+        id: release_details
+        run: |
+          if [[ "${{ steps.check_tag.outputs.is_tag }}" == "true" ]]; then
+            echo "release_name=${{ steps.check_tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "release_body<<EOF" >> $GITHUB_OUTPUT
+            echo "正式发布版本 - ${{ steps.check_tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
+            echo "- Windows MSI (x64)" >> $GITHUB_OUTPUT
+            echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
+            echo "- Linux DEB (x64 & arm64)" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "release_name=日常构建 ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "release_body<<EOF" >> $GITHUB_OUTPUT
+            echo "自动构建的日常版本 - ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
+            echo "此版本基于最新的主分支代码自动构建，可能包含不稳定的功能。" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
+            echo "- Windows MSI (x64)" >> $GITHUB_OUTPUT
+            echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
+            echo "- Linux DEB (x64 & arm64)" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+      
+      - name: Create a Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ steps.branch.outputs.branch }}-build
-          name: ${{ steps.branch.outputs.branch }} Build
-          body: |
-            Automated build for ${{ steps.branch.outputs.branch }}
-            ${{ startsWith(github.ref, 'refs/tags/') && 'This is a tagged release build.' || format('This version is built from the latest code in the {0} branch and may contain unstable features.', steps.branch.outputs.branch) }}
-            
-            ## Supported Platforms
-            - Windows MSI Setup
-            - macOS DMG (Universal Binary - supports Intel x64 and Apple Silicon arm64)
-            - Linux DEB (x64 & arm64)
-            
-            ${{ startsWith(github.ref, 'refs/tags/') && '**Note:** This is a tagged release.' || format('**Note:** This release is automatically updated with each push to the {0} branch.', steps.branch.outputs.branch) }}
+          tag_name: ${{ steps.check_tag.outputs.tag_name }}
+          name: ${{ steps.release_details.outputs.release_name }}
+          body: ${{ steps.release_details.outputs.release_body }}
           draft: false
-          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          prerelease: ${{ steps.release_details.outputs.is_prerelease }}
           files: |
             artifacts/windows/*.msi
             artifacts/macos/*.dmg
-            artifacts/linux/*.deb 
+            artifacts/linux/*.deb
