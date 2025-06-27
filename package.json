@@ -16,7 +16,8 @@
     "build:mac-arm64": "npm run build:webpack && electron-builder --mac --arm64",
     "build:mac-x64": "npm run build:webpack && electron-builder --mac --x64",
     "build:linux": "npm run build:webpack && electron-builder --linux",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:linux:x64": "npm run build:webpack && electron-builder --linux --x64",
+    "build:linux:arm64": "npm run build:webpack && electron-builder --linux --arm64"
   },
   "repository": {
     "type": "git",
@@ -29,9 +30,9 @@
   },
   "homepage": "https://github.com/sxueck/lvory#readme",
   "devDependencies": {
-    "@babel/core": "^7.26.10",
-    "@babel/preset-env": "^7.26.9",
-    "@babel/preset-react": "^7.26.3",
+    "@babel/core": "^7.27.0",
+    "@babel/preset-env": "^7.27.2",
+    "@babel/preset-react": "^7.27.1",
     "babel-loader": "^10.0.0",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
@@ -88,7 +89,10 @@
       }
     ],
     "asar": true,
-    "compression": "maximum",
+    "asarUnpack": [
+      "resource/icon/tray.png"
+    ],
+    "compression": "normal",
     "removePackageScripts": true,
     "afterSign": null,
     "win": {
@@ -132,16 +136,7 @@
       "iconSize": 128
     },
     "linux": {
-      "target": [
-        {
-          "target": "deb",
-          "arch": ["x64", "arm64"]
-        },
-        {
-          "target": "AppImage",
-          "arch": ["x64"]
-        }
-      ],
+      "target": ["deb", "AppImage"],
       "icon": "resource/icon/index256.png",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "executableName": "lvory",
@@ -166,8 +161,7 @@
         "libasound2"
       ]
     },
-    "fileAssociations": [],
-    "asarUnpack": []
+    "fileAssociations": []
   },
   "pnpm": {
     "onlyBuiltDependencies": ["electron"]
