@@ -152,13 +152,16 @@
       "synopsis": "Minimalist Cross-Platform Client for Singbox",
       "description": "A minimalist cross-platform GUI client for sing-box, providing easy proxy management and configuration.",
       "category": "Network",
-      "desktop": {
-        "Name": "lvory",
-        "Comment": "Minimalist Cross-Platform Client for Singbox",
-        "Keywords": "proxy;singbox;network;vpn;",
-        "Categories": "Network;Security;",
-        "StartupWMClass": "lvory"
-      },
+"desktop": {
+  "entry": {
+    "Name": "lvory",
+    "Comment": "Minimalist Cross-Platform Client for Singbox",
+    "Keywords": "proxy;singbox;network;vpn;",
+    "Categories": "Network;Security;",
+    "StartupWMClass": "lvory"
+  }
+},
+
       "maintainer": "lvory Team"
     },
     "deb": {
