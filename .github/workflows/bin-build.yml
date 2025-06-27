@@ -161,13 +161,17 @@ jobs:
           ls -la build
           echo "Linux DEB files:"
           find build -name "*.deb" -type f
+          echo "Linux AppImage files:"
+          find build -name "*.AppImage" -type f
         shell: bash
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-build-artifacts
-          path: build/*.deb
+          path: |
+            build/*.deb
+            build/*.AppImage
 
   create-release:
     needs: [build-windows, build-macos, build-linux]
@@ -202,8 +206,7 @@ jobs:
           path: artifacts/linux
       
       - name: List downloaded artifacts
-        run: |
-          find artifacts -type f
+        run: find artifacts -type f
       
       - name: Get the current date
         id: date
@@ -235,6 +238,7 @@ jobs:
             echo "- Windows MSI (x64)" >> $GITHUB_OUTPUT
             echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
             echo "- Linux DEB (x64 & arm64)" >> $GITHUB_OUTPUT
+            echo "- Linux AppImage (x64)" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           else
             echo "release_name=日常构建 ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
@@ -247,6 +251,7 @@ jobs:
             echo "- Windows MSI (x64)" >> $GITHUB_OUTPUT
             echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
             echo "- Linux DEB (x64 & arm64)" >> $GITHUB_OUTPUT
+            echo "- Linux AppImage (x64)" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
         shell: bash
@@ -265,3 +270,4 @@ jobs:
             artifacts/windows/*.msi
             artifacts/macos/*.dmg
             artifacts/linux/*.deb
+            artifacts/linux/*.AppImage
