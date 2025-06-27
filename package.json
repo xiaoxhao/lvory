@@ -90,11 +90,8 @@
     "asar": true,
     "compression": "maximum",
     "removePackageScripts": true,
-    "publish": [
-      {
-        "provider": "github"
-      }
-    ],
+"publish": null,
+
     "win": {
       "target": [
         {
