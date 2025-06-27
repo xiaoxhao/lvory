@@ -84,10 +84,7 @@
       {
         "from": "resource/icon",
         "to": "icon",
-        "filter": [
-          "**/*.png",
-          "**/*.ico"
-        ]
+        "filter": ["**/*.png", "**/*.ico"]
       }
     ],
     "asar": true,
@@ -98,9 +95,7 @@
       "target": [
         {
           "target": "msi",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "resource/icon/index256.png",
@@ -117,9 +112,7 @@
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "universal"
-          ]
+          "arch": ["universal"]
         }
       ],
       "icon": "resource/icon/index512.png",
@@ -132,31 +125,21 @@
     },
     "dmg": {
       "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
       ],
-      "window": {
-        "width": 540,
-        "height": 380
-      },
+      "window": { "width": 540, "height": 380 },
       "iconSize": 128
     },
     "linux": {
       "target": [
         {
           "target": "deb",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
         }
       ],
       "icon": "resource/icon/index256.png",
@@ -187,8 +170,6 @@
     "asarUnpack": []
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron"
-    ]
+    "onlyBuiltDependencies": ["electron"]
   }
 }
