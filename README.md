@@ -10,19 +10,29 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
-[中文文档](README-zh.md) • [Screenshots](docs/screenshot.md) • [Documentation](docs/)
+[中文文档](README-zh.md) • [Screenshots](docs/screenshot.md) • [Documentation](docs/) • [Wiki](wiki/)
 
 </div>
 
 ## Table of Contents
 
-- [Features](#features)
-- [Preview](#preview)
-- [Getting Started](#getting-started)
-- [Development](#development)
-- [Contributing](#contributing)
-- [Disclaimer](#disclaimer)
-- [License](#license)
+- [Lvory](#lvory)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+    - [Core Features](#core-features)
+    - [Planned Features](#planned-features)
+  - [Preview](#preview)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [Quick Start](#quick-start)
+  - [Development](#development)
+    - [Architecture Documents](#architecture-documents)
+    - [Development Setup](#development-setup)
+  - [Contributing](#contributing)
+    - [Guidelines](#guidelines)
+  - [⚠️ Disclaimer](#️-disclaimer)
+  - [License](#license)
 
 
 
