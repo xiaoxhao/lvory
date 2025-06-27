@@ -20,19 +20,16 @@ let updateTrayMenuCallback = null;
 const getTrayIcon = (isActive = false) => {
   try {
     let iconPath;
-    
-    // 根据是否为 macOS 和是否打包来确定正确的图标路径
+
     if (process.platform === 'darwin' && process.env.NODE_ENV !== 'development') {
       // macOS 打包后的路径处理
       const resourcesPath = process.resourcesPath || path.join(process.cwd(), 'resources');
       const asarPath = path.join(resourcesPath, 'app.asar', 'resource', 'icon', 'tray.png');
       const unpackedPath = path.join(resourcesPath, 'icon', 'tray.png');
-      
-      // 优先使用 extraResources 中的图标
+
       if (fs.existsSync(unpackedPath)) {
         iconPath = unpackedPath;
       } else if (fs.existsSync(asarPath)) {
-        // 如果 asar 内的文件存在，需要将其复制到临时位置
         const tempPath = path.join(app.getPath('temp'), 'lvory-tray.png');
         try {
           const iconData = fs.readFileSync(asarPath);
@@ -45,21 +42,29 @@ const getTrayIcon = (isActive = false) => {
       } else {
         throw new Error('托盘图标文件不存在');
       }
+    } else if (process.platform === 'linux' && process.env.APPIMAGE) {
+      // Linux AppImage 运行时路径
+      const resourcesPath = process.resourcesPath || path.join(process.cwd(), 'resources');
+      iconPath = path.join(resourcesPath, 'icon', 'tray.png');
+
+      if (!fs.existsSync(iconPath)) {
+        throw new Error(`托盘图标文件不存在: ${iconPath}`);
+      }
     } else {
       // 开发环境或其他平台的路径
       iconPath = path.join(__dirname, '../../resource', 'icon', 'tray.png');
     }
-    
-    // 验证文件是否存在
+
     if (!fs.existsSync(iconPath)) {
       throw new Error(`托盘图标文件不存在: ${iconPath}`);
     }
-    
+
     return iconPath;
   } catch (error) {
     logger.error(`获取托盘图标失败: ${error.message}`);
-    // 创建一个空白图像作为备用
-    return nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABBJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC');
+    return nativeImage.createFromDataURL(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABBJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC'
+    );
   }
 };
 
@@ -74,12 +79,14 @@ const createTray = () => {
     tray = new Tray(iconPath);
   } catch (error) {
     logger.error(`创建托盘失败: ${error.message}`);
-    const emptyImage = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABNJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC');
+    const emptyImage = nativeImage.createFromDataURL(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABNJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC'
+    );
     tray = new Tray(emptyImage);
   }
-  
+
   tray.setToolTip('LVORY');
-  
+
   // 更新托盘菜单函数
   updateTrayMenuCallback = (isRunning = false) => {
     // 根据运行状态更新图标
@@ -89,38 +96,38 @@ const createTray = () => {
     } catch (error) {
       logger.error(`设置托盘图标失败: ${error.message}`);
     }
-    
+
     // 创建托盘菜单
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'RUN',
         click: async () => {
           if (singbox.isRunning()) return;
-          
+
           const mainWindow = windowManager.getMainWindow();
           if (!mainWindow || mainWindow.isDestroyed()) return;
-          
+
           try {
             const configPath = profileManager.getConfigPath();
             const proxyConfig = {
               host: '127.0.0.1',
               port: 7890,
-              enableSystemProxy: true
+              enableSystemProxy: true,
             };
-            
+
             logger.info(`从托盘启动sing-box内核，配置文件: ${configPath}`);
-            
+
             // 先更新UI状态
             mainWindow.webContents.send('status-update', { isRunning: true });
             updateTrayMenuCallback(true);
-            
+
             // 启动内核
-            const result = await singbox.startCore({ 
+            const result = await singbox.startCore({
               configPath,
               proxyConfig,
-              enableSystemProxy: true
+              enableSystemProxy: true,
             });
-            
+
             if (!result.success) {
               // 启动失败，恢复状态
               mainWindow.webContents.send('status-update', { isRunning: false });
@@ -134,27 +141,27 @@ const createTray = () => {
             updateTrayMenuCallback(false);
           }
         },
-        enabled: !isRunning
+        enabled: !isRunning,
       },
       {
         label: 'STOP',
         click: async () => {
           if (!singbox.isRunning()) return;
-          
+
           try {
             logger.info('从托盘停止sing-box内核');
-            
+
             // 先更新UI状态
             const mainWindow = windowManager.getMainWindow();
             if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.webContents.send('status-update', { isRunning: false });
             }
-            
+
             updateTrayMenuCallback(false);
-            
+
             // 停止内核
             const result = await singbox.stopCore();
-            
+
             if (!result.success) {
               // 停止失败，恢复状态
               if (mainWindow && !mainWindow.isDestroyed()) {
@@ -173,14 +180,14 @@ const createTray = () => {
             updateTrayMenuCallback(true);
           }
         },
-        enabled: isRunning
+        enabled: isRunning,
       },
       { type: 'separator' },
       {
         label: '显示主窗口',
         click: () => {
           windowManager.showWindow();
-        }
+        },
       },
       { type: 'separator' },
       {
@@ -194,29 +201,29 @@ const createTray = () => {
           }
           global.isQuitting = true;
           app.quit();
-        }
-      }
+        },
+      },
     ]);
-    
+
     tray.setContextMenu(contextMenu);
   };
-  
+
   // 初始设置托盘菜单
   updateTrayMenuCallback(singbox.isRunning());
-  
+
   // 点击托盘图标显示主窗口
   tray.on('click', () => {
     windowManager.showWindow();
   });
-  
+
   // 监听 SingBox 状态变化，更新托盘图标和菜单
   singbox.setStatusCallback((isRunning) => {
     updateTrayMenuCallback(isRunning);
   });
-  
+
   return {
     tray,
-    updateTrayMenu: updateTrayMenuCallback
+    updateTrayMenu: updateTrayMenuCallback,
   };
 };
 
@@ -240,5 +247,5 @@ const updateTrayMenu = (isRunning) => {
 module.exports = {
   createTray,
   getTray,
-  updateTrayMenu
-}; 
+  updateTrayMenu,
+};
