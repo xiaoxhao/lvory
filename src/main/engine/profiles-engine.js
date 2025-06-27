@@ -342,7 +342,19 @@ function createOrUpdatePath(config, path, value, options = {}) {
     // 查找符合条件的元素
     let matchingElement = current.find(item => item[condition.field] === condition.value);
     if (!matchingElement) {
-      return config; // 如果找不到匹配元素，返回原始配置
+      // 如果找不到匹配元素，创建一个新的元素
+      matchingElement = { [condition.field]: condition.value };
+      current.push(matchingElement);
+    }
+    
+    // 如果是条件映射的完整对象替换，先清空现有对象（保留条件字段）
+    if (options.isConditionalReplace && typeof value === 'object') {
+      // 清空现有对象，但保留条件字段的值
+      const conditionValue = matchingElement[condition.field];
+      Object.keys(matchingElement).forEach(key => {
+        delete matchingElement[key];
+      });
+      matchingElement[condition.field] = conditionValue;
     }
     
     // 根据 conflict_strategy 处理冲突
@@ -361,6 +373,59 @@ function createOrUpdatePath(config, path, value, options = {}) {
   
   // 普通属性设置
   current[lastTokenValue] = value;
+  return config;
+}
+
+/**
+ * 从配置中移除指定路径的元素
+ * @param {Object} config 配置对象
+ * @param {String} path 路径表达式
+ * @returns {Object} 更新后的配置对象
+ */
+function removeFromPath(config, path) {
+  if (!config || !path) return config;
+  
+  const tokens = tokenizePath(path);
+  let current = config;
+  let parent = null;
+  let lastToken = null;
+  
+  // 导航到倒数第二个元素
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const token = tokens[i];
+    parent = current;
+    lastToken = token;
+    
+    if (!current[token]) {
+      return config; // 路径不存在，无需移除
+    }
+    
+    current = current[token];
+  }
+  
+  const lastTokenValue = tokens[tokens.length - 1];
+  
+  // 处理条件筛选 [type=value]
+  if (lastTokenValue.startsWith('[') && lastTokenValue.endsWith(']') && lastTokenValue.includes('=')) {
+    const condition = parseCondition(lastTokenValue);
+    if (!condition || !Array.isArray(current)) return config;
+    
+    // 查找并移除符合条件的元素
+    const index = current.findIndex(item => item[condition.field] === condition.value);
+    if (index !== -1) {
+      current.splice(index, 1);
+      logger.info(`移除配置项: ${path}`);
+    }
+    
+    return config;
+  }
+  
+  // 处理普通属性移除
+  if (current.hasOwnProperty(lastTokenValue)) {
+    delete current[lastTokenValue];
+    logger.info(`移除配置项: ${path}`);
+  }
+  
   return config;
 }
 
@@ -423,6 +488,54 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
         }
       }
       
+      // 处理条件映射
+      if (mapping.transform === 'conditional') {
+        const targetPath = replacePathVariables(mapping.target_path, userConfig);
+        
+        // 评估条件
+        const conditionMet = evaluateCondition(mapping.condition, userValue);
+        
+        if (conditionMet && mapping.true_value !== undefined) {
+          // 条件为真，注入true_value配置
+          let valueToInject = mapping.true_value;
+          
+          // 处理true_value中的变量替换
+          if (typeof valueToInject === 'object') {
+            valueToInject = JSON.parse(JSON.stringify(valueToInject));
+            valueToInject = replaceObjectVariables(valueToInject, userConfig);
+          }
+          
+          createOrUpdatePath(result, targetPath, valueToInject, {
+            conflict_strategy: mapping.conflict_strategy,
+            isConditionalReplace: true
+          });
+          
+          logger.info(`应用条件映射: ${mapping.user_path} -> ${targetPath} (条件满足)`);
+        } else if (!conditionMet && mapping.false_value !== undefined) {
+          // 条件为假且有false_value，注入false_value配置
+          let valueToInject = mapping.false_value;
+          
+          // 处理false_value中的变量替换
+          if (typeof valueToInject === 'object') {
+            valueToInject = JSON.parse(JSON.stringify(valueToInject));
+            valueToInject = replaceObjectVariables(valueToInject, userConfig);
+          }
+          
+          createOrUpdatePath(result, targetPath, valueToInject, {
+            conflict_strategy: mapping.conflict_strategy,
+            isConditionalReplace: true
+          });
+          
+          logger.info(`应用条件映射: ${mapping.user_path} -> ${targetPath} (条件不满足，使用false_value)`);
+        } else if (!conditionMet && mapping.false_action === 'remove') {
+          // 条件为假且指定移除，删除配置
+          removeFromPath(result, targetPath);
+          logger.info(`移除条件映射: ${mapping.user_path} -> ${targetPath} (条件不满足)`);
+        }
+        
+        return;
+      }
+      
       // 直接映射，无需转换
       const targetPath = replacePathVariables(mapping.target_path, userConfig);
       createOrUpdatePath(result, targetPath, userValue, {
@@ -455,6 +568,56 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
 }
 
 /**
+ * 评估条件表达式
+ * @param {String} condition 条件表达式
+ * @param {*} value 要评估的值
+ * @returns {Boolean} 条件是否满足
+ */
+function evaluateCondition(condition, value) {
+  if (!condition) return false;
+  
+  try {
+    // 简单的条件评估，支持 value === true, value === false 等
+    const expr = condition.replace(/value/g, JSON.stringify(value));
+    return eval(expr);
+  } catch (error) {
+    logger.error(`评估条件失败: ${condition}, 错误: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * 在对象中递归替换变量
+ * @param {Object} obj 要处理的对象
+ * @param {Object} data 变量数据源
+ * @returns {Object} 处理后的对象
+ */
+function replaceObjectVariables(obj, data) {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => replaceObjectVariables(item, data));
+  }
+  
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string' && value.includes('{') && value.includes('}')) {
+      // 替换字符串中的变量
+      result[key] = replacePathVariables(value, data);
+    } else if (typeof value === 'object') {
+      // 递归处理嵌套对象
+      result[key] = replaceObjectVariables(value, data);
+    } else {
+      result[key] = value;
+    }
+  }
+  
+  return result;
+}
+
+/**
  * 加载映射定义
  * @param {String} path 映射定义文件路径
  * @returns {Array} 映射规则数组
@@ -482,6 +645,7 @@ module.exports = {
   replacePathVariables,
   getValueByPath,
   createOrUpdatePath,
+  removeFromPath,
   applyMappings,
   loadMappingDefinition
 };

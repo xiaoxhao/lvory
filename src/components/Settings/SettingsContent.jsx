@@ -320,8 +320,13 @@ const SettingsContent = ({ section }) => {
     allowLan: false,
 
     autoStart: false,
-    autoRestart: false,
     checkUpdateOnBoot: true,
+    
+    // 日志设置
+    logLevel: 'info',
+    logOutput: '',
+    logDisabled: false,
+    logTimestamp: true,
     
     // Nodes 相关设置
     nodeAdvancedMonitoring: false,
@@ -341,6 +346,7 @@ const SettingsContent = ({ section }) => {
     extraLogSaving: false,
     language: 'zh_CN',
     nodeIPDetailAPI: 'ip.sb',
+    tunMode: false,
   });
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const [isResetButtonHovered, setIsResetButtonHovered] = useState(false);
@@ -375,7 +381,6 @@ const SettingsContent = ({ section }) => {
         if (result.success && result.config) {
           const config = result.config;
           
-          // 使用前端简化版引擎获取值
           let proxyPort = '';
           let apiAddress = '';
           
@@ -517,8 +522,13 @@ const SettingsContent = ({ section }) => {
       allowLan: 'allow_lan',
       apiAddress: 'api_address',
 
-      autoRestart: 'auto_restart',
       checkUpdateOnBoot: 'check_update_on_boot',
+      
+      logLevel: 'log_level',
+      logOutput: 'log_output',
+      logDisabled: 'log_disabled',
+      logTimestamp: 'log_timestamp',
+      
       nodeAdvancedMonitoring: 'node_advanced_monitoring',
       nodeExitStatusMonitoring: 'node_exit_status_monitoring',
       nodeExitIPPurity: 'node_exit_ip_purity',
@@ -532,6 +542,7 @@ const SettingsContent = ({ section }) => {
       language: 'language',
       keepNodeTrafficHistory: 'keep_node_traffic_history',
       nodeIPDetailAPI: 'node_ip_detail_api',
+      tunMode: 'tun_mode',
     };
 
     // 如果是autoStart，它是系统级设置，不需要存入用户配置文件
@@ -672,8 +683,13 @@ const SettingsContent = ({ section }) => {
       allowLan: config.allow_lan || false,
       apiAddress: config.api_address || prevSettings.apiAddress,
 
-      autoRestart: config.auto_restart || false,
       checkUpdateOnBoot: config.check_update_on_boot !== undefined ? config.check_update_on_boot : prevSettings.checkUpdateOnBoot,
+      
+      // 日志设置
+      logLevel: config.log_level || prevSettings.logLevel,
+      logOutput: config.log_output || prevSettings.logOutput,
+      logDisabled: config.log_disabled !== undefined ? config.log_disabled : prevSettings.logDisabled,
+      logTimestamp: config.log_timestamp !== undefined ? config.log_timestamp : prevSettings.logTimestamp,
       
       // Nodes设置
       nodeAdvancedMonitoring: config.node_advanced_monitoring || false,
@@ -693,6 +709,7 @@ const SettingsContent = ({ section }) => {
       extraLogSaving: config.extra_log_saving || false,
       language: config.language || 'zh_CN',
       nodeIPDetailAPI: config.node_ip_detail_api || 'ip.sb',
+      tunMode: config.tun_mode || false,
     };
   };
 
@@ -790,13 +807,12 @@ const SettingsContent = ({ section }) => {
               {/* 允许局域网连接开关 */}
               {renderToggle(t('settings.allowLan'), 'allowLan', settings.allowLan)}
 
-
-
               {/* 开机自启动开关 */}
               {renderToggle(t('settings.autoStart'), 'autoStart', settings.autoStart)}
 
-              {/* 自动重启内核开关 */}
-              {renderToggle(t('settings.autoRestart'), 'autoRestart', settings.autoRestart)}
+              {/* TUN 模式支持开关 */}
+              {renderToggle(t('settings.tunMode'), 'tunMode', settings.tunMode)}
+              <DescriptionText>{t('settings.tunModeDesc')}</DescriptionText>
               
               {/* 开机检查更新 */}
               {renderToggle(t('settings.checkUpdates'), 'checkUpdateOnBoot', settings.checkUpdateOnBoot)}
@@ -842,8 +858,44 @@ const SettingsContent = ({ section }) => {
                 <label style={styles.label}>{t('settings.logSettings')}</label>
               </div>
 
-              {/* 日志轮转周期和额外保存放在同一层级，修正行间距 */}
+              {/* 日志配置选项 */}
               <div style={{ marginBottom: '15px' }}>
+                {/* SingBox 日志等级 */}
+                <SelectWithLabel
+                  label={t('settings.singboxLogLevel')}
+                  value={settings.logLevel || 'info'}
+                  onChange={(e) => handleSettingChange('logLevel', e.target.value)}
+                  options={[
+                    { value: 'trace', label: 'Trace' },
+                    { value: 'debug', label: 'Debug' },
+                    { value: 'info', label: 'Info' },
+                    { value: 'warn', label: 'Warn' },
+                    { value: 'error', label: 'Error' },
+                    { value: 'fatal', label: 'Fatal' },
+                    { value: 'panic', label: 'Panic' }
+                  ]}
+                />
+                
+                {/* SingBox 日志输出文件 */}
+                <InputWithLabel
+                  label={t('settings.singboxLogOutput')}
+                  value={settings.logOutput || ''}
+                  onChange={(value) => handleSettingChange('logOutput', value)}
+                  placeholder={t('settings.logOutputPlaceholder')}
+                />
+                <DescriptionText>{t('settings.logOutputDesc')}</DescriptionText>
+                
+                {/* 禁用 SingBox 日志 */}
+                {renderToggle(t('settings.singboxLogDisabled'), 'logDisabled', settings.logDisabled)}
+                <DescriptionText>{t('settings.logDisabledDesc')}</DescriptionText>
+                
+                {/* SingBox 日志时间戳 */}
+                {renderToggle(t('settings.singboxLogTimestamp'), 'logTimestamp', settings.logTimestamp)}
+                <DescriptionText>{t('settings.logTimestampDesc')}</DescriptionText>
+
+                {/* 应用日志设置分隔线 */}
+                <div style={{ margin: '20px 0', borderTop: '1px solid #e5e7eb' }}></div>
+                
                 {/* 日志轮转周期 */}
                 <div style={{...styles.toggleContainer, marginBottom: '12px'}}>
                   <label style={styles.toggleLabel}>{t('settings.logRotation')}</label>

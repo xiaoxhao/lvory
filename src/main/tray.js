@@ -211,7 +211,17 @@ const createTray = () => {
   
   // 监听 SingBox 状态变化，更新托盘图标和菜单
   singbox.setStatusCallback((isRunning) => {
+    logger.info(`[Tray] 收到状态回调: isRunning=${isRunning}`);
     updateTrayMenuCallback(isRunning);
+    
+    // 同时通知前端 UI 更新状态
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      logger.info(`[Tray] 向前端发送状态更新: isRunning=${isRunning}`);
+      mainWindow.webContents.send('status-update', { isRunning });
+    } else {
+      logger.warn(`[Tray] 主窗口不存在或已销毁，无法发送状态更新`);
+    }
   });
   
   return {

@@ -13,8 +13,14 @@ class SettingsManager {
       allowLan: false,
 
       autoStart: false,
-      autoRestart: false,
       checkUpdateOnBoot: true,
+      tunMode: false,
+      
+      // 日志设置
+      logLevel: 'info',
+      logOutput: '',
+      logDisabled: false,
+      logTimestamp: true,
       
       // Nodes 相关设置
       nodeAdvancedMonitoring: false,

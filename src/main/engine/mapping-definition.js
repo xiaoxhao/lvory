@@ -20,18 +20,12 @@ function getDefaultMappingDefinition() {
       {
         "user_path": "settings.allow_lan",
         "target_path": "inbounds.[type=mixed].listen",
-        "type": "string",
-        "transform": "direct",
-        "default": "127.0.0.1",
-        "description": "是否允许局域网连接",
-        "dependencies": [
-          {
-            "condition": "value === true",
-            "target_path": "inbounds.[type=mixed].listen",
-            "value": "0.0.0.0",
-            "type": "string"
-          }
-        ]
+        "type": "boolean",
+        "transform": "conditional",
+        "condition": "value === true",
+        "true_value": "0.0.0.0",
+        "false_value": "127.0.0.1",
+        "description": "是否允许局域网连接"
       },
       {
         "user_path": "settings.api_address",
@@ -39,6 +33,60 @@ function getDefaultMappingDefinition() {
         "type": "string",
         "default": "127.0.0.1:9090",
         "description": "API地址设置"
+      },
+      {
+        "user_path": "settings.log_level",
+        "target_path": "log.level",
+        "type": "string",
+        "default": "info",
+        "description": "日志等级设置 (trace/debug/info/warn/error/fatal/panic)"
+      },
+      {
+        "user_path": "settings.log_output",
+        "target_path": "log.output",
+        "type": "string",
+        "description": "日志输出文件路径"
+      },
+      {
+        "user_path": "settings.log_disabled",
+        "target_path": "log.disabled",
+        "type": "boolean",
+        "default": false,
+        "description": "是否禁用日志输出"
+      },
+      {
+        "user_path": "settings.log_timestamp",
+        "target_path": "log.timestamp",
+        "type": "boolean",
+        "default": true,
+        "description": "是否在日志中添加时间戳"
+      },
+      {
+        "user_path": "settings.tun_mode",
+        "target_path": "inbounds.[type=tun]",
+        "type": "boolean",
+        "transform": "conditional",
+        "condition": "value === true",
+        "true_value": {
+          "tag": "tun-in",
+          "type": "tun",
+          "address": [
+            "172.18.0.1/30",
+            "fdfe:dcba:9876::1/126"
+          ],
+          "auto_route": true,
+          "strict_route": true,
+          "stack": "system",
+          "platform": {
+            "http_proxy": {
+              "enabled": true,
+              "server": "127.0.0.1",
+              "server_port": "{settings.proxy_port}"
+            }
+          }
+        },
+        "false_action": "remove",
+        "description": "TUN模式配置"
       },
 
       {
@@ -54,6 +102,30 @@ function getDefaultMappingDefinition() {
         "description": "节点信息映射"
       }
     ]
+  };
+}
+
+/**
+ * @returns {Object} 完整的TUN配置模板
+ */
+function getTunConfigTemplate() {
+  return {
+    "tag": "tun-in",
+    "type": "tun",
+    "address": [
+      "172.18.0.1/30",
+      "fdfe:dcba:9876::1/126"
+    ],
+    "auto_route": true,
+    "strict_route": true,
+    "stack": "system",
+    "platform": {
+      "http_proxy": {
+        "enabled": true,
+        "server": "127.0.0.1",
+        "server_port": 7890
+      }
+    }
   };
 }
 
@@ -109,8 +181,22 @@ function createProtocolMapping(protocol) {
   };
 }
 
+/**
+ * 获取默认日志配置模板
+ * @returns {Object} 默认日志配置
+ */
+function getDefaultLogConfig() {
+  return {
+    "disabled": false,
+    "level": "info",
+    "timestamp": true
+  };
+}
+
 module.exports = {
   getDefaultMappingDefinition,
+  getTunConfigTemplate,
   getProtocolTemplate,
-  createProtocolMapping
+  createProtocolMapping,
+  getDefaultLogConfig
 }; 

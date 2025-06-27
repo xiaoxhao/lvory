@@ -574,7 +574,7 @@ const StatsOverview = ({ apiAddress }) => {
       
       setTimeout(() => {
         chart.resize();
-      }, 300);
+      }, 50);
       
       // 添加双击事件监听器
       chart.getZr().on('dblclick', () => {

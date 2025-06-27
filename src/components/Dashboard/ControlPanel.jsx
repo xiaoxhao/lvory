@@ -22,16 +22,13 @@ const ControlPanel = ({
   isTesting,
   isStarting, 
   isStopping,
-  isRestarting,
   onOpenProfileModal,
-  onRestartSingBox,
   coreExists,
   isDownloadingCore,
   downloadProgress,
   downloadMessage,
   onSwitchToActivity // 添加切换到Activity的回调
 }) => {
-  const [showRestartButton, setShowRestartButton] = useState(false);
   const [showProxyConfigModal, setShowProxyConfigModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     powershell: true,
@@ -711,28 +708,15 @@ sudo rm /etc/apt/apt.conf.d/95proxies`
       }}>
         <button
           onClick={onToggleSingBox}
-          disabled={isStarting || isStopping || isRestarting}
+          disabled={isStarting || isStopping}
           onMouseEnter={(e) => {
-            if (isRunning && !isStarting && !isStopping && !isRestarting && coreExists) {
-              setShowRestartButton(true);
-            }
-            if (!isStarting && !isStopping && !isRestarting && !isDownloadingCore) {
+            if (!isStarting && !isStopping && !isDownloadingCore) {
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
             }
           }}
           onMouseLeave={(e) => {
-            // 检查鼠标是否真的离开了整个按钮区域
-            const rect = e.currentTarget.getBoundingClientRect();
-            const isInRestartArea = e.clientY >= rect.top &&
-                                   e.clientY <= rect.bottom &&
-                                   e.clientX >= rect.left &&
-                                   e.clientX <= rect.right;
-            if (!isInRestartArea) {
-              setShowRestartButton(false);
-            }
-            
-            if (!isStarting && !isStopping && !isRestarting && !isDownloadingCore) {
+            if (!isStarting && !isStopping && !isDownloadingCore) {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
             }
@@ -745,7 +729,7 @@ sudo rm /etc/apt/apt.conf.d/95proxies`
             padding: '5px 15px',
             fontSize: '13px',
             fontWeight: '500',
-            cursor: (isStarting || isStopping || isRestarting || isDownloadingCore) ? 'not-allowed' : 'pointer',
+            cursor: (isStarting || isStopping || isDownloadingCore) ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
             boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
             position: 'relative',
@@ -761,11 +745,10 @@ sudo rm /etc/apt/apt.conf.d/95proxies`
           {isDownloadingCore ? '下载中...' :
            isStarting ? '启动中...' : 
            isStopping ? '停止中...' : 
-           isRestarting ? '重启中...' :
            !coreExists ? '安装内核' :
            isRunning ? 'STOP' : 'RUN'}
           
-          {(isStarting || isStopping || isRestarting) && (
+          {(isStarting || isStopping) && (
             <div style={{
               position: 'absolute',
               top: 0,
@@ -810,42 +793,7 @@ sudo rm /etc/apt/apt.conf.d/95proxies`
             {downloadMessage} ({downloadProgress}%)
           </div>
         )}
-        
-        {/* 重启按钮 */}
-        {showRestartButton && isRunning && !isStarting && !isStopping && !isRestarting && coreExists && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRestartSingBox();
-            }}
-            onMouseLeave={() => {
-              setShowRestartButton(false);
-            }}
-            style={{
-              backgroundColor: '#f39c12',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '5px 15px',
-              fontSize: '13px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-              width: '85px',  
-              height: '32px', 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'absolute',
-              top: 'calc(100% + 5px)',
-              zIndex: 3,
-              animation: 'fadeIn 0.2s ease-in-out'
-            }}
-          >
-            RESTART
-          </button>
-        )}
+
       </div>
     );
   };
@@ -925,17 +873,7 @@ sudo rm /etc/apt/apt.conf.d/95proxies`
             transform: scale(1.1);
           }
         }
-        
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+
       `}</style>
     </div>
   );

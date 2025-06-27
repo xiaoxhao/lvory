@@ -93,45 +93,35 @@ function setup() {
       const protocol = parsedUrlForProtocol.protocol === 'https:' ? https : http;
       const mainWindow = utils.getMainWindow();
       
-      // 使用 await 和 Promise 处理异步下载操作
       const downloadResult = await new Promise((resolve, reject) => {
         const request = protocol.get(fileUrl, async (response) => {
-          let filePath;
           try {
-            // 检查状态码
+            // 检查HTTP响应状态
             if (response.statusCode !== 200) {
-              let errorMessage = `HTTP Error: ${response.statusCode}`;
-              if (response.statusCode === 404) {
-                errorMessage = 'File not found on server (404)';
-              } else if (response.statusCode === 403) {
-                errorMessage = 'Access forbidden (403)';
-              } else if (response.statusCode === 401) {
-                errorMessage = 'Authentication required (401)';
-              } else if (response.statusCode >= 500) {
-                errorMessage = 'Server error, please try again later';
-              }
-              throw new Error(errorMessage);
+              reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage || 'Request failed'}`));
+              return;
             }
             
-            // 检查内容类型，如果服务器返回了明确的错误页面类型，可能是被重定向了
-            const contentType = response.headers['content-type'];
-            if (contentType && contentType.includes('text/html') && !fileUrl.endsWith('.html')) {
-              throw new Error('Server returned HTML instead of a file. This URL may be a web page, not a downloadable file.');
+            // 检查Content-Type
+            const contentType = response.headers['content-type'] || '';
+            logger.info('Response Content-Type:', contentType);
+            
+            // 验证文件扩展名和类型匹配
+            const fileExt = path.extname(customFileName).toLowerCase();
+            if (fileExt === '.json' && !contentType.includes('application/json') && !contentType.includes('text/') && !contentType.includes('application/octet-stream')) {
+              logger.warn('Content-Type may not match expected JSON format:', contentType);
             }
             
-            // 从响应头中获取文件名
-            if (!data.fileName || customFileName === path.basename(new URL(fileUrl).pathname)) {
-              // 优先使用Content-Disposition头
-              const contentDisposition = response.headers['content-disposition'];
-              if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-                if (filenameMatch && filenameMatch[1]) {
-                  customFileName = filenameMatch[1];
-                  logger.info(`从Content-Disposition头获取的文件名: ${customFileName}`);
-                }
+            // 处理文件名，确保正确的扩展名
+            if (!customFileName.includes('.')) {
+              if (contentType.includes('application/json') || contentType.includes('json')) {
+                customFileName += '.json';
+              } else {
+                customFileName += '.json'; // 默认为JSON
               }
             }
             
+            // 确保文件名安全
             customFileName = customFileName.replace(/[/\\?%*:|"<>]/g, '-');
             
             // 确定最终文件路径
@@ -162,6 +152,10 @@ function setup() {
                 resolveFile();
               });
             });
+            
+            // 注意：移除了配置文件处理调用
+            // TUN配置现在由映射引擎根据用户设置动态管理
+            logger.info(`配置文件下载完成: ${customFileName}`);
             
             // 创建文件元数据
             const metadata = {

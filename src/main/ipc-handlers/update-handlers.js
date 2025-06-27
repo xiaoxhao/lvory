@@ -10,8 +10,8 @@ const logger = require('../../utils/logger');
 const utils = require('./utils');
 
 /**
- * 更新配置文件
- * @param {string} fileName 文件名
+ * 更新单个配置文件
+ * @param {string} fileName 配置文件名
  * @returns {Promise<Object>} 更新结果
  */
 async function updateProfile(fileName) {
@@ -19,178 +19,192 @@ async function updateProfile(fileName) {
     if (!fileName) {
       return { success: false, error: '文件名不能为空' };
     }
+
+    const configDir = utils.getConfigDir();
+    const filePath = path.join(configDir, fileName);
     
-    // 获取元数据
-    let metaCache = utils.readMetaCache();
-    let metadata = metaCache[fileName];
-    
-    // 如果没有元数据，则无法更新
-    if (!metadata || !metadata.url) {
-      return { success: false, error: '找不到该文件的更新来源' };
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: `配置文件不存在: ${fileName}` };
     }
+
+    // 从元数据中获取URL
+    const metaCache = utils.readMetaCache();
+    const metadata = metaCache[fileName];
     
-    // 开始更新
-    logger.info(`开始更新配置文件: ${fileName}, URL: ${metadata.url}`);
-    
+    if (!metadata || !metadata.url) {
+      return { success: false, error: `找不到文件 ${fileName} 的下载URL，无法更新` };
+    }
+
+    const fileUrl = metadata.url;
+    logger.info(`开始更新配置文件: ${fileName} from ${fileUrl}`);
+
     // 使用适当的协议
-    const parsedUrl = new URL(metadata.url);
+    const parsedUrl = new URL(fileUrl);
     const protocol = parsedUrl.protocol === 'https:' ? https : http;
-    
+
     return new Promise((resolve, reject) => {
-      // 创建请求
-      const request = protocol.get(metadata.url, (response) => {
-        // 检查状态码
-        if (response.statusCode !== 200) {
-          // 更新失败计数
-          metadata.failCount = (metadata.failCount || 0) + 1;
-          if (metadata.failCount >= 3) {
-            metadata.status = 'failed';
-            logger.warn(`配置文件更新失败3次以上，标记为失效: ${fileName}`);
+      const request = protocol.get(fileUrl, (response) => {
+        try {
+          // 检查HTTP响应状态
+          if (response.statusCode !== 200) {
+            const error = `HTTP ${response.statusCode}: ${response.statusMessage || 'Request failed'}`;
+            logger.error(`更新失败: ${error}`);
+            
+            // 更新失败计数
+            metadata.failCount = (metadata.failCount || 0) + 1;
+            metadata.lastError = error;
+            metadata.lastAttempt = new Date().toISOString();
+            metaCache[fileName] = metadata;
+            utils.writeMetaCache(metaCache);
+            
+            resolve({ success: false, error: error });
+            return;
           }
-          
-          // 更新元数据
-          metaCache[fileName] = metadata;
-          utils.writeMetaCache(metaCache);
-          
-          let errorMessage = `HTTP Error: ${response.statusCode}`;
-          if (response.statusCode === 404) {
-            errorMessage = 'File not found on server (404)';
-          } else if (response.statusCode === 403) {
-            errorMessage = 'Access forbidden (403)';
-          } else if (response.statusCode === 401) {
-            errorMessage = 'Authentication required (401)';
-          } else if (response.statusCode >= 500) {
-            errorMessage = 'Server error, please try again later';
-          }
-          
-          reject(new Error(errorMessage));
-          return;
-        }
-        
-        // 检查内容类型
-        const contentType = response.headers['content-type'];
-        if (contentType && contentType.includes('text/html') && !metadata.url.endsWith('.html')) {
-          // 更新失败计数
-          metadata.failCount = (metadata.failCount || 0) + 1;
-          if (metadata.failCount >= 3) {
-            metadata.status = 'failed';
-          }
-          
-          // 更新元数据
-          metaCache[fileName] = metadata;
-          utils.writeMetaCache(metaCache);
-          
-          reject(new Error('Server returned HTML instead of a file. This URL may be a web page, not a downloadable file.'));
-          return;
-        }
-        
-        const configDir = utils.getConfigDir();
-        const filePath = path.join(configDir, fileName);
-        
-        // 创建写入流
-        const file = fs.createWriteStream(filePath);
-        
-        // 将响应流导向文件
-        response.pipe(file);
-        
-        // 处理写入错误
-        file.on('error', (err) => {
-          file.close();
-          
-          // 更新失败计数
-          metadata.failCount = (metadata.failCount || 0) + 1;
-          if (metadata.failCount >= 3) {
-            metadata.status = 'failed';
-          }
-          
-          // 更新元数据
-          metaCache[fileName] = metadata;
-          utils.writeMetaCache(metaCache);
-          
-          reject(new Error(`Failed to write file: ${err.message}`));
-        });
-        
-        // 文件写入完成
-        file.on('finish', () => {
-          file.close();
-          
-          // 更新元数据
-          metadata.lastUpdated = new Date().toISOString();
-          metadata.updateCount = (metadata.updateCount || 0) + 1;
-          metadata.failCount = 0; // 成功后重置失败计数
-          metadata.status = 'active';
-          
-          // 更新元数据
-          metaCache[fileName] = metadata;
-          utils.writeMetaCache(metaCache);
-          
-          // 通知前端
-          const mainWindow = utils.getMainWindow();
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('profile-updated', {
-              success: true,
-              fileName: fileName
-            });
-          }
-          
-          resolve({
-            success: true,
-            message: `配置文件已更新: ${fileName}`
+
+          // 创建临时文件
+          const tempFileName = `${fileName}.tmp`;
+          const tempFilePath = path.join(configDir, tempFileName);
+          const file = fs.createWriteStream(tempFilePath);
+
+          response.pipe(file);
+
+          file.on('error', (err) => {
+            file.close();
+            // 删除临时文件
+            if (fs.existsSync(tempFilePath)) {
+              fs.unlinkSync(tempFilePath);
+            }
+            
+            const errorMsg = `写入文件失败: ${err.message}`;
+            logger.error(errorMsg);
+            
+            // 更新失败计数
+            metadata.failCount = (metadata.failCount || 0) + 1;
+            metadata.lastError = errorMsg;
+            metadata.lastAttempt = new Date().toISOString();
+            metaCache[fileName] = metadata;
+            utils.writeMetaCache(metaCache);
+            
+            resolve({ success: false, error: errorMsg });
           });
-        });
+
+          file.on('finish', () => {
+            file.close();
+            
+            try {
+              // 注意：移除了配置文件处理调用
+              // TUN配置现在由映射引擎根据用户设置动态管理
+              
+              // 用新文件替换旧文件
+              if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+              }
+              fs.renameSync(tempFilePath, filePath);
+              
+              logger.info(`配置文件更新完成: ${fileName}`);
+              
+              // 更新元数据
+              metadata.lastUpdated = new Date().toISOString();
+              metadata.updateCount = (metadata.updateCount || 0) + 1;
+              metadata.failCount = 0; // 重置失败计数
+              metadata.status = 'active';
+              delete metadata.lastError; // 清除错误信息
+              metaCache[fileName] = metadata;
+              utils.writeMetaCache(metaCache);
+              
+              resolve({
+                success: true,
+                message: `配置文件 ${fileName} 更新成功`,
+                updateCount: metadata.updateCount
+              });
+              
+            } catch (replaceError) {
+              // 清理临时文件
+              if (fs.existsSync(tempFilePath)) {
+                fs.unlinkSync(tempFilePath);
+              }
+              
+              const errorMsg = `替换文件失败: ${replaceError.message}`;
+              logger.error(errorMsg);
+              
+              // 更新失败计数
+              metadata.failCount = (metadata.failCount || 0) + 1;
+              metadata.lastError = errorMsg;
+              metadata.lastAttempt = new Date().toISOString();
+              metaCache[fileName] = metadata;
+              utils.writeMetaCache(metaCache);
+              
+              resolve({ success: false, error: errorMsg });
+            }
+          });
+
+        } catch (responseError) {
+          logger.error('更新响应处理错误:', responseError);
+          
+          // 清理临时文件
+          const tempFilePath = path.join(configDir, `${fileName}.tmp`);
+          if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+          }
+          
+          const errorMsg = `响应处理失败: ${responseError.message}`;
+          
+          // 更新失败计数
+          metadata.failCount = (metadata.failCount || 0) + 1;
+          metadata.lastError = errorMsg;
+          metadata.lastAttempt = new Date().toISOString();
+          metaCache[fileName] = metadata;
+          utils.writeMetaCache(metaCache);
+          
+          resolve({ success: false, error: errorMsg });
+        }
       });
-      
+
       // 处理请求错误
       request.on('error', (err) => {
-        logger.error(`更新请求错误: ${err.message}`);
-        
-        // 更新失败计数
-        metadata.failCount = (metadata.failCount || 0) + 1;
-        if (metadata.failCount >= 3) {
-          metadata.status = 'failed';
-        }
-        
-        // 更新元数据
-        metaCache[fileName] = metadata;
-        utils.writeMetaCache(metaCache);
+        logger.error('更新请求错误:', err);
         
         let errorMessage = err.message;
         if (err.code === 'ENOTFOUND') {
-          errorMessage = 'Host not found. Please check your URL or internet connection.';
+          errorMessage = '主机未找到，请检查URL或网络连接';
         } else if (err.code === 'ECONNREFUSED') {
-          errorMessage = 'Connection refused. The server may be down or blocking requests.';
+          errorMessage = '连接被拒绝，服务器可能宕机或阻止请求';
         } else if (err.code === 'ECONNRESET') {
-          errorMessage = 'Connection reset. The connection was forcibly closed by the remote server.';
+          errorMessage = '连接重置，远程服务器强制关闭了连接';
         } else if (err.code === 'ETIMEDOUT') {
-          errorMessage = 'Connection timed out. The server took too long to respond.';
+          errorMessage = '连接超时，服务器响应时间过长';
         }
-        
-        reject(new Error(errorMessage));
-      });
-      
-      // 设置请求超时
-      request.setTimeout(30000, () => {
-        request.abort();
         
         // 更新失败计数
         metadata.failCount = (metadata.failCount || 0) + 1;
-        if (metadata.failCount >= 3) {
-          metadata.status = 'failed';
-        }
-        
-        // 更新元数据
+        metadata.lastError = errorMessage;
+        metadata.lastAttempt = new Date().toISOString();
         metaCache[fileName] = metadata;
         utils.writeMetaCache(metaCache);
         
-        reject(new Error('Download request timed out. The server is taking too long to respond.'));
+        resolve({ success: false, error: errorMessage });
+      });
+
+      // 设置请求超时
+      request.setTimeout(30000, () => {
+        request.destroy();
+        
+        const errorMsg = '更新请求超时，服务器响应时间过长';
+        
+        // 更新失败计数
+        metadata.failCount = (metadata.failCount || 0) + 1;
+        metadata.lastError = errorMsg;
+        metadata.lastAttempt = new Date().toISOString();
+        metaCache[fileName] = metadata;
+        utils.writeMetaCache(metaCache);
+        
+        resolve({ success: false, error: errorMsg });
       });
     });
+
   } catch (error) {
-    logger.error(`更新配置文件失败: ${error.message}`);
-    return {
-      success: false,
-      error: error.message
-    };
+    logger.error(`更新配置文件 ${fileName} 失败:`, error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -198,94 +212,63 @@ async function updateProfile(fileName) {
  * 设置更新相关IPC处理程序
  */
 function setup() {
-  // 更新配置文件并更新状态
-  ipcMain.handle('updateProfile', async (event, fileName) => {
+  // 处理更新单个配置文件请求
+  ipcMain.handle('update-profile', async (event, fileName) => {
     return await updateProfile(fileName);
   });
-  
-  // 更新所有配置文件
-  ipcMain.handle('updateAllProfiles', async () => {
+
+  // 处理批量更新配置文件请求
+  ipcMain.handle('update-all-profiles', async (event) => {
     try {
       const configDir = utils.getConfigDir();
-      const metaCache = utils.readMetaCache();
       
-      // 如果meta.cache为空，无法更新
-      if (Object.keys(metaCache).length === 0) {
+      if (!fs.existsSync(configDir)) {
         return {
           success: false,
-          error: '没有可更新的配置文件信息'
+          error: '配置目录不存在'
         };
       }
+
+      // 读取元数据缓存
+      const metaCache = utils.readMetaCache();
+      const fileNames = Object.keys(metaCache);
       
-      // 筛选可更新的文件
-      const files = Object.keys(metaCache).filter(fileName => {
-        const metadata = metaCache[fileName];
-        return metadata && metadata.url && fs.existsSync(path.join(configDir, fileName));
-      });
-      
-      if (files.length === 0) {
+      if (fileNames.length === 0) {
         return {
           success: true,
-          message: '没有找到可更新的配置文件',
-          updatedFiles: []
+          message: '没有配置文件需要更新',
+          results: []
         };
       }
+
+      logger.info(`开始批量更新 ${fileNames.length} 个配置文件`);
+
+      // 并行更新所有文件
+      const updatePromises = fileNames.map(fileName => 
+        updateProfile(fileName).then(result => ({
+          fileName,
+          ...result
+        }))
+      );
+
+      const results = await Promise.all(updatePromises);
       
-      logger.info(`开始批量更新${files.length}个配置文件`);
-      
-      const mainWindow = utils.getMainWindow();
-      const results = [];
-      
-      // 依次更新每个文件
-      for (const fileName of files) {
-        try {
-          // 直接调用更新函数，不通过IPC
-          const result = await updateProfile(fileName);
-          if (result.success) {
-            results.push({
-              fileName,
-              success: true
-            });
-          } else {
-            results.push({
-              fileName,
-              success: false,
-              error: result.error
-            });
-          }
-        } catch (error) {
-          logger.error(`更新${fileName}失败: ${error.message}`);
-          results.push({
-            fileName,
-            success: false,
-            error: error.message
-          });
-          
-          // 通知前端
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('profile-updated', {
-              success: false,
-              fileName: fileName,
-              error: error.message
-            });
-          }
-        }
-      }
-      
-      // 更新完毕后，通知前端重新加载文件列表
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('profiles-changed');
-      }
-      
+      // 统计结果
       const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
       
+      logger.info(`批量更新完成: ${successCount} 成功, ${failCount} 失败`);
+
       return {
         success: true,
-        message: `批量更新完成，成功: ${successCount}/${files.length}`,
-        results: results
+        message: `批量更新完成: ${successCount} 成功, ${failCount} 失败`,
+        results: results,
+        successCount: successCount,
+        failCount: failCount
       };
+
     } catch (error) {
-      logger.error(`批量更新配置文件失败: ${error.message}`);
+      logger.error('批量更新失败:', error);
       return {
         success: false,
         error: error.message
@@ -295,5 +278,6 @@ function setup() {
 }
 
 module.exports = {
-  setup
+  setup,
+  updateProfile
 }; 

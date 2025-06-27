@@ -11,7 +11,8 @@ export default {
     allowLan: 'Allow LAN Connections',
 
     autoStart: 'Auto Start on Boot',
-    autoRestart: 'Auto Restart Core',
+    tunMode: 'TUN Mode Support',
+    tunModeDesc: 'When enabled, kernel will run with administrator privileges for system-level traffic takeover',
     checkUpdates: 'Check for Updates on Startup',
     
     // System settings
@@ -31,6 +32,16 @@ export default {
     logSettings: 'Log Settings',
     logRotation: 'Log Rotation Period (Days)',
     extraLogSaving: 'Extra Log Saving',
+    
+    // SingBox log settings
+    singboxLogLevel: 'SingBox Log Level',
+    singboxLogOutput: 'SingBox Log Output File',
+    logOutputPlaceholder: 'Leave empty for console output (e.g. box.log)',
+    logOutputDesc: 'Specify log file path, leave empty for console output',
+    singboxLogDisabled: 'Disable SingBox Logs',
+    logDisabledDesc: 'When enabled, SingBox core will not output any logs',
+    singboxLogTimestamp: 'SingBox Log Timestamp',
+    logTimestampDesc: 'Add timestamp information to each log line',
     
     // Nodes settings
     nodesSettings: 'Nodes Settings',

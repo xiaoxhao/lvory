@@ -8,20 +8,28 @@ const singbox = require('../../utils/sing-box');
 const profileManager = require('../profile-manager');
 const coreDownloader = require('../core-downloader');
 const fs = require('fs');
+const path = require('path');
 
 /**
  * 设置SingBox相关IPC处理程序
  */
 function setup() {
   // 检查sing-box是否安装
-  ipcMain.handle('singbox-check-installed', () => {
-    return singbox.checkInstalled();
+  ipcMain.handle('singbox-check-installed', async () => {
+    try {
+      const result = singbox.checkInstalled();
+      return { success: true, installed: result };
+    } catch (error) {
+      logger.error('检查sing-box安装状态失败:', error);
+      return { success: false, error: error.message };
+    }
   });
   
   // 获取sing-box版本
   ipcMain.handle('singbox-get-version', async () => {
     try {
-      return await singbox.getVersion();
+      const result = await singbox.getVersion();
+      return result;
     } catch (error) {
       logger.error('获取sing-box版本失败:', error);
       return { success: false, error: error.message };
@@ -29,21 +37,31 @@ function setup() {
   });
   
   // 检查配置
-  ipcMain.handle('singbox-check-config', async (event, { configPath }) => {
+  ipcMain.handle('singbox-check-config', async (event, data) => {
     try {
-      return await singbox.checkConfig(configPath);
+      if (!data || !data.configPath) {
+        return { success: false, error: '配置文件路径不能为空' };
+      }
+      
+      const result = await singbox.checkConfig(data.configPath);
+      return result;
     } catch (error) {
-      logger.error('检查配置错误:', error);
+      logger.error('检查配置文件失败:', error);
       return { success: false, error: error.message };
     }
   });
   
   // 格式化配置
-  ipcMain.handle('singbox-format-config', async (event, { configPath }) => {
+  ipcMain.handle('singbox-format-config', async (event, data) => {
     try {
-      return await singbox.formatConfig(configPath);
+      if (!data || !data.configPath) {
+        return { success: false, error: '配置文件路径不能为空' };
+      }
+      
+      const result = await singbox.formatConfig(data.configPath);
+      return result;
     } catch (error) {
-      logger.error('格式化配置错误:', error);
+      logger.error('格式化配置文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -72,6 +90,46 @@ function setup() {
         enableSystemProxy: true  // 默认启用系统代理
       };
       
+      // 获取 TUN 模式设置
+      const settingsManager = require('../settings-manager');
+      const settings = settingsManager.getSettings();
+      const tunMode = settings.tunMode || false;
+      
+      // 在启动前应用配置映射
+      logger.info('启动前应用配置映射...');
+      
+      try {
+        // 读取当前配置文件
+        const configContent = fs.readFileSync(configPath, 'utf8');
+        let targetConfig = JSON.parse(configContent);
+        
+        // 构建用户配置对象
+        const userConfig = {
+          settings: {
+            proxy_port: parseInt(proxyConfig.port) || 7890,
+            allow_lan: settings.allowLan || false,
+            api_address: settings.apiAddress || '127.0.0.1:9090',
+            tun_mode: tunMode
+          }
+        };
+        
+        // 应用配置映射
+        const mappedConfig = profileManager.applyConfigMapping(userConfig, targetConfig);
+        
+        // 创建临时配置文件副本用于启动
+        const tempConfigPath = profileManager.getConfigCopyPath() || configPath;
+        profileManager.updateConfigCopy(mappedConfig);
+        
+        logger.info(`配置映射已应用，TUN模式: ${tunMode ? '启用' : '禁用'}`);
+        
+        // 使用映射后的配置文件启动
+        configPath = tempConfigPath;
+        
+      } catch (mappingError) {
+        logger.error(`应用配置映射失败: ${mappingError.message}`);
+        // 继续使用原始配置文件启动
+      }
+      
       // 启动内核前检查版本
       logger.info('启动内核前检查版本');
       const versionResult = await singbox.getVersion();
@@ -85,26 +143,15 @@ function setup() {
         }
       }
       
-      logger.info(`启动sing-box内核，配置文件: ${configPath}`);
+      logger.info(`启动sing-box内核，配置文件: ${configPath}${tunMode ? ' (TUN模式)' : ''}`);
       
       // 启动内核
       const result = await singbox.startCore({ 
         configPath,
         proxyConfig,
-        enableSystemProxy: proxyConfig.enableSystemProxy
+        enableSystemProxy: proxyConfig.enableSystemProxy,
+        tunMode
       });
-      
-      // 成功启动后保存状态，但在开发模式下不保存
-      if (result.success && process.env.NODE_ENV !== 'development') {
-        try {
-          await singbox.saveState();
-          logger.info('已保存sing-box状态');
-        } catch (err) {
-          logger.error('保存sing-box状态失败:', err);
-        }
-      } else if (result.success) {
-        logger.info('开发模式下不保存sing-box状态');
-      }
       
       return result;
     } catch (error) {
@@ -116,8 +163,8 @@ function setup() {
   // 停止sing-box内核
   ipcMain.handle('singbox-stop-core', async () => {
     try {
-      logger.info('停止sing-box内核');
-      return singbox.stopCore();
+      const result = await singbox.stopCore();
+      return result;
     } catch (error) {
       logger.error('停止sing-box内核失败:', error);
       return { success: false, error: error.message };
@@ -127,7 +174,8 @@ function setup() {
   // 获取sing-box状态
   ipcMain.handle('singbox-get-status', async () => {
     try {
-      return singbox.getStatus();
+      const result = singbox.getStatus();
+      return result;
     } catch (error) {
       logger.error('获取sing-box状态失败:', error);
       return { success: false, error: error.message };
@@ -137,10 +185,10 @@ function setup() {
   // 下载sing-box核心
   ipcMain.handle('singbox-download-core', async () => {
     try {
-      const mainWindow = utils.getMainWindow();
-      return await coreDownloader.downloadCore(mainWindow);
+      const result = await singbox.downloadCore();
+      return result;
     } catch (error) {
-      logger.error('下载sing-box核心失败:', error);
+      logger.error('下载sing-box内核失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -171,53 +219,16 @@ function setup() {
   });
   
   // 注册sing-box运行服务的IPC处理程序
-  ipcMain.handle('singbox-run', async (event, args) => {
+  ipcMain.handle('singbox-run', async (event, data) => {
     try {
-      const { configPath } = args;
-      const mainWindow = utils.getMainWindow();
-      
-      // 检查是否已有运行的进程
-      if (singbox.process) {
-        logger.info('检测到已有运行的sing-box进程，正在终止');
-        try {
-          await singbox.stopCore();
-        } catch (e) {
-          logger.error('终止旧进程失败:', e);
-        }
+      if (!data || !data.configPath) {
+        return { success: false, error: '配置文件路径不能为空' };
       }
       
-      // 定义输出回调，将sing-box输出传递给渲染进程
-      const outputCallback = (data) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('singbox-output', data);
-        }
-      };
-      
-      // 定义退出回调
-      const exitCallback = (code, error) => {
-        logger.info(`sing-box进程退出，退出码: ${code}${error ? ', 错误: ' + error : ''}`);
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('singbox-exit', { code, error });
-        }
-      };
-      
-      // 解析配置文件中的端口
-      const configInfo = singbox.parseConfigFile(configPath);
-      if (configInfo && configInfo.port) {
-        logger.info(`从配置文件解析到代理端口: ${configInfo.port}`);
-        // 只更新端口，保持其他设置不变
-        singbox.setProxyConfig({
-          ...singbox.proxyConfig,
-          port: configInfo.port
-        });
-      }
-      
-      logger.info(`启动sing-box服务，配置文件: ${configPath}, 代理端口: ${singbox.proxyConfig.port}`);
-      
-      const result = await singbox.run(configPath, outputCallback, exitCallback);
+      const result = await singbox.run(data.configPath);
       return result;
     } catch (error) {
-      logger.error('运行服务错误:', error);
+      logger.error('运行sing-box失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -225,12 +236,10 @@ function setup() {
   // 停止运行的sing-box服务
   ipcMain.handle('singbox-stop', async () => {
     try {
-      // 先禁用系统代理
-      await singbox.disableSystemProxy();
-      
-      return await singbox.stopCore();
+      const result = await singbox.stop();
+      return result;
     } catch (error) {
-      logger.error('停止服务错误:', error);
+      logger.error('停止sing-box失败:', error);
       return { success: false, error: error.message };
     }
   });

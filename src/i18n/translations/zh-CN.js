@@ -11,7 +11,8 @@ export default {
     allowLan: '允许局域网连接',
 
     autoStart: '开机自启动',
-    autoRestart: '自动重启内核',
+    tunMode: 'TUN 模式支持',
+    tunModeDesc: '启用后内核将以管理员权限运行，支持系统级流量接管',
     checkUpdates: '启动时检查更新',
     
     // 系统设置
@@ -31,6 +32,16 @@ export default {
     logSettings: '日志设置',
     logRotation: '日志轮转周期（天）',
     extraLogSaving: '额外日志保存',
+    
+    // SingBox 日志设置
+    singboxLogLevel: 'SingBox 日志等级',
+    singboxLogOutput: 'SingBox 日志输出文件',
+    logOutputPlaceholder: '留空则输出到控制台（如: box.log）',
+    logOutputDesc: '指定日志文件路径，留空则输出到控制台',
+    singboxLogDisabled: '禁用 SingBox 日志',
+    logDisabledDesc: '启用后 SingBox 内核将不输出任何日志',
+    singboxLogTimestamp: 'SingBox 日志时间戳',
+    logTimestampDesc: '在每行日志前添加时间戳信息',
     
     // 节点设置
     nodesSettings: '节点设置',

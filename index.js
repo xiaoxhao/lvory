@@ -237,7 +237,7 @@ app.on('ready', () => {
     if (sb.checkInstalled()) {
       logger.info('sing-box已安装，正在获取版本信息');
       sb.getVersion().then(result => {
-        logger.info('sing-box版本获取结果:', result);
+        logger.info(`sing-box版本获取结果: success=${result.success}, version=${result.version || 'N/A'}`);
         const mainWindow = windowManager.getMainWindow();
         if (result.success && mainWindow && !mainWindow.isDestroyed()) {
           // 通知渲染进程更新版本信息
@@ -245,13 +245,13 @@ app.on('ready', () => {
             version: result.version,
             fullOutput: result.fullOutput
           };
-          logger.info('发送版本更新事件到渲染进程:', versionData);
+          logger.info(`发送版本更新事件到渲染进程: version=${versionData.version}`);
           mainWindow.webContents.send('core-version-update', versionData);
         } else {
-          logger.error('获取版本信息失败或窗口已关闭:', result);
+          logger.error(`获取版本信息失败或窗口已关闭: success=${result.success}, error=${result.error || 'N/A'}`);
         }
       }).catch(err => {
-        logger.error('获取sing-box版本失败:', err);
+        logger.error('获取sing-box版本失败:', err.message || err);
       });
     } else {
       logger.info('sing-box未安装，不获取版本信息');
