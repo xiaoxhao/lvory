@@ -27,11 +27,8 @@ export default {
     configureAdvanced: '配置高级设置和功能',
     kernelWatchdog: '内核看门狗',
     kernelWatchdogDesc: '当内核崩溃或停止响应时自动重启',
-    usePrivateProtocol: '使用 lvory 私有协议',
-    usePrivateProtocolDesc: '使用 lvory 私有协议以实现扩展功能',
     logSettings: '日志设置',
     logRotation: '日志轮转周期（天）',
-    extraLogSaving: '额外日志保存',
     
     // SingBox 日志设置
     singboxLogLevel: 'SingBox 日志等级',

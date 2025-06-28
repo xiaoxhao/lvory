@@ -52,10 +52,9 @@ function removeTunConfiguration(config) {
   if (cleanedConfig.route && cleanedConfig.route.rules && Array.isArray(cleanedConfig.route.rules)) {
     const originalLength = cleanedConfig.route.rules.length;
     cleanedConfig.route.rules = cleanedConfig.route.rules.filter(rule => {
-      // 移除指向TUN入站的路由规则
       if (rule.inbound && Array.isArray(rule.inbound)) {
         rule.inbound = rule.inbound.filter(inbound => inbound !== 'tun-in' && inbound !== 'tun');
-        return rule.inbound.length > 0; // 如果没有入站了，移除整个规则
+        return rule.inbound.length > 0;
       } else if (rule.inbound === 'tun-in' || rule.inbound === 'tun') {
         logger.info('移除指向TUN的路由规则');
         return false;

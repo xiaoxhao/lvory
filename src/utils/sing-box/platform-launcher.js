@@ -18,9 +18,12 @@ class PlatformLauncher {
    * @returns {String} 日志文件路径
    */
   getTempLogPath() {
-    const tempDir = os.tmpdir();
-    const logFileName = `sing-box-${Date.now()}.log`;
-    return path.join(tempDir, logFileName);
+    const { getLogDir } = require('../paths');
+    const logDir = getLogDir();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const randomId = Math.random().toString(36).substring(2, 8);
+    const logFileName = `sing-box-${timestamp}-${randomId}.log`;
+    return path.join(logDir, logFileName);
   }
 
   /**
@@ -75,6 +78,8 @@ class PlatformLauncher {
     
     const command = `powershell -Command "Start-Process '${binPath}' -ArgumentList ${escapedArgs.map(arg => `'${arg}'`).join(', ')} -Verb RunAs -WindowStyle Hidden"`;
     
+    logger.info(`[PlatformLauncher] Windows管理员权限启动命令: ${binPath} ${args.join(' ')}`);
+
     return new Promise((resolve) => {
       exec(command, (error, stdout, stderr) => {
         if (error) {
@@ -135,6 +140,7 @@ class PlatformLauncher {
    */
   startMacOSElevated(binPath, args) {
     logger.info('[PlatformLauncher] macOS管理员权限启动');
+    logger.info(`[PlatformLauncher] macOS管理员权限启动命令: sudo ${binPath} ${args.join(' ')}`);
     
     // 使用 sudo 启动
     const sudoArgs = ['sudo', binPath, ...args];
@@ -175,10 +181,13 @@ class PlatformLauncher {
     let elevatedArgs;
     if (elevationMethod === 'pkexec') {
       elevatedArgs = ['pkexec', binPath, ...args];
+      logger.info(`[PlatformLauncher] Linux管理员权限启动命令: pkexec ${binPath} ${args.join(' ')}`);
     } else if (elevationMethod === 'gksu') {
       elevatedArgs = ['gksu', `${binPath} ${args.join(' ')}`];
+      logger.info(`[PlatformLauncher] Linux管理员权限启动命令: gksu ${binPath} ${args.join(' ')}`);
     } else {
       elevatedArgs = ['sudo', binPath, ...args];
+      logger.info(`[PlatformLauncher] Linux管理员权限启动命令: sudo ${binPath} ${args.join(' ')}`);
     }
     
     return spawn(elevatedArgs[0], elevatedArgs.slice(1), {
@@ -261,16 +270,36 @@ class PlatformLauncher {
       const util = require('util');
       const execPromise = util.promisify(exec);
       
-      if (this.platform === 'win32') {
-        await execPromise(`taskkill /F /IM ${processName}.exe`);
-        logger.info(`[PlatformLauncher] 已终止Windows进程: ${processName}`);
-      } else {
-        // macOS 和 Linux
-        await execPromise(`pkill -f ${processName}`);
-        logger.info(`[PlatformLauncher] 已终止Unix进程: ${processName}`);
+      let success = await this.tryNormalStop(processName, execPromise);
+      
+      if (!success) {
+        logger.warn(`[PlatformLauncher] 常规停止方法失败，尝试权限提升停止`);
+        success = await this.tryElevatedStop(processName, execPromise);
       }
       
-      return true;
+      if (!success) {
+        logger.warn(`[PlatformLauncher] 权限提升停止失败，尝试强制停止`);
+        success = await this.tryForceStop(processName, execPromise);
+      }
+      
+      if (success) {
+        // 等待进程完全停止
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 验证进程是否真的停止了
+        const isStillRunning = await this.checkProcessRunning(processName);
+        if (isStillRunning) {
+          logger.warn(`[PlatformLauncher] 进程 ${processName} 停止后仍在运行`);
+          return false;
+        }
+        
+        logger.info(`[PlatformLauncher] 已成功停止进程: ${processName}`);
+        return true;
+      }
+      
+      logger.error(`[PlatformLauncher] 所有停止方法都失败了`);
+      return false;
+      
     } catch (error) {
       if (error.message.includes('not found') || 
           error.message.includes('找不到') || 
@@ -281,6 +310,155 @@ class PlatformLauncher {
         logger.error(`[PlatformLauncher] 停止进程失败: ${error.message}`);
         return false;
       }
+    }
+  }
+
+  /**
+   * 尝试常规方法停止进程
+   * @param {String} processName 进程名称
+   * @param {Function} execPromise 执行promise函数
+   * @returns {Promise<boolean>} 是否成功
+   */
+  async tryNormalStop(processName, execPromise) {
+    try {
+      if (this.platform === 'win32') {
+        await execPromise(`taskkill /IM ${processName}.exe`);
+        logger.info(`[PlatformLauncher] 常规方法终止Windows进程: ${processName}`);
+      } else {
+        // macOS 和 Linux 首先尝试 SIGTERM
+        await execPromise(`pkill -TERM -f ${processName}`);
+        logger.info(`[PlatformLauncher] 常规方法终止Unix进程: ${processName}`);
+      }
+      return true;
+    } catch (error) {
+      logger.warn(`[PlatformLauncher] 常规停止方法失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 尝试权限提升的停止方法
+   * @param {String} processName 进程名称
+   * @param {Function} execPromise 执行promise函数
+   * @returns {Promise<boolean>} 是否成功
+   */
+  async tryElevatedStop(processName, execPromise) {
+    try {
+      if (this.platform === 'win32') {
+        // Windows: 使用 PowerShell 以管理员权限停止
+        const psCommand = `powershell -Command "Start-Process taskkill -ArgumentList '/F', '/IM', '${processName}.exe' -Verb RunAs -WindowStyle Hidden -Wait"`;
+        await execPromise(psCommand);
+        logger.info(`[PlatformLauncher] 管理员权限终止Windows进程: ${processName}`);
+      } else {
+        // macOS 和 Linux: 尝试使用 sudo
+        try {
+          await execPromise(`sudo pkill -TERM -f ${processName}`);
+          logger.info(`[PlatformLauncher] sudo权限终止Unix进程: ${processName}`);
+        } catch (sudoError) {
+          // 如果 sudo 失败，尝试其他权限提升工具
+          if (this.platform === 'linux') {
+            try {
+              await execPromise(`pkexec pkill -TERM -f ${processName}`);
+              logger.info(`[PlatformLauncher] pkexec权限终止Linux进程: ${processName}`);
+            } catch (pkexecError) {
+              throw sudoError; // 抛出原始的 sudo 错误
+            }
+          } else {
+            throw sudoError;
+          }
+        }
+      }
+      return true;
+    } catch (error) {
+      logger.warn(`[PlatformLauncher] 权限提升停止方法失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 尝试强制停止进程
+   * @param {String} processName 进程名称
+   * @param {Function} execPromise 执行promise函数
+   * @returns {Promise<boolean>} 是否成功
+   */
+  async tryForceStop(processName, execPromise) {
+    try {
+      if (this.platform === 'win32') {
+        // Windows: 强制终止
+        await execPromise(`taskkill /F /IM ${processName}.exe`);
+        logger.info(`[PlatformLauncher] 强制终止Windows进程: ${processName}`);
+      } else {
+        // macOS 和 Linux: 使用 SIGKILL
+        await execPromise(`pkill -KILL -f ${processName}`);
+        logger.info(`[PlatformLauncher] 强制终止Unix进程: ${processName}`);
+      }
+      return true;
+    } catch (error) {
+      logger.warn(`[PlatformLauncher] 强制停止方法失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 优雅停止进程（首先尝试优雅停止，然后强制停止）
+   * @param {String} processName 进程名称
+   * @param {Number} gracefulTimeout 优雅停止超时时间（毫秒）
+   * @returns {Promise<boolean>} 是否成功停止
+   */
+  async gracefulStop(processName = 'sing-box', gracefulTimeout = 5000) {
+    try {
+      logger.info(`[PlatformLauncher] 开始优雅停止进程: ${processName}`);
+      
+      // 首先检查进程是否存在
+      const isRunning = await this.checkProcessRunning(processName);
+      if (!isRunning) {
+        logger.info(`[PlatformLauncher] 进程 ${processName} 未在运行`);
+        return true;
+      }
+      
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execPromise = util.promisify(exec);
+      
+      // 第一步：尝试优雅停止（SIGTERM 或 taskkill 不带 /F）
+      let gracefulSuccess = false;
+      try {
+        if (this.platform === 'win32') {
+          await execPromise(`taskkill /IM ${processName}.exe`);
+        } else {
+          await execPromise(`pkill -TERM -f ${processName}`);
+        }
+        gracefulSuccess = true;
+        logger.info(`[PlatformLauncher] 发送优雅停止信号成功`);
+      } catch (error) {
+        logger.warn(`[PlatformLauncher] 发送优雅停止信号失败: ${error.message}`);
+      }
+      
+      if (gracefulSuccess) {
+        // 等待优雅停止完成
+        let waitTime = 0;
+        const checkInterval = 500;
+        
+        while (waitTime < gracefulTimeout) {
+          await new Promise(resolve => setTimeout(resolve, checkInterval));
+          waitTime += checkInterval;
+          
+          const stillRunning = await this.checkProcessRunning(processName);
+          if (!stillRunning) {
+            logger.info(`[PlatformLauncher] 进程 ${processName} 已优雅停止`);
+            return true;
+          }
+        }
+        
+        logger.warn(`[PlatformLauncher] 优雅停止超时，转为强制停止`);
+      }
+      
+      // 第二步：强制停止
+      return await this.stopProcess(processName);
+      
+    } catch (error) {
+      logger.error(`[PlatformLauncher] 优雅停止进程失败: ${error.message}`);
+      return false;
     }
   }
 }

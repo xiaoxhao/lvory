@@ -12,6 +12,8 @@ class ProcessManager {
     this.elevatedProcess = null;
     this.logFileWatcher = null;
     this.processCheckInterval = null;
+    this.statusCheckInterval = null; // 状态检查定时器
+    this.lastStatusCheck = null; // 最后一次状态检查结果
   }
 
   /**
@@ -60,6 +62,9 @@ class ProcessManager {
    * 清理所有进程
    */
   cleanupAllProcesses() {
+    // 清理定时器
+    this.clearAllTimers();
+    
     for (const [pid, handler] of this.processHandlers.entries()) {
       try {
         if (handler.childProcess) {
@@ -72,6 +77,7 @@ class ProcessManager {
     
     this.processHandlers.clear();
     this.process = null;
+    this.elevatedProcess = null;
     
     logger.info('[ProcessManager] 已清理所有进程');
   }
@@ -98,6 +104,32 @@ class ProcessManager {
   }
 
   /**
+   * 清理所有定时器
+   */
+  clearAllTimers() {
+    if (this.processCheckInterval) {
+      clearInterval(this.processCheckInterval);
+      this.processCheckInterval = null;
+    }
+    
+    if (this.statusCheckInterval) {
+      clearInterval(this.statusCheckInterval);
+      this.statusCheckInterval = null;
+    }
+    
+    if (this.logFileWatcher) {
+      try {
+        if (this.elevatedProcess?.logFilePath) {
+          fs.unwatchFile(this.elevatedProcess.logFilePath);
+        }
+        this.logFileWatcher = null;
+      } catch (error) {
+        logger.warn(`[ProcessManager] 清理日志监控失败: ${error.message}`);
+      }
+    }
+  }
+
+  /**
    * 获取运行状态
    * @returns {Object} 运行状态信息
    */
@@ -112,11 +144,18 @@ class ProcessManager {
     
     if (hasNormalProcess) {
       for (const pid of runningPids) {
-        processDetails.push({
-          pid,
-          type: 'normal',
-          uptime: this.processHandlers.has(pid) ? '运行中' : '未知'
-        });
+        const handler = this.processHandlers.get(pid);
+        if (handler) {
+          const uptime = Math.floor((Date.now() - handler.startTime.getTime()) / 1000);
+          processDetails.push({
+            pid,
+            type: 'normal',
+            uptime: `${uptime}秒`,
+            configPath: handler.configPath,
+            logFile: handler.logFilePath,
+            tunMode: handler.tunMode
+          });
+        }
       }
     }
     
@@ -130,7 +169,9 @@ class ProcessManager {
         type: 'elevated',
         uptime: uptime,
         configPath: this.elevatedProcess.configPath,
-        logFile: this.elevatedProcess.logFilePath
+        logFile: this.elevatedProcess.logFilePath,
+        tunMode: true,
+        lastStatusCheck: this.lastStatusCheck
       });
     }
     
@@ -139,7 +180,8 @@ class ProcessManager {
       processCount: this.processHandlers.size + (hasElevatedProcess ? 1 : 0),
       processes: runningPids,
       processDetails: processDetails,
-      hasElevatedProcess: hasElevatedProcess
+      hasElevatedProcess: hasElevatedProcess,
+      lastStatusUpdate: new Date().toISOString()
     };
   }
 
@@ -157,11 +199,18 @@ class ProcessManager {
       startTime: new Date(),
       outputCallback: outputCallback,
       exitCallback: exitCallback,
-      isMonitoring: true
+      isMonitoring: true,
+      lastHeartbeat: Date.now()
     };
     
+    // 启动日志文件监控
     this.startLogFileMonitoring(logFilePath, outputCallback);
+    
+    // 启动进程存活检查
     this.startProcessAliveCheck(exitCallback);
+    
+    // 启动状态检查
+    this.startStatusCheck();
     
     logger.info(`[ProcessManager] 已启动管理员权限进程监控，日志文件: ${logFilePath}`);
   }
@@ -174,7 +223,7 @@ class ProcessManager {
   startLogFileMonitoring(logFilePath, outputCallback) {
     if (!fs.existsSync(logFilePath)) {
       let waitCount = 0;
-      const maxWaitCount = 10;
+      const maxWaitCount = 15; // 增加等待时间
       
       const waitForLogFile = () => {
         waitCount++;
@@ -185,6 +234,7 @@ class ProcessManager {
           setTimeout(waitForLogFile, 1000);
         } else if (waitCount >= maxWaitCount) {
           logger.warn(`[ProcessManager] 等待日志文件超时: ${logFilePath}`);
+          // 即使日志文件不存在，也继续进行状态检查
           if (this.elevatedProcess && this.elevatedProcess.isMonitoring) {
             this.startProcessAliveCheck(this.elevatedProcess.exitCallback);
           }
@@ -213,6 +263,11 @@ class ProcessManager {
       
       this.logFileWatcher = fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {
         if (curr.size > lastPosition) {
+          // 更新心跳时间
+          if (this.elevatedProcess) {
+            this.elevatedProcess.lastHeartbeat = Date.now();
+          }
+          
           const stream = createReadStream(logFilePath, {
             start: lastPosition,
             end: curr.size - 1
@@ -256,18 +311,67 @@ class ProcessManager {
    * @param {Function} exitCallback 退出回调
    */
   startProcessAliveCheck(exitCallback) {
-    // 这里需要依赖 PlatformLauncher 来检查进程
-    // 暂时保留接口，具体实现在主模块中处理
-    this.processCheckInterval = setInterval(() => {
+    this.processCheckInterval = setInterval(async () => {
       if (!this.elevatedProcess || !this.elevatedProcess.isMonitoring) {
         return;
       }
       
-      // 这个方法需要在主模块中实现具体的进程检查逻辑
-      this.checkElevatedProcessCallback && this.checkElevatedProcessCallback(exitCallback);
-    }, 5000);
+      try {
+        // 执行进程检查
+        const isRunning = await this.checkElevatedProcessCallback?.();
+        
+        if (!isRunning) {
+          logger.warn('[ProcessManager] 检测到管理员权限进程已停止');
+          this.handleElevatedProcessExit(exitCallback);
+          return;
+        }
+        
+        // 检查心跳超时（如果超过30秒没有日志输出，可能有问题）
+        const now = Date.now();
+        const timeSinceLastHeartbeat = now - (this.elevatedProcess.lastHeartbeat || now);
+        
+        if (timeSinceLastHeartbeat > 60000) { // 60秒超时
+          logger.warn(`[ProcessManager] 管理员权限进程心跳超时: ${timeSinceLastHeartbeat}ms`);
+          // 可以选择是否因为心跳超时而终止进程监控
+          // this.handleElevatedProcessExit(exitCallback);
+        }
+        
+      } catch (error) {
+        logger.error(`[ProcessManager] 进程存活检查失败: ${error.message}`);
+      }
+    }, 3000); // 缩短检查间隔
     
     logger.info('[ProcessManager] 已启动进程存活检查');
+  }
+
+  /**
+   * 启动状态检查
+   */
+  startStatusCheck() {
+    this.statusCheckInterval = setInterval(async () => {
+      if (!this.elevatedProcess || !this.elevatedProcess.isMonitoring) {
+        return;
+      }
+      
+      try {
+        const isRunning = await this.checkElevatedProcessCallback?.();
+        this.lastStatusCheck = {
+          timestamp: new Date().toISOString(),
+          isRunning: isRunning,
+          processType: 'elevated'
+        };
+        
+        logger.debug(`[ProcessManager] 状态检查: ${isRunning ? '运行中' : '已停止'}`);
+      } catch (error) {
+        this.lastStatusCheck = {
+          timestamp: new Date().toISOString(),
+          isRunning: false,
+          error: error.message,
+          processType: 'elevated'
+        };
+        logger.error(`[ProcessManager] 状态检查失败: ${error.message}`);
+      }
+    }, 5000);
   }
 
   /**
@@ -287,16 +391,7 @@ class ProcessManager {
       this.elevatedProcess.isMonitoring = false;
     }
     
-    if (this.logFileWatcher) {
-      fs.unwatchFile(this.elevatedProcess?.logFilePath);
-      this.logFileWatcher = null;
-    }
-    
-    if (this.processCheckInterval) {
-      clearInterval(this.processCheckInterval);
-      this.processCheckInterval = null;
-    }
-    
+    this.clearAllTimers();
     this.cleanupProcess();
     
     if (exitCallback && typeof exitCallback === 'function') {
@@ -318,11 +413,46 @@ class ProcessManager {
     }
     
     try {
-      const success = await stopProcessCallback();
+      logger.info('[ProcessManager] 开始停止管理员权限进程');
+      
+      // 首先尝试常规停止方法
+      let success = await stopProcessCallback();
       
       if (success) {
+        // 等待进程完全停止
         await new Promise(resolve => setTimeout(resolve, 2000));
-        this.handleElevatedProcessExit(this.elevatedProcess?.exitCallback);
+        
+        // 验证进程是否真的停止了
+        let finalCheck = false;
+        try {
+          finalCheck = await this.checkElevatedProcessCallback?.() || false;
+        } catch (e) {
+          finalCheck = false;
+        }
+        
+        if (!finalCheck) {
+          this.handleElevatedProcessExit(this.elevatedProcess?.exitCallback);
+          logger.info('[ProcessManager] 管理员权限进程已成功停止');
+          return true;
+        } else {
+          logger.warn('[ProcessManager] 常规方法停止失败，进程仍在运行');
+          success = false;
+        }
+      }
+      
+      if (!success) {
+        // 如果常规方法失败，尝试优雅停止
+        logger.info('[ProcessManager] 尝试优雅停止管理员权限进程');
+        const gracefulSuccess = await this.tryGracefulStop();
+        
+        if (gracefulSuccess) {
+          this.handleElevatedProcessExit(this.elevatedProcess?.exitCallback);
+          logger.info('[ProcessManager] 优雅停止管理员权限进程成功');
+          return true;
+        } else {
+          logger.warn('[ProcessManager] 优雅停止失败，可能需要用户干预');
+          return false;
+        }
       }
       
       return success;
@@ -330,6 +460,124 @@ class ProcessManager {
       logger.error(`[ProcessManager] 停止管理员权限进程失败: ${error.message}`);
       return false;
     }
+  }
+
+  /**
+   * 尝试优雅停止进程
+   * @returns {Promise<boolean>} 是否成功
+   */
+  async tryGracefulStop() {
+    try {
+      // 这里需要依赖外部的平台启动器来执行优雅停止
+      if (this.gracefulStopCallback) {
+        return await this.gracefulStopCallback();
+      } else {
+        logger.warn('[ProcessManager] 没有设置优雅停止回调');
+        return false;
+      }
+    } catch (error) {
+      logger.error(`[ProcessManager] 优雅停止失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 设置优雅停止回调
+   * @param {Function} callback 优雅停止回调函数
+   */
+  setGracefulStopCallback(callback) {
+    this.gracefulStopCallback = callback;
+  }
+
+  /**
+   * 检查是否有权限停止进程
+   * @returns {Promise<Object>} 权限检查结果
+   */
+  async checkStopPermission() {
+    try {
+      if (!this.elevatedProcess || !this.elevatedProcess.isMonitoring) {
+        return { hasPermission: true, requiresElevation: false };
+      }
+      
+      // 检查当前是否有权限停止管理员权限进程
+      const canStop = await this.checkElevatedProcessCallback?.();
+      
+      if (canStop) {
+        // 尝试一个简单的停止测试（不实际停止）
+        const testResult = await this.testStopPermission();
+        return {
+          hasPermission: testResult.success,
+          requiresElevation: !testResult.success,
+          message: testResult.message
+        };
+      } else {
+        return {
+          hasPermission: false,
+          requiresElevation: false,
+          message: '进程未运行'
+        };
+      }
+    } catch (error) {
+      logger.error(`[ProcessManager] 检查停止权限失败: ${error.message}`);
+      return {
+        hasPermission: false,
+        requiresElevation: true,
+        message: `权限检查失败: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * 测试停止权限
+   * @returns {Promise<Object>} 测试结果
+   */
+  async testStopPermission() {
+    try {
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execPromise = util.promisify(exec);
+      
+      if (process.platform === 'win32') {
+        // Windows: 尝试列出进程来测试权限
+        await execPromise('tasklist /FI "IMAGENAME eq sing-box.exe" /FO CSV');
+        return { success: true, message: '有权限访问进程列表' };
+      } else {
+        // macOS/Linux: 尝试发送测试信号
+        await execPromise('pgrep -f sing-box');
+        return { success: true, message: '有权限查看进程' };
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: `权限测试失败: ${error.message}` 
+      };
+    }
+  }
+
+  /**
+   * 获取详细的状态信息
+   * @returns {Object} 详细状态信息
+   */
+  getDetailedStatus() {
+    const basicStatus = this.getRunningStatus();
+    
+    return {
+      ...basicStatus,
+      monitoring: {
+        hasLogFileWatcher: !!this.logFileWatcher,
+        hasProcessCheck: !!this.processCheckInterval,
+        hasStatusCheck: !!this.statusCheckInterval,
+        lastStatusCheck: this.lastStatusCheck
+      },
+      elevatedProcess: this.elevatedProcess ? {
+        configPath: this.elevatedProcess.configPath,
+        logFilePath: this.elevatedProcess.logFilePath,
+        startTime: this.elevatedProcess.startTime?.toISOString(),
+        isMonitoring: this.elevatedProcess.isMonitoring,
+        lastHeartbeat: this.elevatedProcess.lastHeartbeat ? new Date(this.elevatedProcess.lastHeartbeat).toISOString() : null,
+        uptimeMs: this.elevatedProcess.startTime ? Date.now() - this.elevatedProcess.startTime.getTime() : 0
+      } : null
+    };
   }
 }
 

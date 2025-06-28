@@ -53,6 +53,25 @@ const StatsOverview = ({ apiAddress }) => {
   const [kernelRunning, setKernelRunning] = useState(false);
   const [isFullscreenChart, setIsFullscreenChart] = useState(false);
   
+  // 创建防抖resize函数
+  const createDebouncedResize = (chart, chartName = 'chart') => {
+    let resizeTimeout;
+    return () => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+      resizeTimeout = setTimeout(() => {
+        if (chart && !chart.isDisposed()) {
+          try {
+            chart.resize();
+          } catch (error) {
+            console.warn(`${chartName} resize failed:`, error);
+          }
+        }
+      }, 100); // 100ms防抖
+    };
+  };
+  
   const trafficChartRef = useRef(null);
   const trafficChartInstance = useRef(null);
   const gaugeChartRef = useRef(null);
@@ -306,8 +325,19 @@ const StatsOverview = ({ apiAddress }) => {
   // 初始化流量图表
   const initTrafficChart = () => {
     if (trafficChartRef.current) {
+      // 检查DOM元素是否有有效的宽高
+      const rect = trafficChartRef.current.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        console.warn('Traffic chart container has zero width or height, retrying in 100ms');
+        setTimeout(() => initTrafficChart(), 100);
+        return;
+      }
+      
       // 如果已存在实例，则销毁
       if (trafficChartInstance.current) {
+        if (trafficChartInstance.current._resizeHandler) {
+          window.removeEventListener('resize', trafficChartInstance.current._resizeHandler);
+        }
         trafficChartInstance.current.dispose();
       }
       
@@ -398,16 +428,41 @@ const StatsOverview = ({ apiAddress }) => {
       // 应用选项
       chart.setOption(option);
       
-      // 响应窗口大小变化
-      window.addEventListener('resize', () => chart.resize());
+      // 确保图表正确渲染
+      setTimeout(() => {
+        if (chart && !chart.isDisposed()) {
+          chart.resize();
+        }
+      }, 50);
+      
+      // 响应窗口大小变化 - 使用防抖
+      const resizeHandler = createDebouncedResize(chart, 'Traffic chart');
+      window.addEventListener('resize', resizeHandler);
+      
+      // 保存resize处理器引用以便清理
+      chart._resizeHandler = resizeHandler;
     }
   };
   
   // 初始化延迟散点图
   const initGaugeChart = () => {
     if (gaugeChartRef.current) {
+      // 检查DOM元素是否有有效的宽高
+      const rect = gaugeChartRef.current.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        console.warn('ECharts container has zero width or height, retrying in 100ms');
+        setTimeout(() => initGaugeChart(), 100);
+        return;
+      }
+      
       // 如果已存在实例，则销毁
       if (gaugeChartInstance.current) {
+        if (gaugeChartInstance.current._resizeHandler) {
+          window.removeEventListener('resize', gaugeChartInstance.current._resizeHandler);
+        }
+        if (gaugeChartInstance.current._resizeObserver) {
+          gaugeChartInstance.current._resizeObserver.disconnect();
+        }
         gaugeChartInstance.current.dispose();
       }
       
@@ -454,6 +509,7 @@ const StatsOverview = ({ apiAddress }) => {
           type: 'category',
           show: true, // 显示X轴
           boundaryGap: false,
+          data: Array.from({length: 15}, (_, i) => i), // 确保X轴有固定的数据点
           axisLine: {
             show: true,
             lineStyle: {
@@ -572,8 +628,11 @@ const StatsOverview = ({ apiAddress }) => {
       // 应用选项
       chart.setOption(option);
       
+      // 确保图表正确渲染
       setTimeout(() => {
-        chart.resize();
+        if (chart && !chart.isDisposed()) {
+          chart.resize();
+        }
       }, 50);
       
       // 添加双击事件监听器
@@ -581,8 +640,41 @@ const StatsOverview = ({ apiAddress }) => {
         setIsFullscreenChart(true);
       });
       
-      // 响应窗口大小变化
-      window.addEventListener('resize', () => chart.resize());
+      // 响应窗口大小变化 - 使用防抖
+      const resizeHandler = createDebouncedResize(chart, 'Gauge chart');
+      window.addEventListener('resize', resizeHandler);
+      
+      // 保存resize处理器引用以便清理
+      chart._resizeHandler = resizeHandler;
+      
+      // 使用ResizeObserver监听容器尺寸变化
+      if (window.ResizeObserver) {
+        let resizeAnimationFrame;
+        const resizeObserver = new ResizeObserver((entries) => {
+          // 取消之前的动画帧请求
+          if (resizeAnimationFrame) {
+            cancelAnimationFrame(resizeAnimationFrame);
+          }
+          
+          // 使用requestAnimationFrame避免ResizeObserver循环
+          resizeAnimationFrame = requestAnimationFrame(() => {
+            // 检查entries是否有实际的尺寸变化
+            const entry = entries[0];
+            if (entry && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+              if (chart && !chart.isDisposed()) {
+                try {
+                  chart.resize();
+                } catch (error) {
+                  console.warn('Chart resize failed:', error);
+                }
+              }
+            }
+          });
+        });
+        
+        resizeObserver.observe(gaugeChartRef.current);
+        chart._resizeObserver = resizeObserver;
+      }
     }
   };
   
@@ -734,7 +826,18 @@ const StatsOverview = ({ apiAddress }) => {
   // 初始化全屏延迟图表
   const initFullscreenChart = () => {
     if (fullscreenChartRef.current) {
+      // 检查DOM元素是否有有效的宽高
+      const rect = fullscreenChartRef.current.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        console.warn('Fullscreen chart container has zero width or height, retrying in 100ms');
+        setTimeout(() => initFullscreenChart(), 100);
+        return;
+      }
+      
       if (fullscreenChartInstance.current) {
+        if (fullscreenChartInstance.current._resizeHandler) {
+          window.removeEventListener('resize', fullscreenChartInstance.current._resizeHandler);
+        }
         fullscreenChartInstance.current.dispose();
       }
       
@@ -926,10 +1029,17 @@ const StatsOverview = ({ apiAddress }) => {
       
       // 立即调整图表大小
       setTimeout(() => {
-        chart.resize();
+        if (chart && !chart.isDisposed()) {
+          chart.resize();
+        }
       }, 50);
       
-      window.addEventListener('resize', () => chart.resize());
+      // 响应窗口大小变化 - 使用防抖
+      const resizeHandler = createDebouncedResize(chart, 'Fullscreen chart');
+      window.addEventListener('resize', resizeHandler);
+      
+      // 保存resize处理器引用以便清理
+      chart._resizeHandler = resizeHandler;
     }
   };
   
@@ -962,12 +1072,24 @@ const StatsOverview = ({ apiAddress }) => {
     }
     isInitialized.current = true;
 
+    // 添加全局错误处理
+    const handleResizeObserverError = (event) => {
+      if (event.message && event.message.includes('ResizeObserver loop completed')) {
+        // 忽略ResizeObserver循环错误
+        event.preventDefault();
+        event.stopPropagation();
+        console.warn('ResizeObserver loop detected and handled');
+      }
+    };
+    
+    window.addEventListener('error', handleResizeObserverError);
+
     initTrafficChart();
     
     // 延迟 gauge-container 的初始化，给系统更多时间准备
     setTimeout(() => {
       initGaugeChart();
-    }, 1500);
+    }, 500);  // 减少初始延迟，因为现在有重试机制
     
     const latencyTimer = setInterval(testLatency, 180000);
     
@@ -979,15 +1101,30 @@ const StatsOverview = ({ apiAddress }) => {
     return () => {
       clearInterval(latencyTimer);
       
+      // 移除错误处理器
+      window.removeEventListener('error', handleResizeObserverError);
+      
       if (trafficChartInstance.current) {
+        if (trafficChartInstance.current._resizeHandler) {
+          window.removeEventListener('resize', trafficChartInstance.current._resizeHandler);
+        }
         trafficChartInstance.current.dispose();
       }
       
       if (gaugeChartInstance.current) {
+        if (gaugeChartInstance.current._resizeHandler) {
+          window.removeEventListener('resize', gaugeChartInstance.current._resizeHandler);
+        }
+        if (gaugeChartInstance.current._resizeObserver) {
+          gaugeChartInstance.current._resizeObserver.disconnect();
+        }
         gaugeChartInstance.current.dispose();
       }
       
       if (fullscreenChartInstance.current) {
+        if (fullscreenChartInstance.current._resizeHandler) {
+          window.removeEventListener('resize', fullscreenChartInstance.current._resizeHandler);
+        }
         fullscreenChartInstance.current.dispose();
       }
     };
@@ -1042,12 +1179,22 @@ const StatsOverview = ({ apiAddress }) => {
           if (!prevStatus && status.isRunning) {
             // 内核从停止到启动，获取IP信息
             setTimeout(fetchIpLocation, 3000);
-            // 确保图表能够正确显示
+            // 确保图表能够正确显示 - 延迟更长时间确保DOM完全渲染
             setTimeout(() => {
-              if (gaugeChartInstance.current) {
+              if (gaugeChartInstance.current && !gaugeChartInstance.current.isDisposed()) {
                 gaugeChartInstance.current.resize();
+                // 如果图表实例不存在或无法正常工作，重新初始化
+                const rect = gaugeChartRef.current?.getBoundingClientRect();
+                if (!rect || rect.width === 0 || rect.height === 0) {
+                  console.log('Reinitializing chart due to invalid dimensions');
+                  initGaugeChart();
+                }
+              } else if (gaugeChartRef.current) {
+                // 如果图表实例不存在，重新初始化
+                console.log('Reinitializing chart after kernel start');
+                initGaugeChart();
               }
-            }, 100);
+            }, 500);
           } else if (prevStatus && !status.isRunning) {
             // 内核从启动到停止，清空IP信息
             setIpLocation('');
@@ -1071,6 +1218,23 @@ const StatsOverview = ({ apiAddress }) => {
       };
     }
   }, []);
+  
+  // 监听内核运行状态变化，确保图表正确显示
+  useEffect(() => {
+    if (kernelRunning && gaugeChartRef.current) {
+      // 内核启动后，确保图表正确初始化和渲染
+      setTimeout(() => {
+        if (gaugeChartInstance.current && !gaugeChartInstance.current.isDisposed()) {
+          gaugeChartInstance.current.resize();
+          // 强制更新图表数据
+          updateLatencyChart();
+        } else {
+          // 如果图表实例不存在，重新初始化
+          initGaugeChart();
+        }
+      }, 1000); // 给内核更多时间完全启动
+    }
+  }, [kernelRunning]);
   
   return (
     <div id="stats-overview-container" className="stats-overview-container">
@@ -1184,7 +1348,7 @@ const StatsOverview = ({ apiAddress }) => {
             letterSpacing: '0.5px',
             textAlign: 'center',
             textShadow: '0 1px 2px rgba(103, 80, 164, 0.1)',
-            visibility: kernelRunning ? 'visible' : 'hidden'  // 内核未运行时隐藏标题但保留占位
+            opacity: kernelRunning ? 1 : 0.3  // 使用opacity而不是visibility
           }}>
             Latency
           </div>
@@ -1193,7 +1357,10 @@ const StatsOverview = ({ apiAddress }) => {
               id="gauge-chart"
               ref={gaugeChartRef} 
               className="gauge-chart"
-              style={{ visibility: kernelRunning ? 'visible' : 'hidden' }} // 内核未运行时隐藏图表但保留占位
+              style={{ 
+                opacity: kernelRunning ? 1 : 0.1,  // 使用opacity而不是visibility，保持DOM尺寸
+                pointerEvents: kernelRunning ? 'auto' : 'none'  // 禁用交互但保持布局
+              }}
             />
           </div>
         </div>

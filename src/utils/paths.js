@@ -2,6 +2,7 @@ const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 const logger = require('./logger');
 
 /**
@@ -105,10 +106,54 @@ function getStorePath() {
   return path.join(appDataDir, 'store.json');
 }
 
+/**
+ * 获取日志目录
+ * @returns {String} 日志目录路径
+ */
+function getLogDir() {
+  const appDataDir = getAppDataDir();
+  const logDir = path.join(appDataDir, 'logs');
+  
+  // 确保日志目录存在
+  if (!fs.existsSync(logDir)) {
+    try {
+      fs.mkdirSync(logDir, { recursive: true });
+      logger.info(`创建日志目录: ${logDir}`);
+    } catch (error) {
+      logger.error(`创建日志目录失败: ${error.message}`);
+    }
+  }
+  
+  return logDir;
+}
+
+/**
+ * 获取临时日志目录（向后兼容）
+ * @returns {String} 临时日志目录路径
+ */
+function getTempLogDir() {
+  return getLogDir();
+}
+
+/**
+ * 生成默认日志文件路径
+ * @returns {String} 日志文件路径
+ */
+function generateDefaultLogPath() {
+  const logDir = getLogDir();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const uuid = crypto.randomUUID().split('-')[0]; // 使用短UUID
+  return path.join(logDir, `sing-box-${timestamp}-${uuid}.log`);
+}
+
 module.exports = {
   getAppDataDir,
   getConfigDir,
   getBinDir,
   getUserSettingsPath,
-  getStorePath
+  getStorePath,
+  getLogDir,
+  getTempLogDir,
+  generateDefaultLogPath
 }; 
+

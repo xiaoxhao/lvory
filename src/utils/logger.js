@@ -12,14 +12,13 @@ const { app } = require('electron');
 class Logger {
   constructor() {
     this.enabled = true;
-    this.logDir = path.join(os.homedir(), 'AppData', 'Roaming', 'lvory', 'logs');
+    // 使用统一的日志目录配置
+    const { getLogDir } = require('./paths');
+    this.logDir = getLogDir();
     this.logFile = path.join(this.logDir, `log-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`);
     this.mainWindow = null;
     
-    // 确保日志目录存在
     this.ensureLogDirectory();
-    
-    // 日志缓存，用于保存历史记录和发送到前端
     this.logHistory = [];
     this.maxLogHistory = 1000; // 最大保存的日志条数
     
@@ -32,7 +31,6 @@ class Logger {
     // 设置定时写入
     this.flushTimer = setInterval(() => this.flushLogBuffer(), this.flushInterval);
     
-    // 初始化消息
     this.info('日志系统初始化完成');
   }
   

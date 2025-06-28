@@ -2,8 +2,9 @@ const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
-const { getAppDataDir } = require('../utils/paths');
+const { getAppDataDir, generateDefaultLogPath } = require('../utils/paths');
 const nodeHistoryManager = require('./data-managers/node-history-manager');
+const ConfigParser = require('../utils/sing-box/config-parser');
 
 class SettingsManager {
   constructor() {
@@ -26,7 +27,7 @@ class SettingsManager {
       nodeAdvancedMonitoring: false,
       nodeExitStatusMonitoring: false,
       nodeExitIPPurity: false,
-      keepNodeTrafficHistory: false, // 新增保留节点流量历史数据设置
+      keepNodeTrafficHistory: false,
       
       // 多云互联设置
       cloudInterconnection: false,
@@ -34,11 +35,11 @@ class SettingsManager {
       
       // 高级设置
       kernelWatchdog: true,
-      usePrivateProtocol: false,
       logRotationPeriod: 7,
-      extraLogSaving: false,
       language: 'zh_CN'
     };
+    
+    this.configParser = new ConfigParser();
   }
 
   // 加载设置
@@ -110,6 +111,80 @@ class SettingsManager {
   // 获取当前设置
   getSettings() {
     return this.settings;
+  }
+
+  /**
+   * 从配置文件读取代理端口并更新设置
+   * @param {String} configPath 配置文件路径
+   * @returns {Number} 代理端口
+   */
+  updateProxyPortFromConfig(configPath) {
+    try {
+      if (!configPath || !fs.existsSync(configPath)) {
+        logger.warn(`配置文件不存在，使用默认代理端口: ${this.settings.proxyPort}`);
+        return parseInt(this.settings.proxyPort);
+      }
+      
+      const configInfo = this.configParser.parseConfigFile(configPath);
+      if (configInfo && configInfo.port) {
+        const newPort = configInfo.port.toString();
+        if (this.settings.proxyPort !== newPort) {
+          logger.info(`从配置文件更新代理端口: ${this.settings.proxyPort} -> ${newPort}`);
+          this.settings.proxyPort = newPort;
+        }
+        return configInfo.port;
+      } else {
+        logger.warn(`无法从配置文件解析代理端口，使用默认端口: ${this.settings.proxyPort}`);
+        return parseInt(this.settings.proxyPort);
+      }
+    } catch (error) {
+      logger.error(`从配置文件读取代理端口失败: ${error.message}`);
+      return parseInt(this.settings.proxyPort);
+    }
+  }
+
+  /**
+   * 获取统一的代理配置对象
+   * @param {String} configPath 配置文件路径（可选）
+   * @returns {Object} 代理配置对象
+   */
+  getProxyConfig(configPath = null) {
+    const port = configPath ? this.updateProxyPortFromConfig(configPath) : parseInt(this.settings.proxyPort);
+    
+    return {
+      host: '127.0.0.1',
+      port: port,
+      enableSystemProxy: true
+    };
+  }
+
+  /**
+   * 获取或生成日志文件路径
+   * @returns {String} 日志文件路径
+   */
+  getLogPath() {
+    let logPath;
+    
+    if (!this.settings.logOutput || this.settings.logOutput.trim() === '') {
+      // 如果用户没有指定日志路径，生成默认路径
+      logPath = generateDefaultLogPath();
+      logger.info(`生成默认日志路径: ${logPath}`);
+    } else {
+      logPath = this.settings.logOutput;
+    }
+    
+    // 确保日志文件的目录存在
+    try {
+      const logDir = path.dirname(logPath);
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+        logger.info(`设置管理器创建日志目录: ${logDir}`);
+      }
+    } catch (dirError) {
+      logger.error(`设置管理器创建日志目录失败: ${dirError.message}`);
+    }
+    
+    return logPath;
   }
 
   // 设置开机自启动

@@ -42,6 +42,7 @@ class SingBox {
     
     // 设置进程管理器的回调
     this.processManager.setElevatedProcessCheckCallback(this.checkElevatedProcessRunning.bind(this));
+    this.processManager.setGracefulStopCallback(this.gracefulStopProcess.bind(this));
   }
 
   /**
@@ -228,14 +229,8 @@ class SingBox {
         return { success: false, error: errorMsg };
       }
       
-      // 解析配置文件获取代理端口
-      const configInfo = this.configParser.parseConfigFile(configPath);
-      if (configInfo && configInfo.port) {
-        logger.info(`[SingBox] 从配置文件解析到代理端口: ${configInfo.port}`);
-        this.proxyConfig.port = configInfo.port;
-      } else {
-        logger.warn(`[SingBox] 未能从配置文件解析到代理端口，使用默认端口: ${this.proxyConfig.port}`);
-      }
+      // 代理端口由上层统一管理，这里不再重复解析
+      logger.info(`[SingBox] 使用代理端口: ${this.proxyConfig.port}`);
       
       // 构建启动参数
       const args = ['run', '-c', configPath];
@@ -292,10 +287,7 @@ class SingBox {
    * @param {String} logLine 日志行
    * @returns {String} 日志级别
    */
-  parseLogLevel(logLine) {
-    // sing-box日志格式通常包含颜色代码和日志级别标记
-    // 例如: [33mWARN[0m[0000] 或者 [36mINFO[0m
-    
+  parseLogLevel(logLine) {    
     // 移除ANSI颜色代码
     const cleanLine = logLine.replace(/\x1b\[[0-9;]*m/g, '');
     
@@ -433,7 +425,42 @@ class SingBox {
    * @returns {Promise<boolean>} 是否运行中
    */
   async checkElevatedProcessRunning() {
-    return await this.platformLauncher.checkProcessRunning();
+    try {
+      return await this.platformLauncher.checkProcessRunning();
+    } catch (error) {
+      logger.error(`[SingBox] 检查管理员权限进程状态失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 优雅停止进程
+   * @returns {Promise<boolean>} 是否成功停止
+   */
+  async gracefulStopProcess() {
+    try {
+      return await this.platformLauncher.gracefulStop();
+    } catch (error) {
+      logger.error(`[SingBox] 优雅停止进程失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 检查停止进程的权限
+   * @returns {Promise<Object>} 权限检查结果
+   */
+  async checkStopPermission() {
+    try {
+      return await this.processManager.checkStopPermission();
+    } catch (error) {
+      logger.error(`[SingBox] 检查停止权限失败: ${error.message}`);
+      return {
+        hasPermission: false,
+        requiresElevation: true,
+        message: `权限检查失败: ${error.message}`
+      };
+    }
   }
 
   /**
@@ -466,15 +493,10 @@ class SingBox {
         return { success: false, error };
       }
       
-      // 更新代理配置
-      const configInfo = this.configParser.parseConfigFile(configPath);
-      if (configInfo && configInfo.port) {
-        logger.info(`[SingBox] 从配置文件解析到代理端口: ${configInfo.port}`);
-        this.proxyConfig.port = configInfo.port;
-      }
-      
+      // 使用传入的代理配置
       if (options.proxyConfig) {
         this.proxyConfig = { ...this.proxyConfig, ...options.proxyConfig };
+        logger.info(`[SingBox] 使用代理配置: ${JSON.stringify(this.proxyConfig)}`);
       }
       
       logger.info(`[SingBox] 启动sing-box，配置文件: ${configPath}, 代理端口: ${this.proxyConfig.port}`);
@@ -621,12 +643,35 @@ class SingBox {
       }
       
       if (this.processManager.elevatedProcess && this.processManager.elevatedProcess.isMonitoring) {
-        logger.info('[SingBox] 检测到管理员权限进程，使用特殊方法停止');
+        logger.info('[SingBox] 检测到管理员权限进程，检查停止权限');
+        
+        // 首先检查权限
+        const permissionCheck = await this.checkStopPermission();
+        
+        if (!permissionCheck.hasPermission && permissionCheck.requiresElevation) {
+          logger.warn('[SingBox] 停止管理员权限进程需要提升权限');
+          
+          // 通知状态监听器权限不足
+          this.stateManager.notifyStateListeners({
+            type: 'stop-permission-required',
+            message: '停止内核需要管理员权限',
+            details: permissionCheck.message
+          });
+        }
+        
         const elevatedStopped = await this.processManager.stopElevatedProcess(
           () => this.platformLauncher.stopProcess()
         );
+        
         if (!elevatedStopped) {
-          logger.warn('[SingBox] 停止管理员权限进程失败，继续尝试其他方法');
+          logger.warn('[SingBox] 停止管理员权限进程失败，可能需要手动干预');
+          
+          // 通知用户可能需要手动停止
+          this.stateManager.notifyStateListeners({
+            type: 'stop-manual-required',
+            message: '自动停止失败，请手动停止内核进程或重启应用',
+            permission: permissionCheck
+          });
         }
       }
       
@@ -730,6 +775,26 @@ class SingBox {
       };
     } catch (error) {
       logger.error(`[SingBox] 获取状态时发生异常: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 获取详细的内核运行状态（包括监控信息）
+   * @returns {Object} 详细状态信息
+   */
+  getDetailedStatus() {
+    try {
+      const detailedStatus = this.processManager.getDetailedStatus();
+      return {
+        success: true,
+        ...detailedStatus,
+        lastCheckedAt: new Date().toISOString(),
+        proxyConfig: this.proxyConfig,
+        globalState: this.stateManager.getGlobalState()
+      };
+    } catch (error) {
+      logger.error(`[SingBox] 获取详细状态时发生异常: ${error.message}`);
       return { success: false, error: error.message };
     }
   }

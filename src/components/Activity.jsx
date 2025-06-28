@@ -8,6 +8,9 @@ import '../assets/css/activity.css';
 const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
   const [logs, setLogs] = useState([]);
   const [connectionLogs, setConnectionLogs] = useState([]);
+  const [singboxLogs, setSingboxLogs] = useState([]);
+  const [singboxLogFiles, setSingboxLogFiles] = useState([]);
+  const [selectedLogFile, setSelectedLogFile] = useState(null);
   const [currentConnections, setCurrentConnections] = useState(new Map()); // 当前连接状态
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -138,25 +141,31 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
     }
   }, [shouldMonitorConnections]);
 
-  const applyFilters = useCallback((logsToFilter, isConnection = false) => {
+  const applyFilters = useCallback((logsToFilter, isConnection = false, isSingbox = false) => {
     if (!logsToFilter.length) return [];
     
     return logsToFilter.filter((log) => {
       if (!log) return false;
       
-      if (filter !== 'all') {
+      if (filter !== 'all' && !isSingbox) {
         if (isConnection) {
           // 连接日志按方向过滤
           if (log.direction !== filter) return false;
         } else {
+          // 普通日志按类型过滤
           if (log.type !== filter) return false;
         }
       }
 
       if (searchTerm) {
-        const searchContent = isConnection ? 
-          (log.payload || log.address || '') : 
-          (log.message || '');
+        let searchContent = '';
+        if (isConnection) {
+          searchContent = log.payload || log.address || '';
+        } else if (isSingbox) {
+          searchContent = typeof log === 'string' ? log : String(log || '');
+        } else {
+          searchContent = log.message || '';
+        }
         
         if (typeof searchContent === 'string') {
           return searchContent.toLowerCase().includes(searchTerm.toLowerCase());
@@ -173,13 +182,17 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
     if (activeTab === 'logs') {
       const filteredLogs = applyFilters(logs, false);
       setVisibleLogs(filteredLogs.slice(-pageSize));
-    } else {
+    } else if (activeTab === 'connections') {
       // 连接状态页面显示当前连接或历史连接
       const displayLogs = autoScroll ? connectionLogs : Array.from(currentConnections.values());
       const filteredLogs = applyFilters(displayLogs, true);
       setVisibleLogs(filteredLogs);
+    } else if (activeTab === 'singbox') {
+      // SingBox日志页面
+      const filteredLogs = applyFilters(singboxLogs, false, true);
+      setVisibleLogs(filteredLogs);
     }
-  }, [logs, connectionLogs, currentConnections, filter, searchTerm, pageSize, applyFilters, activeTab, autoScroll]);
+  }, [logs, connectionLogs, singboxLogs, currentConnections, filter, searchTerm, pageSize, applyFilters, activeTab, autoScroll]);
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -380,6 +393,56 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
     }
   };
 
+  // 加载SingBox日志文件列表
+  const loadSingboxLogFiles = async () => {
+    try {
+      const result = await window.electron.logs.getSingboxLogFiles();
+      if (result.success) {
+        setSingboxLogFiles(result.files);
+        // 如果有活动的日志文件，自动选择它
+        const activeFile = result.files.find(file => file.isActive);
+        if (activeFile && !selectedLogFile) {
+          setSelectedLogFile(activeFile);
+        }
+      }
+    } catch (error) {
+      console.error('加载SingBox日志文件列表失败:', error);
+    }
+  };
+
+  // 读取SingBox日志文件内容
+  const loadSingboxLogContent = async (filePath) => {
+    try {
+      setLoading(true);
+      const result = await window.electron.logs.readSingboxLogFile(filePath);
+      if (result.success) {
+        setSingboxLogs(result.content);
+      } else {
+        console.error('读取SingBox日志文件失败:', result.error);
+        setSingboxLogs([]);
+      }
+    } catch (error) {
+      console.error('读取SingBox日志文件失败:', error);
+      setSingboxLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 处理日志文件选择
+  const handleLogFileSelect = (file) => {
+    setSelectedLogFile(file);
+    loadSingboxLogContent(file.path);
+  };
+
+  // 当切换到SingBox标签页时加载日志文件列表并重置过滤
+  useEffect(() => {
+    if (activeTab === 'singbox') {
+      loadSingboxLogFiles();
+      setFilter('all'); // 重置过滤器
+    }
+  }, [activeTab]);
+
   return (
     <div className="activity-container">
       <LogHeader
@@ -398,17 +461,59 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
       />
       <div className="log-container" ref={logContainerRef}>
         {activeTab === 'connections' && <ConnectionHeader />}
+        {activeTab === 'singbox' && (
+          <div className="singbox-log-header">
+            <div className="log-file-selector">
+              <label>选择日志文件: </label>
+              <select 
+                value={selectedLogFile?.path || ''} 
+                onChange={(e) => {
+                  const file = singboxLogFiles.find(f => f.path === e.target.value);
+                  if (file) handleLogFileSelect(file);
+                }}
+              >
+                <option value="">请选择日志文件</option>
+                {singboxLogFiles.map(file => (
+                  <option key={file.path} value={file.path}>
+                    {file.name} {file.isActive ? '(当前活动)' : ''} ({(file.size / 1024).toFixed(1)}KB) {file.mtime ? `- ${new Date(file.mtime).toLocaleString('zh-CN')}` : ''}
+                  </option>
+                ))}
+              </select>
+              <button 
+                onClick={loadSingboxLogFiles} 
+                className="refresh-files-btn"
+                disabled={loading}
+              >
+                刷新列表
+              </button>
+            </div>
+          </div>
+        )}
         {loading && <div className="loading-logs">加载日志中...</div>}
         {visibleLogs.length === 0 && !loading ? (
           <div className="no-logs">
-            {activeTab === 'connections' ? 'No active connections' : 'No log recording'}
+            {activeTab === 'connections' 
+              ? 'No active connections' 
+              : activeTab === 'singbox' 
+                ? selectedLogFile ? 'No log content' : 'Please select a log file'
+                : 'No log recording'
+            }
           </div>
         ) : (
-          visibleLogs.map((log, index) => (
-            activeTab === 'logs' ?
-              <LogItem key={`${log?.timestamp}-${index}`} log={log} index={index} /> :
-              <ConnectionLogItem key={`${log?.timestamp || log?.lastUpdate}-${index}`} log={log} index={index} />
-          ))
+          activeTab === 'singbox' ? (
+            <div className="singbox-log-text">
+              <pre>{visibleLogs.join('\n')}</pre>
+            </div>
+          ) : (
+            visibleLogs.map((log, index) => {
+              if (activeTab === 'logs') {
+                return <LogItem key={`${log?.timestamp}-${index}`} log={log} index={index} />;
+              } else if (activeTab === 'connections') {
+                return <ConnectionLogItem key={`${log?.timestamp || log?.lastUpdate}-${index}`} log={log} index={index} />;
+              }
+              return null;
+            })
+          )
         )}
       </div>
     </div>

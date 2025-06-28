@@ -341,9 +341,7 @@ const SettingsContent = ({ section }) => {
     // 高级设置
     gpuAcceleration: false,
     kernelWatchdog: true,
-    usePrivateProtocol: false,
     logRotationPeriod: 7,
-    extraLogSaving: false,
     language: 'zh_CN',
     nodeIPDetailAPI: 'ip.sb',
     tunMode: false,
@@ -536,9 +534,7 @@ const SettingsContent = ({ section }) => {
       backendAddress: 'backend_address',
       gpuAcceleration: 'gpu_acceleration',
       kernelWatchdog: 'kernel_watchdog',
-      usePrivateProtocol: 'use_private_protocol',
       logRotationPeriod: 'log_rotation_period',
-      extraLogSaving: 'extra_log_saving',
       language: 'language',
       keepNodeTrafficHistory: 'keep_node_traffic_history',
       nodeIPDetailAPI: 'node_ip_detail_api',
@@ -591,9 +587,14 @@ const SettingsContent = ({ section }) => {
         if (result.success) {
           showNotification('settings.settingsApplied');
           
-          // 可选：应用映射到现有配置
-          if (window.electron && window.electron.mappingEngine && window.electron.mappingEngine.applyMapping) {
-            await window.electron.mappingEngine.applyMapping();
+          // 重新预处理当前配置文件，确保设置更改生效
+          if (window.electron && window.electron.config && window.electron.config.reprocess) {
+            const reprocessResult = await window.electron.config.reprocess();
+            if (reprocessResult.success) {
+              console.log('配置文件已重新预处理，设置更改已应用');
+            } else {
+              console.warn('重新预处理配置文件失败:', reprocessResult.error);
+            }
           }
           
           // 重新加载配置文件中的值
@@ -704,9 +705,7 @@ const SettingsContent = ({ section }) => {
       // 高级设置
       gpuAcceleration: config.gpu_acceleration || false,
       kernelWatchdog: config.kernel_watchdog !== undefined ? config.kernel_watchdog : prevSettings.kernelWatchdog,
-      usePrivateProtocol: config.use_private_protocol || false,
       logRotationPeriod: config.log_rotation_period || 7,
-      extraLogSaving: config.extra_log_saving || false,
       language: config.language || 'zh_CN',
       nodeIPDetailAPI: config.node_ip_detail_api || 'ip.sb',
       tunMode: config.tun_mode || false,
@@ -842,16 +841,7 @@ const SettingsContent = ({ section }) => {
               {renderToggle(t('settings.kernelWatchdog'), 'kernelWatchdog', settings.kernelWatchdog)}
               <DescriptionText>{t('settings.kernelWatchdogDesc')}</DescriptionText>
 
-              {/* 使用lvory私有协议 - Disabled */}
-              <ToggleWithTooltip
-                label={t('settings.usePrivateProtocol')}
-                tKey="usePrivateProtocol"
-                value={settings.usePrivateProtocol}
-                onChange={(val) => handleSettingChange('usePrivateProtocol', val)}
-                disabled={true}
-                tooltipText={t('settings.featureUnderDevelopment')}
-              />
-              <DescriptionText>{t('settings.usePrivateProtocolDesc')}</DescriptionText>
+
 
               {/* 日志设置 */}
               <div style={{ marginBottom: '5px' }}>
@@ -909,8 +899,7 @@ const SettingsContent = ({ section }) => {
                   />
                 </div>
 
-                {/* 额外保存 */}
-                {renderToggle(t('settings.extraLogSaving'), 'extraLogSaving', settings.extraLogSaving)}
+
               </div>
             </SettingsSection>
           </div>

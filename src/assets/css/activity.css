@@ -515,4 +515,122 @@
     margin-bottom: 4px;
     margin-right: 12px;
   }
-} 
+}
+
+/* SingBox 日志样式 */
+.singbox-log-header {
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  border-top: 1px solid #e9ecef;
+}
+
+.log-file-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.log-file-selector label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.log-file-selector select {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.log-file-selector select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.refresh-files-btn {
+  padding: 8px 16px;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refresh-files-btn:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.refresh-files-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .log-file-selector {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .log-file-selector select {
+    min-width: unset;
+  }
+}
+
+/* SingBox 日志文本框样式 */
+.singbox-log-text {
+  height: 100%;
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #e1e5e9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.singbox-log-text pre {
+  margin: 0;
+  padding: 16px;
+  height: 100%;
+  width: 100%;
+  background-color: #ffffff;
+  color: #24292e;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: none;
+  outline: none;
+}
+
+.singbox-log-text pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.singbox-log-text pre::-webkit-scrollbar-track {
+  background: #f6f8fa;
+  border-radius: 4px;
+}
+
+.singbox-log-text pre::-webkit-scrollbar-thumb {
+  background: #c1c8cd;
+  border-radius: 4px;
+}
+
+.singbox-log-text pre::-webkit-scrollbar-thumb:hover {
+  background: #a1a7aa;
+}

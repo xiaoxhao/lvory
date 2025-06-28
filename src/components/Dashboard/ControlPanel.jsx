@@ -45,6 +45,65 @@ const ControlPanel = ({
     { label: 'Local Loopback', address: '127.0.0.1:7890' }
   ]);
 
+  // 获取当前配置文件的代理端口
+  useEffect(() => {
+    const loadCurrentProxyPort = async () => {
+      try {
+        if (window.electron && window.electron.config && window.electron.config.getCurrent) {
+          const result = await window.electron.config.getCurrent();
+          if (result.success && result.config) {
+            const config = result.config;
+            
+            // 查找mixed类型的inbound端口
+            if (config.inbounds && Array.isArray(config.inbounds)) {
+              const mixedInbound = config.inbounds.find(inbound => inbound.type === 'mixed');
+              if (mixedInbound && mixedInbound.listen_port) {
+                const currentPort = mixedInbound.listen_port.toString();
+                setProxyPort(currentPort);
+                
+                // 更新当前地址，保持IP不变，只更新端口
+                setProxyAddress(prevAddress => {
+                  const currentIp = prevAddress.split(':')[0];
+                  return `${currentIp}:${currentPort}`;
+                });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('获取当前配置代理端口失败:', error);
+      }
+    };
+
+    // 初始加载
+    loadCurrentProxyPort();
+
+    // 监听配置文件变更
+    let unsubscribeConfig;
+    if (window.electron && window.electron.onConfigChanged) {
+      unsubscribeConfig = window.electron.onConfigChanged(() => {
+        loadCurrentProxyPort();
+      });
+    }
+
+    // 监听配置文件列表变更
+    let unsubscribeProfiles;
+    if (window.electron && window.electron.profiles && window.electron.profiles.onChanged) {
+      unsubscribeProfiles = window.electron.profiles.onChanged(() => {
+        loadCurrentProxyPort();
+      });
+    }
+
+    return () => {
+      if (unsubscribeConfig && typeof unsubscribeConfig === 'function') {
+        unsubscribeConfig();
+      }
+      if (unsubscribeProfiles && typeof unsubscribeProfiles === 'function') {
+        unsubscribeProfiles();
+      }
+    };
+  }, []); // 空依赖数组，只在组件挂载时执行
+
   // 获取网络接口地址
   useEffect(() => {
     if (window.electron && window.electron.getNetworkInterfaces) {

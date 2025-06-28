@@ -335,6 +335,27 @@ function setup() {
     ipcMain.removeAllListeners('profiles-changed-notify');
   });
 
+  // 重新预处理当前配置文件
+  ipcMain.handle('reprocess-current-config', async () => {
+    try {
+      const configPath = profileManager.getConfigPath();
+      if (!configPath) {
+        return { success: false, error: '没有当前配置文件' };
+      }
+      
+      const success = await profileManager.preprocessConfig(configPath);
+      if (success) {
+        logger.info('当前配置文件已重新预处理');
+        return { success: true };
+      } else {
+        return { success: false, error: '重新预处理配置文件失败' };
+      }
+    } catch (error) {
+      logger.error('重新预处理配置文件失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 获取用户配置
   ipcMain.handle('get-user-config', async () => {
     try {

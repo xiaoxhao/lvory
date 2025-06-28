@@ -35,6 +35,7 @@ const HANDLERS_TO_REMOVE = [
   // 日志相关
   'get-log-history', 'clear-logs', 'get-connection-log-history', 'clear-connection-logs',
   'start-connection-monitoring', 'stop-connection-monitoring',
+  'get-singbox-log-files', 'read-singbox-log-file', 'get-current-singbox-log',
   // 设置相关
   'set-auto-launch', 'get-auto-launch', 'save-settings', 'get-settings',
   // 节点历史数据相关

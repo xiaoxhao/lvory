@@ -35,31 +35,21 @@ function getDefaultMappingDefinition() {
         "description": "API地址设置"
       },
       {
-        "user_path": "settings.log_level",
-        "target_path": "log.level",
-        "type": "string",
-        "default": "info",
-        "description": "日志等级设置 (trace/debug/info/warn/error/fatal/panic)"
-      },
-      {
-        "user_path": "settings.log_output",
-        "target_path": "log.output",
-        "type": "string",
-        "description": "日志输出文件路径"
-      },
-      {
-        "user_path": "settings.log_disabled",
-        "target_path": "log.disabled",
-        "type": "boolean",
-        "default": false,
-        "description": "是否禁用日志输出"
-      },
-      {
-        "user_path": "settings.log_timestamp",
-        "target_path": "log.timestamp",
+        "user_path": "settings.log_enabled",
+        "target_path": "log",
         "type": "boolean",
         "default": true,
-        "description": "是否在日志中添加时间戳"
+        "transform": "conditional",
+        "condition": "value === true",
+        "true_value": {
+          "level": "{settings.log_level}",
+          "output": "{settings.log_output}",
+          "disabled": "{settings.log_disabled}",
+          "timestamp": "{settings.log_timestamp}"
+        },
+        "false_action": "remove",
+        "conflict_strategy": "override",
+        "description": "完整日志配置"
       },
       {
         "user_path": "settings.tun_mode",
@@ -123,7 +113,7 @@ function getTunConfigTemplate() {
       "http_proxy": {
         "enabled": true,
         "server": "127.0.0.1",
-        "server_port": 7890
+        "server_port": "{settings.proxy_port}"
       }
     }
   };

@@ -157,22 +157,43 @@ const useSingBoxControl = () => {
         
         // 检查API是否存在
         if (window.electron.singbox.stopCore) {
-          window.electron.singbox.stopCore()
-            .then(result => {
+          // 首先检查停止权限
+          const checkPermissionAndStop = async () => {
+            try {
+              // 检查权限
+              if (window.electron.singbox.checkStopPermission) {
+                const permissionResult = await window.electron.singbox.checkStopPermission();
+                
+                if (permissionResult.success && !permissionResult.hasPermission && permissionResult.requiresElevation) {
+                  showMessage('停止内核需要管理员权限，可能会弹出权限提升窗口');
+                }
+              }
+              
+              // 执行停止
+              const result = await window.electron.singbox.stopCore();
               setIsStopping(false);
+              
               if (result && result.success) {
                 setIsRunning(false);
                 console.log('Singbox stopped successfully');
               } else {
                 console.error('Failed to stop singbox:', result ? result.error : 'Unknown error');
-                showMessage('停止失败: ' + (result && result.error ? result.error : '未知错误'));
+                
+                // 检查是否是权限问题
+                if (result && result.error && result.error.includes('权限')) {
+                  showMessage('停止失败: 需要管理员权限。请以管理员身份运行应用或手动结束进程。');
+                } else {
+                  showMessage('停止失败: ' + (result && result.error ? result.error : '未知错误'));
+                }
               }
-            })
-            .catch(err => {
+            } catch (err) {
               setIsStopping(false);
               console.error('Error stopping singbox:', err);
               showMessage('停止错误: ' + (err && err.message ? err.message : '未知错误'));
-            });
+            }
+          };
+          
+          checkPermissionAndStop();
         } else {
           setIsStopping(false);
           console.error('stopCore API not available');
@@ -265,6 +286,23 @@ const useSingBoxControl = () => {
     return false;
   };
 
+  // 获取SingBox详细状态
+  const fetchDetailedSingBoxStatus = async () => {
+    if (window.electron && window.electron.singbox && window.electron.singbox.getDetailedStatus) {
+      try {
+        const status = await window.electron.singbox.getDetailedStatus();
+        if (status && status.success) {
+          console.log('详细状态信息:', status);
+          setIsRunning(status.isRunning);
+          return status;
+        }
+      } catch (error) {
+        console.error('获取SingBox详细状态失败:', error);
+      }
+    }
+    return null;
+  };
+
   return {
     isRunning,
     isStarting,
@@ -277,6 +315,7 @@ const useSingBoxControl = () => {
     toggleSingBox,
     restartSingBox,
     fetchSingBoxStatus,
+    fetchDetailedSingBoxStatus,
     downloadCore,
     checkCoreExists,
     setIsRunning,

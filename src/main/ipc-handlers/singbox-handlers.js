@@ -84,50 +84,34 @@ function setup() {
         return { success: false, error: `配置文件不存在: ${configPath}` };
       }
       
-      const proxyConfig = options && options.proxyConfig ? options.proxyConfig : {
-        host: '127.0.0.1',
-        port: 7890,
-        enableSystemProxy: true  // 默认启用系统代理
-      };
-      
-      // 获取 TUN 模式设置
+      // 获取设置管理器
       const settingsManager = require('../settings-manager');
       const settings = settingsManager.getSettings();
+      
+      // 从设置管理器获取统一的代理配置
+      const proxyConfig = options && options.proxyConfig ? 
+        { ...settingsManager.getProxyConfig(configPath), ...options.proxyConfig } : 
+        settingsManager.getProxyConfig(configPath);
+      
+      // 获取 TUN 模式设置
       const tunMode = settings.tunMode || false;
       
-      // 在启动前应用配置映射
-      logger.info('启动前应用配置映射...');
+      // 确保配置文件已经预处理（包含正确的日志配置）
+      logger.info('确保配置文件已预处理...');
+      await profileManager.preprocessConfig(configPath);
       
+      // 验证日志配置是否正确注入
       try {
-        // 读取当前配置文件
         const configContent = fs.readFileSync(configPath, 'utf8');
-        let targetConfig = JSON.parse(configContent);
+        const config = JSON.parse(configContent);
         
-        // 构建用户配置对象
-        const userConfig = {
-          settings: {
-            proxy_port: parseInt(proxyConfig.port) || 7890,
-            allow_lan: settings.allowLan || false,
-            api_address: settings.apiAddress || '127.0.0.1:9090',
-            tun_mode: tunMode
-          }
-        };
-        
-        // 应用配置映射
-        const mappedConfig = profileManager.applyConfigMapping(userConfig, targetConfig);
-        
-        // 创建临时配置文件副本用于启动
-        const tempConfigPath = profileManager.getConfigCopyPath() || configPath;
-        profileManager.updateConfigCopy(mappedConfig);
-        
-        logger.info(`配置映射已应用，TUN模式: ${tunMode ? '启用' : '禁用'}`);
-        
-        // 使用映射后的配置文件启动
-        configPath = tempConfigPath;
-        
-      } catch (mappingError) {
-        logger.error(`应用配置映射失败: ${mappingError.message}`);
-        // 继续使用原始配置文件启动
+        if (config.log && config.log.output) {
+          logger.info(`确认日志配置已注入: ${config.log.output}`);
+        } else {
+          logger.warn('配置文件中未发现日志配置，这可能影响内核监控');
+        }
+      } catch (verifyError) {
+        logger.warn(`验证配置文件失败: ${verifyError.message}`);
       }
       
       // 启动内核前检查版本
@@ -178,6 +162,28 @@ function setup() {
       return result;
     } catch (error) {
       logger.error('获取sing-box状态失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 获取sing-box详细状态
+  ipcMain.handle('singbox-get-detailed-status', async () => {
+    try {
+      const result = singbox.getDetailedStatus();
+      return result;
+    } catch (error) {
+      logger.error('获取sing-box详细状态失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 检查停止权限
+  ipcMain.handle('singbox-check-stop-permission', async () => {
+    try {
+      const result = await singbox.checkStopPermission();
+      return { success: true, ...result };
+    } catch (error) {
+      logger.error('检查停止权限失败:', error);
       return { success: false, error: error.message };
     }
   });

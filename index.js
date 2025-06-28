@@ -8,12 +8,9 @@ const logger = require('./src/utils/logger');
 const windowManager = require('./src/main/window');
 const trayManager = require('./src/main/tray');
 
-// 初始化IPC处理程序和配置管理器，这些是必须优先加载的模块
 let ipcHandlers = require('./src/main/ipc-handlers');
-// 新的IPC系统
 let newIpcSystem = require('./src/main/ipc');
 let profileManager = require('./src/main/profile-manager');
-// 懒加载其他非核心模块
 let singbox;
 let settingsManager;
 
@@ -21,12 +18,10 @@ let settingsManager;
 const isFirstInstance = app.requestSingleInstanceLock();
 const isDev = process.env.NODE_ENV === 'development';
 
-// 如果不是第一个实例且不在开发模式下，则退出
 if (!isFirstInstance && !isDev) {
   logger.info('已有一个实例正在运行，退出当前实例');
   app.quit();
 } else {
-  // 处理第二个实例启动时的行为
   app.on('second-instance', () => {
     logger.info('检测到第二个实例启动，显示主窗口');
     // 显示已有窗口

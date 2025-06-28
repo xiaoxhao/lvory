@@ -27,11 +27,8 @@ export default {
     configureAdvanced: 'Configure advanced settings and features',
     kernelWatchdog: 'Kernel Watchdog',
     kernelWatchdogDesc: 'Automatically restart the core if it crashes or stops responding',
-    usePrivateProtocol: 'Use lvory Private Protocol',
-    usePrivateProtocolDesc: 'Use lvory private protocol for improved security and performance',
     logSettings: 'Log Settings',
     logRotation: 'Log Rotation Period (Days)',
-    extraLogSaving: 'Extra Log Saving',
     
     // SingBox log settings
     singboxLogLevel: 'SingBox Log Level',

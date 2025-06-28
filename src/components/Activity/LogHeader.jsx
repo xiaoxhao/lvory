@@ -39,33 +39,47 @@ const LogHeader = ({
         >
           {t('activity.connectionStatus')}
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'singbox' ? 'active' : ''}`}
+          onClick={() => setActiveTab('singbox')}
+        >
+          SingBox 日志
+        </button>
       </div>
       <div className="activity-controls">
         <div className="search-filter">
           <input
             type="text"
-            placeholder={activeTab === 'connections' ? t('activity.searchConnections') : t('activity.searchLogs')}
+            placeholder={
+              activeTab === 'connections' 
+                ? t('activity.searchConnections') 
+                : activeTab === 'singbox'
+                  ? '搜索 SingBox 日志...'
+                  : t('activity.searchLogs')
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">ALL</option>
-            {activeTab === 'logs' ? (
-              <>
-                <option value="SYSTEM">System</option>
-                <option value="SINGBOX">SingBox</option>
-                <option value="NETWORK">Network</option>
-              </>
-            ) : (
-              <>
-                <option value="inbound">Inbound</option>
-                <option value="outbound">Outbound</option>
-              </>
-            )}
-          </select>
+          {activeTab !== 'singbox' && (
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">ALL</option>
+              {activeTab === 'logs' ? (
+                <>
+                  <option value="SYSTEM">System</option>
+                  <option value="SINGBOX">SingBox</option>
+                  <option value="NETWORK">Network</option>
+                </>
+              ) : activeTab === 'connections' ? (
+                <>
+                  <option value="inbound">Inbound</option>
+                  <option value="outbound">Outbound</option>
+                </>
+              ) : null}
+            </select>
+          )}
         </div>
         <div className="activity-actions">
           <div 

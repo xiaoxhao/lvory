@@ -12,10 +12,7 @@ const profileEngine = require('./engine/profiles-engine');
 const mappingDefinition = require('./engine/mapping-definition');
 const LvorySyncProcessor = require('./adapters/lvory-sync-processor');
 
-// 当前配置文件路径
 let currentConfigPath = null;
-
-// 配置文件副本路径
 let configCopyPath = null;
 
 // 映射定义缓存
@@ -344,10 +341,13 @@ const getConfigPath = () => {
  * @param {String} configPath 配置文件路径
  * @returns {Boolean} 是否设置成功
  */
-const setConfigPath = (configPath) => {
+const setConfigPath = async (configPath) => {
   if (!configPath || !fs.existsSync(configPath)) {
     return false;
   }
+  
+  // 预处理配置文件，确保日志配置正确注入
+  await preprocessConfig(configPath);
   
   currentConfigPath = configPath;
   logger.info(`当前配置文件路径已设置为: ${configPath}`);
@@ -551,7 +551,7 @@ async function processLvorySyncConfig(syncConfigPath, forceRefresh = false) {
     }
     
     // 设置当前使用的配置为缓存文件
-    setConfigPath(cachePath);
+    await setConfigPath(cachePath);
     
     logger.info(`Lvory 同步配置处理完成，当前使用缓存: ${cacheFileName}`);
     return {
@@ -598,7 +598,7 @@ async function setConfigPathSmart(configPath, forceRefresh = false) {
     return true;
   } else {
     // 普通配置文件，使用原有逻辑
-    return setConfigPath(configPath);
+    return await setConfigPath(configPath);
   }
 }
 
@@ -642,6 +642,106 @@ async function refreshLvorySyncConfig(forceRefresh = true) {
   }
 }
 
+/**
+ * 预处理配置文件，确保日志配置正确注入
+ * @param {String} configPath 配置文件路径
+ * @returns {Promise<Boolean>} 是否处理成功
+ */
+async function preprocessConfig(configPath) {
+  try {
+    if (!configPath || !fs.existsSync(configPath)) {
+      logger.error('预处理配置失败：配置文件不存在');
+      return false;
+    }
+
+    // 读取配置文件
+    const configContent = fs.readFileSync(configPath, 'utf8');
+    let targetConfig = JSON.parse(configContent);
+    
+    // 获取设置管理器并确保设置已加载
+    const settingsManager = require('./settings-manager');
+    let settings;
+    let logPath;
+    
+    try {
+      await settingsManager.loadSettings(); // 确保设置已加载
+      settings = settingsManager.getSettings();
+      logPath = settingsManager.getLogPath();
+    } catch (settingsError) {
+      logger.warn(`设置管理器初始化失败，使用默认值: ${settingsError.message}`);
+      // 使用默认设置
+      settings = {
+        proxyPort: '7890',
+        allowLan: false,
+        apiAddress: '127.0.0.1:9090',
+        tunMode: false,
+        logLevel: 'info',
+        logDisabled: false,
+        logTimestamp: true
+      };
+      // 使用默认日志路径
+      const { generateDefaultLogPath } = require('../utils/paths');
+      logPath = generateDefaultLogPath();
+    }
+    
+    // 构建用户配置对象
+    const userConfig = {
+      settings: {
+        proxy_port: parseInt(settings.proxyPort) || 7890,
+        allow_lan: settings.allowLan || false,
+        api_address: settings.apiAddress || '127.0.0.1:9090',
+        tun_mode: settings.tunMode || false,
+        log_enabled: true, // 强制启用日志配置注入
+        log_level: settings.logLevel || 'info',
+        log_output: logPath,
+        log_disabled: settings.logDisabled || false,
+        log_timestamp: settings.logTimestamp !== false
+      }
+    };
+    
+    logger.info(`预处理配置文件: ${configPath}`);
+    logger.info(`强制注入日志配置: ${userConfig.settings.log_output}`);
+    
+    // 应用配置映射
+    const mappedConfig = applyConfigMapping(userConfig, targetConfig);
+    
+    // 验证日志配置是否正确注入
+    if (!mappedConfig.log || !mappedConfig.log.output) {
+      logger.warn('映射引擎注入失败，手动强制设置日志配置');
+      mappedConfig.log = {
+        level: userConfig.settings.log_level,
+        output: userConfig.settings.log_output,
+        disabled: userConfig.settings.log_disabled,
+        timestamp: userConfig.settings.log_timestamp
+      };
+    }
+    
+    // 确保日志文件的父目录存在
+    try {
+      const logOutputPath = mappedConfig.log.output;
+      if (logOutputPath) {
+        const logDir = path.dirname(logOutputPath);
+        if (!fs.existsSync(logDir)) {
+          fs.mkdirSync(logDir, { recursive: true });
+          logger.info(`创建日志目录: ${logDir}`);
+        }
+      }
+    } catch (dirError) {
+      logger.error(`创建日志目录失败: ${dirError.message}`);
+    }
+    
+    // 将处理后的配置写回文件
+    fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
+    
+    logger.info(`配置文件预处理完成，日志配置已强制注入: ${mappedConfig.log.output}`);
+    return true;
+    
+  } catch (error) {
+    logger.error(`预处理配置文件失败: ${error.message}`);
+    return false;
+  }
+}
+
 module.exports = {
   scanProfileConfig,
   getConfigPath,
@@ -661,5 +761,6 @@ module.exports = {
   getMappingDefinitionPath,
   isLvorySyncConfig,
   processLvorySyncConfig,
-  refreshLvorySyncConfig
+  refreshLvorySyncConfig,
+  preprocessConfig
 }; 

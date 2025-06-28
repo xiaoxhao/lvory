@@ -58,6 +58,8 @@ contextBridge.exposeInMainWorld('electron', {
     startCore: (options) => ipcRenderer.invoke('singbox-start-core', options),
     stopCore: () => ipcRenderer.invoke('singbox-stop-core'),
     getStatus: () => ipcRenderer.invoke('singbox-get-status'),
+    getDetailedStatus: () => ipcRenderer.invoke('singbox-get-detailed-status'),
+    checkStopPermission: () => ipcRenderer.invoke('singbox-check-stop-permission'),
     run: (configPath) => ipcRenderer.invoke('singbox-run', { configPath }),
     stop: () => ipcRenderer.invoke('singbox-stop'),
     downloadCore: () => ipcRenderer.invoke('singbox-download-core'),
@@ -114,7 +116,8 @@ contextBridge.exposeInMainWorld('electron', {
   config: {
     getPath: () => ipcRenderer.invoke('get-config-path'),
     setPath: (filePath) => ipcRenderer.invoke('set-config-path', filePath),
-    getCurrent: () => ipcRenderer.invoke('get-current-config')
+    getCurrent: () => ipcRenderer.invoke('get-current-config'),
+    reprocess: () => ipcRenderer.invoke('reprocess-current-config')
   },
   
   // Dashboard刷新事件监听
@@ -192,7 +195,12 @@ contextBridge.exposeInMainWorld('electron', {
     clearConnection: () => ipcRenderer.invoke('clear-connection-logs'),
     
     startConnectionMonitoring: () => ipcRenderer.invoke('start-connection-monitoring'),
-    stopConnectionMonitoring: () => ipcRenderer.invoke('stop-connection-monitoring')
+    stopConnectionMonitoring: () => ipcRenderer.invoke('stop-connection-monitoring'),
+    
+    // SingBox日志文件相关
+    getSingboxLogFiles: () => ipcRenderer.invoke('get-singbox-log-files'),
+    readSingboxLogFile: (filePath) => ipcRenderer.invoke('read-singbox-log-file', filePath),
+    getCurrentSingboxLog: () => ipcRenderer.invoke('get-current-singbox-log')
   },
 
   // 统一的设置管理接口

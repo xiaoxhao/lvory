@@ -372,6 +372,23 @@ function createOrUpdatePath(config, path, value, options = {}) {
   }
   
   // 普通属性设置
+  // 对于override策略，直接覆盖；对于其他策略，也默认覆盖
+  
+  // 特殊处理日志输出路径，确保目录存在
+  if (lastTokenValue === 'output' && path.includes('log') && typeof value === 'string') {
+    try {
+      const fs = require('fs');
+      const pathModule = require('path');
+      const logDir = pathModule.dirname(value);
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+        logger.info(`映射引擎在路径设置时创建日志目录: ${logDir}`);
+      }
+    } catch (dirError) {
+      logger.error(`映射引擎在路径设置时创建日志目录失败: ${dirError.message}`);
+    }
+  }
+  
   current[lastTokenValue] = value;
   return config;
 }
@@ -604,8 +621,39 @@ function replaceObjectVariables(obj, data) {
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string' && value.includes('{') && value.includes('}')) {
-      // 替换字符串中的变量
-      result[key] = replacePathVariables(value, data);
+      const replacedValue = replacePathVariables(value, data);
+      
+      if (key === 'server_port' || key === 'listen_port' || key === 'port') {
+        const numValue = Number(replacedValue);
+        result[key] = isNaN(numValue) ? replacedValue : numValue;
+      } else if (key === 'disabled' || key === 'timestamp') {
+        // 对于布尔字段，进行布尔转换
+        if (replacedValue === 'true') {
+          result[key] = true;
+        } else if (replacedValue === 'false') {
+          result[key] = false;
+        } else {
+          result[key] = Boolean(replacedValue);
+        }
+      } else if (key === 'output') {
+        // 对于日志输出路径，确保目录存在
+        try {
+          const fs = require('fs');
+          const path = require('path');
+          if (replacedValue && typeof replacedValue === 'string') {
+            const logDir = path.dirname(replacedValue);
+            if (!fs.existsSync(logDir)) {
+              fs.mkdirSync(logDir, { recursive: true });
+              logger.info(`映射引擎创建日志目录: ${logDir}`);
+            }
+          }
+        } catch (dirError) {
+          logger.error(`映射引擎创建日志目录失败: ${dirError.message}`);
+        }
+        result[key] = replacedValue;
+      } else {
+        result[key] = replacedValue;
+      }
     } else if (typeof value === 'object') {
       // 递归处理嵌套对象
       result[key] = replaceObjectVariables(value, data);
