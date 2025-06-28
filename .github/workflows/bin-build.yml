@@ -59,13 +59,17 @@ jobs:
           dir build
           echo "MSI files:"
           Get-ChildItem -Path build -Filter "*.msi" -Recurse
+          echo "Portable files:"
+          Get-ChildItem -Path build -Filter "*portable*.exe" -Recurse
         shell: pwsh
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-build-artifacts
-          path: build/*.msi
+          path: |
+            build/*.msi
+            build/*portable*.exe
 
   build-macos:
     runs-on: macos-latest
@@ -161,13 +165,17 @@ jobs:
           ls -la build
           echo "Linux DEB files:"
           find build -name "*.deb" -type f
+          echo "Linux AppImage files:"
+          find build -name "*.AppImage" -type f
         shell: bash
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-build-artifacts
-          path: build/*.deb
+          path: |
+            build/*.deb
+            build/*.AppImage
 
   create-release:
     needs: [build-windows, build-macos, build-linux]
@@ -210,6 +218,16 @@ jobs:
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
       
+      - name: Get commit information
+        id: commit_info
+        run: |
+          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --pretty=%B | head -1)" >> $GITHUB_OUTPUT
+          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
+          echo "commit_date=$(git log -1 --pretty=%ci)" >> $GITHUB_OUTPUT
+        shell: bash
+      
       - name: Check if triggered by tag
         id: check_tag
         run: |
@@ -231,10 +249,18 @@ jobs:
             echo "release_body<<EOF" >> $GITHUB_OUTPUT
             echo "正式发布版本 - ${{ steps.check_tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
+            echo "## 构建信息 / Build Information" >> $GITHUB_OUTPUT
+            echo "- **Commit:** [\`${{ steps.commit_info.outputs.commit_sha_short }}\`](https://github.com/sxueck/lvory/commit/${{ steps.commit_info.outputs.commit_sha }})" >> $GITHUB_OUTPUT
+            echo "- **提交消息:** ${{ steps.commit_info.outputs.commit_message }}" >> $GITHUB_OUTPUT
+            echo "- **提交者:** ${{ steps.commit_info.outputs.commit_author }}" >> $GITHUB_OUTPUT
+            echo "- **提交时间:** ${{ steps.commit_info.outputs.commit_date }}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
             echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
-            echo "- Windows MSI (x64)" >> $GITHUB_OUTPUT
+            echo "- Windows MSI (x64) - 安装版" >> $GITHUB_OUTPUT
+            echo "- Windows Portable (x64) - 便携版" >> $GITHUB_OUTPUT
             echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
-            echo "- Linux DEB (x64 & arm64)" >> $GITHUB_OUTPUT
+            echo "- Linux DEB (x64 & arm64) - 安装版" >> $GITHUB_OUTPUT
+            echo "- Linux AppImage (x64 & arm64) - 便携版" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           else
             echo "release_name=日常构建 ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
@@ -243,10 +269,18 @@ jobs:
             echo "自动构建的日常版本 - ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
             echo "此版本基于最新的主分支代码自动构建，可能包含不稳定的功能。" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
+            echo "## 构建信息 / Build Information" >> $GITHUB_OUTPUT
+            echo "- **Commit:** [\`${{ steps.commit_info.outputs.commit_sha_short }}\`](https://github.com/sxueck/lvory/commit/${{ steps.commit_info.outputs.commit_sha }})" >> $GITHUB_OUTPUT
+            echo "- **提交消息:** ${{ steps.commit_info.outputs.commit_message }}" >> $GITHUB_OUTPUT
+            echo "- **提交者:** ${{ steps.commit_info.outputs.commit_author }}" >> $GITHUB_OUTPUT
+            echo "- **提交时间:** ${{ steps.commit_info.outputs.commit_date }}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
             echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
-            echo "- Windows MSI (x64)" >> $GITHUB_OUTPUT
+            echo "- Windows MSI (x64) - 安装版" >> $GITHUB_OUTPUT
+            echo "- Windows Portable (x64) - 便携版" >> $GITHUB_OUTPUT
             echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
-            echo "- Linux DEB (x64 & arm64)" >> $GITHUB_OUTPUT
+            echo "- Linux DEB (x64 & arm64) - 安装版" >> $GITHUB_OUTPUT
+            echo "- Linux AppImage (x64 & arm64) - 便携版" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
         shell: bash
@@ -263,5 +297,7 @@ jobs:
           prerelease: ${{ steps.release_details.outputs.is_prerelease }}
           files: |
             artifacts/windows/*.msi
+            artifacts/windows/*portable*.exe
             artifacts/macos/*.dmg
             artifacts/linux/*.deb
+            artifacts/linux/*.AppImage

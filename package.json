@@ -11,11 +11,13 @@
     "build:webpack": "cross-env NODE_ENV=production webpack --mode production",
     "build": "npm run build:webpack && electron-builder",
     "build:win": "npm run build:webpack && electron-builder --win",
+    "build:win-portable": "npm run build:webpack && electron-builder --win portable",
     "build:mac": "npm run build:webpack && electron-builder --mac",
     "build:mac-universal": "npm run build:webpack && electron-builder --mac --universal",
     "build:mac-arm64": "npm run build:webpack && electron-builder --mac --arm64",
     "build:mac-x64": "npm run build:webpack && electron-builder --mac --x64",
     "build:linux": "npm run build:webpack && electron-builder --linux",
+    "build:linux-portable": "npm run build:webpack && electron-builder --linux AppImage",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -37,7 +39,7 @@
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
     "electron": "37.1.0",
-    "electron-builder": "^26.0.12",
+    "electron-builder": "^25.1.8",
     "global": "^4.4.0",
     "html-webpack-plugin": "^5.6.3",
     "mini-css-extract-plugin": "^2.9.2",
@@ -101,10 +103,19 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "resource/icon/index256.png",
       "artifactName": "${productName}-${version}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "msi": {
       "oneClick": false,
@@ -157,6 +168,13 @@
             "x64",
             "arm64"
           ]
+        },
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "resource/icon/index256.png",
@@ -166,10 +184,6 @@
       "description": "A minimalist cross-platform GUI client for sing-box, providing easy proxy management and configuration.",
       "category": "Network",
       "desktop": {
-        "Name": "lvory",
-        "Comment": "Minimalist Cross-Platform Client for Singbox",
-        "Keywords": "proxy;singbox;network;vpn;",
-        "Categories": "Network;Security;",
         "StartupWMClass": "lvory"
       },
       "maintainer": "lvory Team"
