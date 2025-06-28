@@ -449,7 +449,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             padding: '10px 0',
             width: '100%',
             overflow: 'auto', // 只有这个容器可以滚动
-            flex: '1',
             scrollBehavior: 'smooth'
           }}>
             {filteredNodes.map((profile, index) => (
@@ -501,7 +500,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           padding: '10px 0',
           width: '100%',
           overflow: 'auto', // 只有这个容器可以滚动
-          flex: '1',
           scrollBehavior: 'smooth'
         }}>
           {ruleSets.map((ruleSet, index) => (
