@@ -177,9 +177,17 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
 
   return (
     <div className="dashboard" style={{ display: activeView === 'dashboard' || activeView === 'activity' ? 'block' : 'none' }}>
-      <div className="dashboard-content">
+      <div className="dashboard-content" style={{ 
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         {/* Dashboard视图内容 */}
-        <div style={{ display: activeView === 'dashboard' ? 'block' : 'none' }}>
+        <div style={{ 
+          display: activeView === 'dashboard' ? 'flex' : 'none',
+          flexDirection: 'column',
+          height: '100%'
+        }}>
           {/* 只有在非扩展视图时显示状态概览 */}
           {!isExpandedView && (
             <div className="stats-overview" style={{
@@ -187,7 +195,8 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0px'
+              gap: '0px',
+              flexShrink: 0 // 防止被压缩
             }}>
               <ControlPanel 
                 isRunning={isRunning}
@@ -230,8 +239,9 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
 
           <div className="node-list-container" style={{
             flex: 1,
-            overflow: 'auto',
-            position: 'relative'
+            overflow: 'hidden', // 外层容器不滚动
+            position: 'relative',
+            minHeight: 0 // 确保flex子元素可以正确收缩
           }}>
             <NodeList 
               profileData={profileData}
@@ -247,7 +257,8 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
         <div className="activity-view" style={{ 
           width: '100%', 
           padding: '0',
-          display: activeView === 'activity' ? 'block' : 'none' 
+          display: activeView === 'activity' ? 'block' : 'none',
+          height: '100%'
         }}>
           <Activity isKernelRunning={isRunning} isActivityView={activeView === 'activity'} />
         </div>

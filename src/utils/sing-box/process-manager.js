@@ -331,9 +331,7 @@ class ProcessManager {
         const timeSinceLastHeartbeat = now - (this.elevatedProcess.lastHeartbeat || now);
         
         if (timeSinceLastHeartbeat > 60000) { // 60秒超时
-          logger.warn(`[ProcessManager] 管理员权限进程心跳超时: ${timeSinceLastHeartbeat}ms`);
-          // 可以选择是否因为心跳超时而终止进程监控
-          // this.handleElevatedProcessExit(exitCallback);
+          logger.warn(`[ProcessManager] 内核心跳超时: ${timeSinceLastHeartbeat}ms`);
         }
         
       } catch (error) {

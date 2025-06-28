@@ -443,6 +443,27 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
     }
   }, [activeTab]);
 
+  // 动态计算滚动条样式类名
+  const getScrollContainerClass = () => {
+    let classes = "log-container activity-logs-container";
+    
+    // 根据内容数量决定滚动条样式
+    if (visibleLogs.length === 0) {
+      classes += " empty-content";
+    } else if (visibleLogs.length < 5) {
+      classes += " minimal-content";
+    }
+    
+    // 根据活动标签页添加特殊样式
+    if (activeTab === 'connections') {
+      classes += " connection-view";
+    } else if (activeTab === 'singbox') {
+      classes += " singbox-view";
+    }
+    
+    return classes;
+  };
+
   return (
     <div className="activity-container">
       <LogHeader
@@ -459,7 +480,7 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
         isRetrying={isRetrying}
         shouldShowRetry={shouldMonitorConnections()}
       />
-      <div className="log-container" ref={logContainerRef}>
+      <div className={getScrollContainerClass()} ref={logContainerRef}>
         {activeTab === 'connections' && <ConnectionHeader />}
         {activeTab === 'singbox' && (
           <div className="singbox-log-header">

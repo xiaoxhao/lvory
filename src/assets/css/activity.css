@@ -9,6 +9,13 @@
   overflow: hidden;
 }
 
+/* Activity 日志内容区域需要滚动 */
+.activity-logs-container {
+  flex: 1;
+  overflow-y: auto;
+  height: 100%;
+}
+
 .activity-header {
   padding: 16px;
   background-color: #fff;
@@ -178,30 +185,45 @@
   user-select: text;
 }
 
-/* 为日志容器添加滚动条样式 - 使用!important确保优先级 */
+/* 优化的滚动条样式 - 更精细的设计 */
 .activity-container .log-container::-webkit-scrollbar {
-  width: 8px !important;
-  display: block !important;
+  width: 6px !important;
+  background: transparent !important;
 }
 
 .activity-container .log-container::-webkit-scrollbar-track {
-  background: #f1f1f1 !important;
-  border-radius: 4px !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-radius: 3px !important;
+  margin: 2px !important;
 }
 
 .activity-container .log-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1 !important;
-  border-radius: 4px !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 3px !important;
+  transition: all 0.2s ease !important;
+  min-height: 20px !important;
 }
 
 .activity-container .log-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8 !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  transform: scaleX(1.2) !important;
 }
 
-/* 确保Firefox也显示滚动条 */
+.activity-container .log-container::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 空状态下滚动条优化 */
+.activity-container .log-container:empty::-webkit-scrollbar,
+.activity-container .no-logs:parent::-webkit-scrollbar {
+  width: 0px !important;
+  display: none !important;
+}
+
+/* Firefox滚动条优化 */
 .activity-container .log-container {
   scrollbar-width: thin !important;
-  scrollbar-color: #c1c1c1 #f1f1f1 !important;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.03) !important;
 }
 
 .no-logs {
@@ -211,6 +233,56 @@
   height: 100%;
   color: #6e7781;
   font-style: italic;
+}
+
+/* 当显示"无日志"时隐藏滚动条 */
+.log-container:has(.no-logs)::-webkit-scrollbar,
+.log-container.empty-content::-webkit-scrollbar {
+  width: 0px !important;
+  display: none !important;
+}
+
+/* 当日志内容很少时的滚动条优化 */
+.log-container.minimal-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15) !important;
+  min-height: 30px !important;
+}
+
+.log-container.minimal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25) !important;
+  transform: scaleX(1.1) !important;
+}
+
+.log-container.minimal-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* 连接视图滚动条样式 */
+.log-container.connection-view::-webkit-scrollbar-thumb {
+  background: rgba(0, 123, 255, 0.25) !important;
+}
+
+.log-container.connection-view::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 123, 255, 0.4) !important;
+  transform: scaleX(1.2) !important;
+}
+
+.log-container.connection-view::-webkit-scrollbar-track {
+  background: rgba(0, 123, 255, 0.04) !important;
+}
+
+/* SingBox视图滚动条样式 */
+.log-container.singbox-view::-webkit-scrollbar-thumb {
+  background: rgba(111, 66, 193, 0.25) !important;
+}
+
+.log-container.singbox-view::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 66, 193, 0.4) !important;
+  transform: scaleX(1.2) !important;
+}
+
+.log-container.singbox-view::-webkit-scrollbar-track {
+  background: rgba(111, 66, 193, 0.04) !important;
 }
 
 .log-item {
@@ -299,6 +371,8 @@
   top: 0;
   z-index: 10;
 }
+
+
 
 .connection-header-time {
   flex: 0 0 80px;
@@ -616,21 +690,75 @@
   outline: none;
 }
 
+/* SingBox日志滚动条优化 */
 .singbox-log-text pre::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
+  background: transparent;
 }
 
 .singbox-log-text pre::-webkit-scrollbar-track {
-  background: #f6f8fa;
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 3px;
+  margin: 2px;
 }
 
 .singbox-log-text pre::-webkit-scrollbar-thumb {
-  background: #c1c8cd;
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  min-height: 20px;
+  min-width: 20px;
 }
 
 .singbox-log-text pre::-webkit-scrollbar-thumb:hover {
-  background: #a1a7aa;
+  background: rgba(0, 0, 0, 0.35);
+  transform: scale(1.1);
+}
+
+.singbox-log-text pre::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* 水平和垂直滚动条交叉处 */
+.singbox-log-text pre::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* SingBox日志空状态滚动条优化 */
+.singbox-log-text:empty pre::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  display: none;
+}
+
+/* Firefox滚动条支持 */
+.singbox-log-text pre {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.03);
+}
+
+/* 通用滚动条行为优化 */
+.activity-container .log-container {
+  /* 确保滚动条只在需要时显示 */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 当内容不足时隐藏滚动条 */
+.activity-container .log-container.empty-content {
+  overflow: hidden;
+}
+
+/* 为所有视图类型添加Firefox支持 */
+.log-container.connection-view {
+  scrollbar-color: rgba(0, 123, 255, 0.25) rgba(0, 123, 255, 0.04);
+}
+
+.log-container.singbox-view {
+  scrollbar-color: rgba(111, 66, 193, 0.25) rgba(111, 66, 193, 0.04);
+}
+
+.log-container.minimal-content {
+  scrollbar-color: rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0.02);
 }
