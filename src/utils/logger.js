@@ -12,13 +12,11 @@ const { app } = require('electron');
 class Logger {
   constructor() {
     this.enabled = true;
-    // 使用统一的日志目录配置
-    const { getLogDir } = require('./paths');
-    this.logDir = getLogDir();
-    this.logFile = path.join(this.logDir, `log-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`);
+    // 延迟加载 paths 模块，避免循环依赖
+    this.logDir = null;
+    this.logFile = null;
     this.mainWindow = null;
     
-    this.ensureLogDirectory();
     this.logHistory = [];
     this.maxLogHistory = 1000; // 最大保存的日志条数
     
@@ -28,16 +26,38 @@ class Logger {
     this.flushInterval = 2000; // 定时写入间隔 (ms)
     this.isWriting = false; // 写入状态锁
     
-    // 设置定时写入
-    this.flushTimer = setInterval(() => this.flushLogBuffer(), this.flushInterval);
-    
-    this.info('日志系统初始化完成');
+    // 延迟初始化日志系统
+    setImmediate(() => {
+      this.initializeLogSystem();
+    });
+  }
+  
+  /**
+   * 初始化日志系统
+   */
+  initializeLogSystem() {
+    try {
+      const { getLogDir } = require('./paths');
+      this.logDir = getLogDir();
+      this.logFile = path.join(this.logDir, `log-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`);
+      
+      this.ensureLogDirectory();
+      
+      // 设置定时写入
+      this.flushTimer = setInterval(() => this.flushLogBuffer(), this.flushInterval);
+      
+      this.info('日志系统初始化完成');
+    } catch (error) {
+      console.error('日志系统初始化失败:', error.message);
+    }
   }
   
   /**
    * 确保日志目录存在
    */
   ensureLogDirectory() {
+    if (!this.logDir) return;
+    
     try {
       if (!fs.existsSync(this.logDir)) {
         fs.mkdirSync(this.logDir, { recursive: true });
@@ -98,7 +118,7 @@ class Logger {
    * 将缓冲区中的日志写入文件
    */
   flushLogBuffer() {
-    if (this.isWriting || this.logBuffer.length === 0) {
+    if (this.isWriting || this.logBuffer.length === 0 || !this.logFile) {
       return;
     }
     

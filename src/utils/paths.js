@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
-const logger = require('./logger');
 
 /**
  * 获取应用数据目录
@@ -37,9 +36,9 @@ function getAppDataDir() {
   if (!fs.existsSync(appDir)) {
     try {
       fs.mkdirSync(appDir, { recursive: true });
-      logger.info(`创建应用数据目录: ${appDir}`);
+      console.log(`创建应用数据目录: ${appDir}`);
     } catch (error) {
-      logger.error(`创建应用数据目录失败: ${error.message}`);
+      console.error(`创建应用数据目录失败: ${error.message}`);
     }
   }
   
@@ -58,9 +57,9 @@ function getConfigDir() {
   if (!fs.existsSync(configDir)) {
     try {
       fs.mkdirSync(configDir, { recursive: true });
-      logger.info(`创建配置目录: ${configDir}`);
+      console.log(`创建配置目录: ${configDir}`);
     } catch (error) {
-      logger.error(`创建配置目录失败: ${error.message}`);
+      console.error(`创建配置目录失败: ${error.message}`);
     }
   }
   
@@ -79,9 +78,9 @@ function getBinDir() {
   if (!fs.existsSync(binDir)) {
     try {
       fs.mkdirSync(binDir, { recursive: true });
-      logger.info(`创建bin目录: ${binDir}`);
+      console.log(`创建bin目录: ${binDir}`);
     } catch (error) {
-      logger.error(`创建bin目录失败: ${error.message}`);
+      console.error(`创建bin目录失败: ${error.message}`);
     }
   }
   
@@ -118,9 +117,9 @@ function getLogDir() {
   if (!fs.existsSync(logDir)) {
     try {
       fs.mkdirSync(logDir, { recursive: true });
-      logger.info(`创建日志目录: ${logDir}`);
+      console.log(`创建日志目录: ${logDir}`);
     } catch (error) {
-      logger.error(`创建日志目录失败: ${error.message}`);
+      console.error(`创建日志目录失败: ${error.message}`);
     }
   }
   

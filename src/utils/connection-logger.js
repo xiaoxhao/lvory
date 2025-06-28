@@ -1,5 +1,6 @@
 const https = require('https');
 const http = require('http');
+const eventBus = require('./event-bus');
 
 class ConnectionLogger {
   constructor() {
@@ -48,18 +49,23 @@ class ConnectionLogger {
       startRequestId: null           // 启动请求ID，用于去重
     };
     
-    // 监听sing-box状态变化
+    // 使用事件总线监听状态变化，避免循环依赖
     this.singBoxStateListener = this.handleSingBoxStateChange.bind(this);
     this.initSingBoxStateListener();
   }
 
   initSingBoxStateListener() {
     try {
-      const singBox = require('./sing-box');
-      singBox.addStateListener(this.singBoxStateListener);
-      console.log('ConnectionLogger: 已注册sing-box状态监听器');
+      // 使用事件总线监听状态变化，避免循环依赖
+      eventBus.onStateChange('core-started', () => this.handleSingBoxStateChange({ type: 'core-started' }));
+      eventBus.onStateChange('core-stopped', () => this.handleSingBoxStateChange({ type: 'core-stopped' }));
+      eventBus.onStateChange('core-stopping', () => this.handleSingBoxStateChange({ type: 'core-stopping' }));
+      eventBus.onStateChange('connection-monitor-enabled', () => this.handleSingBoxStateChange({ type: 'connection-monitor-enabled' }));
+      eventBus.onStateChange('connection-monitor-disabled', () => this.handleSingBoxStateChange({ type: 'connection-monitor-disabled' }));
+      eventBus.onStateChange('connection-monitor-max-retries', () => this.handleSingBoxStateChange({ type: 'connection-monitor-max-retries' }));
+      console.log('ConnectionLogger: 已注册事件总线状态监听器');
     } catch (error) {
-      console.error('ConnectionLogger: 注册sing-box状态监听器失败:', error);
+      console.error('ConnectionLogger: 注册事件总线状态监听器失败:', error);
     }
   }
 
@@ -196,10 +202,9 @@ class ConnectionLogger {
       
       // 通知sing-box记录重试失败
       try {
-        const singBox = require('./sing-box');
-        singBox.recordConnectionRetry();
+        eventBus.emitStateChange('connection-retry-failed');
       } catch (error) {
-        console.error('ConnectionLogger: 通知sing-box重试失败时出错:', error);
+        console.error('ConnectionLogger: 通知重试失败时出错:', error);
       }
       
       return;
@@ -547,12 +552,11 @@ class ConnectionLogger {
       console.log(`ConnectionLogger: 重试次数已达上限 (${this.connectionState.maxRetries})，停止重试`);
       this.enabled = false;
       
-      // 通知sing-box记录重试失败
+      // 通知记录重试失败
       try {
-        const singBox = require('./sing-box');
-        singBox.recordConnectionRetry();
+        eventBus.emitStateChange('connection-retry-failed');
       } catch (error) {
-        console.error('ConnectionLogger: 通知sing-box重试失败时出错:', error);
+        console.error('ConnectionLogger: 通知重试失败时出错:', error);
       }
       
       return;
@@ -745,11 +749,10 @@ class ConnectionLogger {
     
     // 移除状态监听器
     try {
-      const singBox = require('./sing-box');
-      singBox.removeStateListener(this.singBoxStateListener);
-      console.log('ConnectionLogger: 已移除sing-box状态监听器');
+      eventBus.removeAllListeners('state-change');
+      console.log('ConnectionLogger: 已移除事件总线状态监听器');
     } catch (error) {
-      console.error('ConnectionLogger: 移除sing-box状态监听器失败:', error);
+      console.error('ConnectionLogger: 移除事件总线状态监听器失败:', error);
     }
   }
 

@@ -10,6 +10,7 @@ const { spawn } = require('child_process');
 const systemProxy = require('./system-proxy');
 const logger = require('./logger');
 const { getAppDataDir, getBinDir } = require('./paths');
+const eventBus = require('./event-bus');
 
 // 导入子模块
 const StateManager = require('./sing-box/state-manager');
@@ -43,6 +44,11 @@ class SingBox {
     // 设置进程管理器的回调
     this.processManager.setElevatedProcessCheckCallback(this.checkElevatedProcessRunning.bind(this));
     this.processManager.setGracefulStopCallback(this.gracefulStopProcess.bind(this));
+    
+    // 监听连接重试失败事件
+    eventBus.onStateChange('connection-retry-failed', () => {
+      this.recordConnectionRetry();
+    });
   }
 
   /**
@@ -111,19 +117,27 @@ class SingBox {
   }
 
   resetConnectionMonitor() {
-    return this.stateManager.resetConnectionMonitor();
+    const result = this.stateManager.resetConnectionMonitor();
+    eventBus.emitStateChange('connection-monitor-reset');
+    return result;
   }
 
   enableConnectionMonitor() {
-    return this.stateManager.enableConnectionMonitor();
+    const result = this.stateManager.enableConnectionMonitor();
+    eventBus.emitStateChange('connection-monitor-enabled');
+    return result;
   }
 
   disableConnectionMonitor() {
-    return this.stateManager.disableConnectionMonitor();
+    const result = this.stateManager.disableConnectionMonitor();
+    eventBus.emitStateChange('connection-monitor-disabled');
+    return result;
   }
 
   recordConnectionRetry() {
-    return this.stateManager.recordConnectionRetry();
+    const result = this.stateManager.recordConnectionRetry();
+    eventBus.emitStateChange('connection-retry-recorded');
+    return result;
   }
 
   // 配置解析方法代理
@@ -535,6 +549,12 @@ class SingBox {
           message: '内核服务已停止'
         });
         
+        // 通过事件总线发送状态变化
+        eventBus.emitStateChange('core-stopped', {
+          exitCode: code,
+          error: finalError
+        });
+        
         this.disableSystemProxy().catch(err => {
           logger.error('[SingBox] 禁用系统代理失败:', err);
         });
@@ -564,6 +584,12 @@ class SingBox {
           configPath: configPath,
           proxyPort: this.proxyConfig.port,
           message: '内核服务已启动'
+        });
+        
+        // 通过事件总线发送状态变化
+        eventBus.emitStateChange('core-started', {
+          configPath: configPath,
+          proxyPort: this.proxyConfig.port
         });
         
         if (this.proxyConfig.enableSystemProxy) {
@@ -627,6 +653,9 @@ class SingBox {
         type: 'core-stopping',
         message: '正在停止内核服务'
       });
+      
+      // 通过事件总线发送状态变化
+      eventBus.emitStateChange('core-stopping');
       
       this.disableConnectionMonitor();
       
