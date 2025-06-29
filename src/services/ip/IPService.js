@@ -21,7 +21,19 @@ class IPService {
         throw new Error(`IP查询失败: ${response.status}`);
       }
       
-      return await response.json();
+      const data = await response.json();
+      
+      // 确保返回的数据包含经纬度信息
+      return {
+        ip: data.ip || '未知',
+        country: data.country || '未知',
+        city: data.city || '',
+        region: data.region || '',
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
+        asn: data.asn || '',
+        organization: data.organization || ''
+      };
     } catch (error) {
       console.error('获取IP地理位置信息失败:', error);
       return {
@@ -29,6 +41,8 @@ class IPService {
         country: '未知',
         city: '',
         region: '',
+        latitude: 0,
+        longitude: 0,
         asn: '',
         organization: ''
       };

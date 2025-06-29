@@ -809,7 +809,7 @@ const SettingsContent = ({ section }) => {
               {/* 开机自启动开关 */}
               {renderToggle(t('settings.autoStart'), 'autoStart', settings.autoStart)}
 
-              {/* TUN 模式支持开关 */}
+              {/* TUN 模式开关 */}
               {renderToggle(t('settings.tunMode'), 'tunMode', settings.tunMode)}
               <DescriptionText>{t('settings.tunModeDesc')}</DescriptionText>
               

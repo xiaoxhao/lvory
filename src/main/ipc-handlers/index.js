@@ -12,6 +12,7 @@ let downloadHandlers;
 let settingsHandlers;
 let updateHandlers;
 let nodeHistoryHandlers;
+let tracerouteHandlers;
 
 let ipcHandlersRegistered = false;
 
@@ -58,7 +59,10 @@ const HANDLERS_TO_REMOVE = [
   'check-for-updates',
   'get-all-versions',
   // 外部链接相关
-  'open-external'
+  'open-external',
+  // Traceroute 相关
+  'traceroute:execute',
+  'traceroute:validate'
 ];
 
 /**
@@ -86,13 +90,14 @@ function setupHandlers() {
   }
   
   try {
-    // 加载所有处理程序模块 (window-handlers已移除，使用新的IPC系统)
+    // 加载所有处理程序模块
     profileHandlers = loadHandlerModule('profile');
     singboxHandlers = loadHandlerModule('singbox');
     downloadHandlers = loadHandlerModule('download');
     settingsHandlers = loadHandlerModule('settings');
     updateHandlers = loadHandlerModule('update');
     nodeHistoryHandlers = loadHandlerModule('node-history');
+    tracerouteHandlers = loadHandlerModule('traceroute');
     
     // 导入工具模块
     const utils = require('./utils');
@@ -104,23 +109,14 @@ function setupHandlers() {
     if (settingsHandlers) settingsHandlers.setup();
     if (updateHandlers) updateHandlers.setup();
     if (nodeHistoryHandlers) nodeHistoryHandlers.setup();
+    if (tracerouteHandlers) tracerouteHandlers.registerTracerouteHandlers();
     
     // 设置网络接口处理程序
     utils.getNetworkInterfaces();
-    
-    // 设置应用版本处理程序
     utils.getAppVersion();
-    
-    // 设置构建日期处理程序
     utils.getBuildDate();
-    
-    // 设置版本更新检查处理程序
     utils.checkForUpdates();
-    
-    // 设置获取所有版本处理程序
     utils.getAllVersions();
-    
-    // 设置打开外部链接处理程序
     utils.openExternal();
     
     ipcHandlersRegistered = true;
@@ -140,22 +136,17 @@ function cleanupHandlers() {
   
   logger.info('正在清理IPC处理程序...');
   
-  // 移除所有注册的处理程序
   HANDLERS_TO_REMOVE.forEach((channel) => {
     try {
-      // 对于监听器类型的channel，需要特殊处理
       if (channel.endsWith('-listen') || channel.endsWith('-unlisten')) {
         ipcMain.removeAllListeners(channel);
       } else {
-        // 移除invoke类型的处理程序
         ipcMain.removeHandler(channel);
       }
     } catch (error) {
       logger.warn(`移除处理程序 ${channel} 失败:`, error);
     }
   });
-  
-
   
   ipcHandlersRegistered = false;
   logger.info('IPC处理程序已清理');

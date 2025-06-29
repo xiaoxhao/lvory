@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import '../../assets/css/dashboard.css';
 import Activity from '../Activity';
 
-// 导入拆分出来的组件
 import ProfileModal from './ProfileModal';
 import ControlPanel from './ControlPanel';
 import NodeList from './NodeList';
 import StatsOverview from './StatsOverview';
 
-// 导入拆分出来的功能模块
 import useSpeedTest from './SpeedTest';
 import useCoreManagement from './CoreManagement';
 import useSingBoxControl from './SingBoxControl';

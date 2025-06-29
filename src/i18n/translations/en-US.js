@@ -174,6 +174,31 @@ export default {
     days: 'days'
   },
   
+  // Tools page related
+  tools: {
+    networkTools: 'Network Tools',
+    toolsDescription: 'Network diagnostic and visualization tools',
+    selectTool: 'Select Tool',
+    traceroute: 'Traceroute',
+    tracerouteDescription: 'Visual network path tracing',
+    targetHost: 'Target Host',
+    targetPlaceholder: 'Enter domain or IP address',
+    startTrace: 'Start Trace',
+    tracing: 'Tracing...',
+    routeInfo: 'Route Hop Information',
+    hopCount: 'hops',
+    networkTracerouteVisualization: 'Network Traceroute Visualization',
+    source: 'Source',
+    destination: 'Destination',
+    hop: 'Hop',
+    routeConnection: 'Route Connection',
+    from: 'From',
+    to: 'To',
+    latency: 'Latency',
+    location: 'Location',
+    rtt: 'RTT'
+  },
+
   // Update Related
   update: {
     newVersionAvailable: 'New Version Available',

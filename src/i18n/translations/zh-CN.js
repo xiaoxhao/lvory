@@ -11,7 +11,7 @@ export default {
     allowLan: '允许局域网连接',
 
     autoStart: '开机自启动',
-    tunMode: 'TUN 模式支持',
+    tunMode: 'TUN 模式',
     tunModeDesc: '启用后内核将以管理员权限运行，支持系统级流量接管',
     checkUpdates: '启动时检查更新',
     
@@ -174,6 +174,31 @@ export default {
     days: '天'
   },
   
+  // 工具页面相关
+  tools: {
+    networkTools: '网络工具',
+    toolsDescription: '网络诊断与可视化工具',
+    selectTool: '选择工具',
+    traceroute: 'Traceroute 路由跟踪',
+    tracerouteDescription: '可视化网络路径跟踪',
+    targetHost: '目标主机',
+    targetPlaceholder: '输入域名或IP地址',
+    startTrace: '开始追踪',
+    tracing: '追踪中...',
+    routeInfo: '路由跳点信息',
+    hopCount: '个跳点',
+    networkTracerouteVisualization: '网络路由跟踪可视化',
+    source: '源地址',
+    destination: '目标地址',
+    hop: '跳点',
+    routeConnection: '路由连接',
+    from: '从',
+    to: '到',
+    latency: '延迟',
+    location: '位置',
+    rtt: 'RTT'
+  },
+
   // 更新相关
   update: {
     newVersionAvailable: '发现新版本',
