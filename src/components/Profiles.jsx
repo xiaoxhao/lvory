@@ -225,21 +225,17 @@ const Profiles = () => {
           // 检测配置文件协议类型
           const protocol = detectFileProtocol(fileName, fileInfo.content);
           
-          let targetFilePath = fileInfo.path;
+          // 统一使用原始文件路径，setConfigPathSmart会自动处理Lvory协议的缓存
+          const targetFilePath = fileInfo.path;
           
-          // 如果是Lvory协议，使用缓存文件
-          if (protocol === 'lvory' && fileInfo.hasCache && fileInfo.cacheInfo) {
-            // 直接使用缓存文件名，setConfigPath会处理完整路径
-            targetFilePath = fileInfo.cacheInfo.fileName;
-            console.log(`Lvory协议文件 ${fileName} 使用缓存文件: ${fileInfo.cacheInfo.fileName}`);
-          }
+          console.log(`激活配置文件: ${fileName} (${protocol}), 路径: ${targetFilePath}`);
           
           // 使用setConfigPath设置为当前活跃配置
           const setResult = await window.electron.config.setPath(targetFilePath);
           if (setResult && setResult.success) {
             setActiveProfile(fileName);
             
-            // 如果是Lvory协议，显示处理成功信息
+            // 根据协议类型显示相应的成功信息
             if (protocol === 'lvory') {
               showMessage(`${t('profiles.lvoryConfigActivated')}${fileName}`);
             } else {

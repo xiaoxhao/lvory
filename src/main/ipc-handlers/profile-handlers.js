@@ -49,10 +49,73 @@ function setup() {
         return { success: false, error: `文件不存在: ${fullPath}` };
       }
       
+      // 获取SingBox实例检查是否正在运行
+      const singbox = require('../../utils/sing-box');
+      const isRunning = singbox.isRunning();
+      
       // 使用profileManager的智能设置方法处理Lvory和SingBox配置
       const success = await profileManager.setConfigPathSmart(fullPath);
       if (success) {
         logger.info(`配置文件已成功设置: ${fullPath}`);
+        
+        // 如果内核正在运行，需要重启以应用新配置
+        if (isRunning) {
+          logger.info('检测到内核正在运行，重启内核以应用新配置');
+          try {
+            // 先停止内核
+            logger.info('正在停止当前运行的内核...');
+            const stopResult = await singbox.stopCore();
+            if (!stopResult.success) {
+              logger.warn(`停止内核时出现警告: ${stopResult.error}`);
+            }
+            
+            // 等待停止完成并确认状态
+            let stopAttempts = 0;
+            const maxStopAttempts = 10;
+            while (singbox.isRunning() && stopAttempts < maxStopAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+              stopAttempts++;
+            }
+            
+            if (singbox.isRunning()) {
+              logger.warn('内核停止超时，强制继续启动新配置');
+            } else {
+              logger.info('内核已成功停止');
+            }
+            
+            // 获取设置管理器用于启动内核
+            const settingsManager = require('../settings-manager');
+            const settings = settingsManager.getSettings();
+            const proxyConfig = settingsManager.getProxyConfig(fullPath);
+            
+            // 使用新配置重新启动内核
+            logger.info(`正在使用新配置启动内核: ${fullPath}`);
+            const startResult = await singbox.startCore({ 
+              configPath: fullPath,
+              proxyConfig,
+              enableSystemProxy: proxyConfig.enableSystemProxy,
+              tunMode: settings.tunMode || false
+            });
+            
+            if (!startResult.success) {
+              logger.error(`重启内核失败: ${startResult.error}`);
+              return { 
+                success: false, 
+                error: `配置已切换但重启内核失败: ${startResult.error}`,
+                configPath: fullPath 
+              };
+            }
+            
+            logger.info('内核已成功重启并应用新配置');
+          } catch (restartError) {
+            logger.error('重启内核过程中发生错误:', restartError);
+            return { 
+              success: false, 
+              error: `配置已切换但重启内核失败: ${restartError.message}`,
+              configPath: fullPath 
+            };
+          }
+        }
         
         // 通知前端配置文件已切换 - 使用多个事件确保所有组件都能收到通知
         const mainWindow = utils.getMainWindow();
