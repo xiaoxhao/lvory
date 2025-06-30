@@ -85,12 +85,14 @@ contextBridge.exposeInMainWorld('electron', {
     getData: () => ipcRenderer.invoke('get-profile-data'),
     getFiles: () => ipcRenderer.invoke('getProfileFiles'),
     getMetadata: (fileName) => ipcRenderer.invoke('getProfileMetadata', fileName),
-    update: (fileName) => ipcRenderer.invoke('updateProfile', fileName),
-    updateAll: () => ipcRenderer.invoke('updateAllProfiles'),
+    update: (fileName) => ipcRenderer.invoke('update-profile', fileName),
+    updateAll: () => ipcRenderer.invoke('update-all-profiles'),
     delete: (fileName) => ipcRenderer.invoke('deleteProfile', fileName),
     openInEditor: (fileName) => ipcRenderer.invoke('openFileInEditor', fileName),
     openAddDialog: () => ipcRenderer.send('open-add-profile-dialog'),
     refreshLvorySync: () => ipcRenderer.invoke('refresh-lvory-sync'),
+    applyModeMapping: (mappingConfig) => ipcRenderer.invoke('apply-mode-mapping', mappingConfig),
+    applyMappings: (mappingConfig) => ipcRenderer.invoke('apply-mappings', mappingConfig),
     
     onData: (callback) => {
       ipcRenderer.on('profile-data', (event, data) => callback(data));
