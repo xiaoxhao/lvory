@@ -10,11 +10,8 @@ const os = require('os');
 const https = require('https');
 const { getAppDataDir, getConfigDir } = require('../../utils/paths');
 
-// 应用构建日期，由CI注入
-const APP_BUILD_DATE = '20240101'; // 默认构建日期
-
-// 应用便携模式标识，由CI注入
-const APP_IS_PORTABLE = 'false'; // 默认非便携模式
+const APP_BUILD_DATE = '20240101';
+const APP_IS_PORTABLE = 'false';
 
 /**
  * 获取主窗口
@@ -57,40 +54,35 @@ function writeMetaCache(metaCache) {
   }
 }
 
-// 获取应用版本
 function getAppVersion() {
   ipcMain.handle('get-app-version', async () => {
     try {
-      // 使用Electron内置app对象获取版本号
       return app.getVersion();
     } catch (error) {
       console.error('获取应用版本失败:', error);
-      // 返回默认版本号
       return '0.1.7';
     }
   });
 }
 
-// 获取应用构建日期
 function getBuildDate() {
   ipcMain.handle('get-build-date', async () => {
     try {
       return APP_BUILD_DATE;
     } catch (error) {
       console.error('获取构建日期失败:', error);
-      return '20240101'; // 返回默认日期
+      return '20240101';
     }
   });
 }
 
-// 获取应用是否为便携模式
 function getIsPortable() {
   ipcMain.handle('get-is-portable', async () => {
     try {
       return APP_IS_PORTABLE === 'true';
     } catch (error) {
       console.error('获取便携模式标识失败:', error);
-      return false; // 返回默认非便携模式
+      return false;
     }
   });
 }

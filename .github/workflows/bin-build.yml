@@ -85,6 +85,12 @@ jobs:
             }
           }
           
+          $packageJsonPath = "package.json"
+          $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
+          $packageJson.build.asar = $false
+          $packageJson | ConvertTo-Json -Depth 10 | Set-Content $packageJsonPath
+          Write-Host "Disabled asar for portable build"
+          
           # 重新构建 webpack 并构建便携版
           npm run build:webpack
           npx electron-builder --win portable
@@ -184,7 +190,7 @@ jobs:
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
       
-      - name: Inject build date and portable mode for AppImage
+      - name: Build DEB (Install version)
         run: |
           buildDate="${{ steps.date.outputs.date }}"
           find src -type f -name "*.js" -print0 | xargs -0 grep -l "const APP_BUILD_DATE = '[0-9]\\{8\\}'" | while read file; do
@@ -192,15 +198,36 @@ jobs:
             echo "Injected build date $buildDate into $file"
           done
           
-          # 为 AppImage (portable) 构建注入便携模式标识
+          # 先构建安装版（DEB）
+          npm run build:webpack
+          npx electron-builder --linux deb
+        shell: bash
+      
+      - name: Build AppImage (Portable version)
+        run: |
+          buildDate="${{ steps.date.outputs.date }}"
+          
+          # 为 AppImage 注入便携模式标识
           find src -type f -name "*.js" -print0 | xargs -0 grep -l "const APP_IS_PORTABLE = '[^']*'" | while read file; do
             sed -i "s/const APP_IS_PORTABLE = '[^']*'/const APP_IS_PORTABLE = 'true'/" "$file"
             echo "Injected portable mode flag into $file"
           done
+          
+          # 为便携版禁用 asar
+          node -e "
+            const fs = require('fs');
+            const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            packageJson.build.asar = false;
+            fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
+            console.log('Disabled asar for AppImage build');
+          "
+          
+          # 重新构建 webpack 并构建 AppImage
+          npm run build:webpack
+          npx electron-builder --linux AppImage
         shell: bash
       
-      - name: Build
-        run: npm run build:linux
+
       
       - name: List build directory contents
         run: |
