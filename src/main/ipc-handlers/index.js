@@ -54,6 +54,7 @@ const HANDLERS_TO_REMOVE = [
   // 应用版本相关
   'get-app-version',
   'get-build-date',
+  'get-is-portable',
   // 版本更新相关
   'check-for-updates',
   'get-all-versions',
@@ -113,6 +114,9 @@ function setupHandlers() {
     
     // 设置构建日期处理程序
     utils.getBuildDate();
+    
+    // 设置便携模式检测处理程序
+    utils.getIsPortable();
     
     // 设置版本更新检查处理程序
     utils.checkForUpdates();

@@ -43,16 +43,52 @@ jobs:
           $buildDate = "${{ steps.date.outputs.date }}"
           Get-ChildItem -Path src -Filter "*.js" -Recurse | ForEach-Object {
             $content = Get-Content $_.FullName -Raw
+            
+            # 只注入构建日期，保持便携模式为 false（用于安装版）
             if ($content -match "const APP_BUILD_DATE = '(\d+)'") {
-              $newContent = $content -replace "const APP_BUILD_DATE = '(\d+)'", "const APP_BUILD_DATE = '$buildDate'"
-              Set-Content $_.FullName $newContent
+              $content = $content -replace "const APP_BUILD_DATE = '(\d+)'", "const APP_BUILD_DATE = '$buildDate'"
+              Set-Content $_.FullName $content
               Write-Host "Injected build date $buildDate into $($_.FullName)"
             }
           }
         shell: pwsh
       
-      - name: Build
-        run: npm run build:win
+      - name: Build MSI (Install version)
+        run: |
+          # 先构建安装版（保持 APP_IS_PORTABLE = 'false'）
+          npm run build:webpack
+          npx electron-builder --win msi
+      
+      - name: Reset portable flag and build portable version
+        run: |
+          # 为便携版注入便携模式标识
+          $buildDate = "${{ steps.date.outputs.date }}"
+          Get-ChildItem -Path src -Filter "*.js" -Recurse | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            $modified = $false
+            
+            # 重新注入构建日期
+            if ($content -match "const APP_BUILD_DATE = '(\d+)'") {
+              $content = $content -replace "const APP_BUILD_DATE = '(\d+)'", "const APP_BUILD_DATE = '$buildDate'"
+              $modified = $true
+            }
+            
+            # 为便携版注入便携模式标识
+            if ($content -match "const APP_IS_PORTABLE = '(true|false)'") {
+              $content = $content -replace "const APP_IS_PORTABLE = '(true|false)'", "const APP_IS_PORTABLE = 'true'"
+              $modified = $true
+            }
+            
+            if ($modified) {
+              Set-Content $_.FullName $content
+              Write-Host "Injected portable mode parameters into $($_.FullName)"
+            }
+          }
+          
+          # 重新构建 webpack 并构建便携版
+          npm run build:webpack
+          npx electron-builder --win portable
+        shell: pwsh
       
       - name: List build directory contents
         run: |
@@ -148,12 +184,18 @@ jobs:
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
       
-      - name: Inject build date
+      - name: Inject build date and portable mode for AppImage
         run: |
           buildDate="${{ steps.date.outputs.date }}"
           find src -type f -name "*.js" -print0 | xargs -0 grep -l "const APP_BUILD_DATE = '[0-9]\\{8\\}'" | while read file; do
             sed -i "s/const APP_BUILD_DATE = '[0-9]\{8\}'/const APP_BUILD_DATE = '$buildDate'/" "$file"
             echo "Injected build date $buildDate into $file"
+          done
+          
+          # 为 AppImage (portable) 构建注入便携模式标识
+          find src -type f -name "*.js" -print0 | xargs -0 grep -l "const APP_IS_PORTABLE = '[^']*'" | while read file; do
+            sed -i "s/const APP_IS_PORTABLE = '[^']*'/const APP_IS_PORTABLE = 'true'/" "$file"
+            echo "Injected portable mode flag into $file"
           done
         shell: bash
       

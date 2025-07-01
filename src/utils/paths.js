@@ -4,6 +4,17 @@ const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 
+// portable 模式检测标识，由构建时注入
+const APP_IS_PORTABLE = 'false'; // 默认非便携模式
+
+/**
+ * 检测是否为 portable 模式
+ * @returns {Boolean} 是否为 portable 模式
+ */
+function isPortableMode() {
+  return APP_IS_PORTABLE === 'true';
+}
+
 /**
  * 获取应用数据目录
  * @returns {String} 应用数据目录路径
@@ -11,24 +22,33 @@ const crypto = require('crypto');
 function getAppDataDir() {
   let appDir;
   
-  // 根据不同平台获取合适的数据目录
-  if (process.platform === 'win32') {
-    // Windows平台 - 使用LOCALAPPDATA目录
-    const appDataDir = process.env.LOCALAPPDATA || '';
-    appDir = path.join(appDataDir, 'lvory');
-  } else if (process.platform === 'darwin') {
-    // macOS平台 - 使用Library/Application Support目录
-    const homeDir = os.homedir();
-    appDir = path.join(homeDir, 'Library', 'Application Support', 'lvory');
+  // 检测 portable 模式
+  if (isPortableMode()) {
+    // portable 模式：使用应用程序所在目录的 data 子目录
+    const appPath = app.getAppPath();
+    const executableDir = path.dirname(process.execPath);
+    appDir = path.join(executableDir, 'data');
+    console.log(`便携模式：使用数据目录 ${appDir}`);
   } else {
-    // Linux平台 - 优先使用XDG_CONFIG_HOME，否则使用~/.config目录
-    // 这样可以兼容deb和AppImage两种安装方式
-    const homeDir = os.homedir();
-    const xdgConfigHome = process.env.XDG_CONFIG_HOME;
-    if (xdgConfigHome) {
-      appDir = path.join(xdgConfigHome, 'lvory');
+    // 标准模式：根据不同平台获取合适的数据目录
+    if (process.platform === 'win32') {
+      // Windows平台 - 使用LOCALAPPDATA目录
+      const appDataDir = process.env.LOCALAPPDATA || '';
+      appDir = path.join(appDataDir, 'lvory');
+    } else if (process.platform === 'darwin') {
+      // macOS平台 - 使用Library/Application Support目录
+      const homeDir = os.homedir();
+      appDir = path.join(homeDir, 'Library', 'Application Support', 'lvory');
     } else {
-      appDir = path.join(homeDir, '.config', 'lvory');
+      // Linux平台 - 优先使用XDG_CONFIG_HOME，否则使用~/.config目录
+      // 这样可以兼容deb和AppImage两种安装方式
+      const homeDir = os.homedir();
+      const xdgConfigHome = process.env.XDG_CONFIG_HOME;
+      if (xdgConfigHome) {
+        appDir = path.join(xdgConfigHome, 'lvory');
+      } else {
+        appDir = path.join(homeDir, '.config', 'lvory');
+      }
     }
   }
   
@@ -153,6 +173,7 @@ module.exports = {
   getStorePath,
   getLogDir,
   getTempLogDir,
-  generateDefaultLogPath
+  generateDefaultLogPath,
+  isPortableMode
 }; 
 

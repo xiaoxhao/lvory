@@ -13,6 +13,9 @@ const { getAppDataDir, getConfigDir } = require('../../utils/paths');
 // 应用构建日期，由CI注入
 const APP_BUILD_DATE = '20240101'; // 默认构建日期
 
+// 应用便携模式标识，由CI注入
+const APP_IS_PORTABLE = 'false'; // 默认非便携模式
+
 /**
  * 获取主窗口
  * @returns {BrowserWindow|null} 主窗口对象或null
@@ -76,6 +79,18 @@ function getBuildDate() {
     } catch (error) {
       console.error('获取构建日期失败:', error);
       return '20240101'; // 返回默认日期
+    }
+  });
+}
+
+// 获取应用是否为便携模式
+function getIsPortable() {
+  ipcMain.handle('get-is-portable', async () => {
+    try {
+      return APP_IS_PORTABLE === 'true';
+    } catch (error) {
+      console.error('获取便携模式标识失败:', error);
+      return false; // 返回默认非便携模式
     }
   });
 }
@@ -480,6 +495,7 @@ module.exports = {
   getNetworkInterfaces,
   getAppVersion,
   getBuildDate,
+  getIsPortable,
   checkForUpdates,
   openExternal,
   getAllVersions
