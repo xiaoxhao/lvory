@@ -2,7 +2,7 @@
 
 # Lvory
 
-*Minimalist Cross-Platform Client for Singbox*
+*极简跨平台 Singbox 客户端*
 
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=sxueck_lvory&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=sxueck_lvory) 
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=sxueck_lvory&metric=bugs)](https://sonarcloud.io/summary/new_code?id=sxueck_lvory) 
@@ -10,144 +10,104 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
-[中文文档](README-zh.md) • [Screenshots](docs/screenshot.md) • [Documentation](docs/) • [Wiki](wiki/)
+[截图预览](docs/screenshot.md) • [文档](docs/) • [常见问题](docs/faq.md)
 
 </div>
 
-## Table of Contents
+## 功能特性
 
-- [Lvory](#lvory)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-    - [Core Features](#core-features)
-    - [Planned Features](#planned-features)
-  - [Preview](#preview)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Quick Start](#quick-start)
-  - [Development](#development)
-    - [Architecture Documents](#architecture-documents)
-    - [Development Setup](#development-setup)
-  - [Contributing](#contributing)
-    - [Guidelines](#guidelines)
-  - [⚠️ Disclaimer](#️-disclaimer)
-  - [License](#license)
+Lvory 是一个基于 Electron 开发的高度灵活的跨平台 SingBox 客户端，**面向具有自建能力的用户**。
 
+### 核心功能
 
-
-## Features
-
-Lvory is a highly flexible cross-platform SingBox client developed with Electron, **targeted at users with self-hosting capabilities**.
-
-### Core Features
-
-| Feature | Description |
+| 功能 | 描述 |
 |---------|-------------|
-| **Automatic Kernel Management** | Automatically downloads, installs, and updates the SingBox kernel |
-| **Proxy Management** | One-click system proxy enable/disable with automatic port detection |
-| **Configuration Management** | Multi-config support with automatic node parsing and display |
-| **Auto-Updates** | Scheduled automatic updates for configuration files |
-| **Activity Logs** | Real-time SingBox runtime logs and system activities |
-| **Greater Flexibility** | File-based operations with UI assistance for maximum flexibility |
-
-### Planned Features
-
-- Node SLA calculation and quality assessment
-- Flexible policy development framework
+| **自动内核管理** | 自动下载、安装和更新 SingBox 内核 |
+| **代理管理** | 一键启用/禁用系统代理，自动端口检测 |
+| **配置管理** | 多配置支持，自动解析节点并显示 |
+| **自动更新** | 定时自动更新配置文件 |
+| **活动日志** | 实时 SingBox 运行日志和系统活动 |
+| **高度灵活** | 基于文件操作，UI 辅助，最大化灵活性 |
 
 
-## Preview
+## 预览
 
 <div align="center">
 
-![Dashboard](docs/screenshot/dashboard.png)
+![仪表板](docs/screenshot/dashboard.png)
 
-*Main Dashboard Interface*
+*主仪表板界面*
 
 </div>
 
-For more screenshots, visit our [More Screenshots](docs/screenshot.md)
+更多截图请查看 [更多截图](docs/screenshot.md)
+
+
+## 快速开始
+
+### 系统要求
+
+- **操作系统**: Windows 10+、macOS 10.15+ 或 Linux
+- **SingBox**: 由 Lvory 自动管理
+
+### 安装
+
+从 [GitHub Releases](https://github.com/sxueck/lvory/releases) 页面下载最新版本。
+
+选择适合您操作系统的安装包
+
+### 快速使用
+
+1. **启动 Lvory** - 启动应用程序
+2. **添加配置** - 导入您的 SingBox 配置文件
+3. **启用代理** - 一键切换系统代理
+4. **监控活动** - 查看实时日志和连接状态
+
+### Lvory 协议支持
+
+Lvory 支持专门的同步协议，用于智能管理多源代理配置：
+
+- **多源节点池**：从多个订阅源自动获取和更新节点信息
+- **智能匹配**：通过节点名称等标识符自动匹配和同步节点
+- **声明式配置**：使用简单的配置文件管理复杂的代理架构
+- **自动同步**：定时检查配置源更新，保持配置最新状态
+
+具体的声明和使用方式请参考：[Lvory 同步协议文档](docs/program/lvory-sync-protocol.md)
+
+### 内核管理
+
+Lvory 会自动下载和管理 SingBox 内核，通常情况下用户无需关心这部分，但是同时也支持让用户自行下载或者更换内核，具体可以参考该 [ssue](https://github.com/sxueck/lvory/issues/21)
+
+### 架构文档
+
+- **[配置引擎设计 - Alpha](docs/program/profiles_engine.md)**  
+  配置映射引擎原型和实现细节
+
+- **[节点评分算法 - Alpha](docs/program/node_score.md)**  
+  代理节点评分算法和工作流程文档
+
+### 开发环境搭建
+
+具体的构建编译可以参考 Github Actions 声明
+
+## 贡献
+
+欢迎贡献！请随时提交问题和拉取请求。
+
+## ⚠️ 免责声明
+
+> **重要提示**: 使用前请仔细阅读。
+
+1. **教学目的**: 该项目及其文档仅用于技术研究、讨论和学习目的，不构成商业或法律建议。
+
+2. **无保证**: 作者和维护者对使用该项目可能造成的任何直接、间接、偶然或后果性损害、数据丢失或系统故障不承担责任。
+
+3. **法律合规**: 该项目不得用于任何非法、未经授权或违反法规的活动。此类误用产生的责任完全由用户承担。
+
+4. **用户责任**: 用户在使用该项目时有责任确保遵守所有适用的法律、法规和行业标准。
 
 
 
-## Getting Started
+## 许可证
 
-### Prerequisites
-
-- **Operating System**: Windows 10+, macOS 10.15+, or Linux
-- **SingBox**: Automatically managed by Lvory
-
-### Installation
-
-Download the latest release from our [GitHub Releases](https://github.com/sxueck/lvory/releases) page.
-
-Choose the appropriate package for your operating system:
-- **Windows**: `Lvory-Setup-x.x.x.exe`
-- **macOS**: `Lvory-x.x.x.dmg`
-- **Linux**: `Lvory-x.x.x.deb`
-
-### Quick Start
-
-1. **Launch Lvory** - Start the application
-2. **Add Configuration** - Import your SingBox configuration files
-3. **Enable Proxy** - Toggle system proxy with one click
-4. **Monitor Activity** - View real-time logs and connection status
-
-
-
-## Development
-
-### Architecture Documents
-
-- **[Profiles Engine Design - Alpha](docs/profiles_engine.md)**  
-  Configuration mapping engine prototype and implementation details
-
-- **[Node Scoring Algorithm - Alpha](docs/node_score.md)**  
-  Proxy node scoring algorithm and workflow documentation
-
-### Development Setup
-
-```bash
-# Install development dependencies
-npm i
-
-# Run in development mode
-npm run dev
-
-# Build for production
-npm run build
-```
-
-
-
-## Contributing
-
-We welcome contributions! Please feel free to submit issues and pull requests.
-
-### Guidelines
-
-- Follow the existing code style
-- Write clear commit messages
-- Add tests for new features
-- Update documentation as needed
-
-
-
-## ⚠️ Disclaimer
-
-> **Important**: Please read carefully before using this software.
-
-1. **Educational Purpose**: This project and its documentation are provided solely for technical research, discussion, and learning purposes and do not constitute commercial or legal advice.
-
-2. **No Warranty**: The author and maintainers shall not be liable for any direct, indirect, incidental, or consequential damages, data loss, or system failures resulting from the use of this project.
-
-3. **Legal Compliance**: This project must not be used for any illegal, unauthorized, or regulatory-violating activities. Liability arising from such misuse is solely the responsibility of the user.
-
-4. **User Responsibility**: Users are solely responsible for ensuring compliance with all applicable laws, regulations, and industry standards when using this project.
-
-
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+该项目基于 Apache License 2.0 许可证 - 详情请查看 [LICENSE](LICENSE) 文件。
