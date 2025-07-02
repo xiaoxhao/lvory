@@ -309,53 +309,34 @@ jobs:
           fi
         shell: bash
       
-      - name: Set release details
+      - name: Set release details (for non-tag builds)
         id: release_details
+        if: steps.check_tag.outputs.is_tag != 'true'
         run: |
-          if [[ "${{ steps.check_tag.outputs.is_tag }}" == "true" ]]; then
-            echo "release_name=${{ steps.check_tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
-            echo "is_prerelease=false" >> $GITHUB_OUTPUT
-            echo "release_body<<EOF" >> $GITHUB_OUTPUT
-            echo "正式发布版本 - ${{ steps.check_tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "## 构建信息 / Build Information" >> $GITHUB_OUTPUT
-            echo "- **Commit:** [\`${{ steps.commit_info.outputs.commit_sha_short }}\`](https://github.com/sxueck/lvory/commit/${{ steps.commit_info.outputs.commit_sha }})" >> $GITHUB_OUTPUT
-            echo "- **提交消息:** ${{ steps.commit_info.outputs.commit_message }}" >> $GITHUB_OUTPUT
-            echo "- **提交者:** ${{ steps.commit_info.outputs.commit_author }}" >> $GITHUB_OUTPUT
-            echo "- **提交时间:** ${{ steps.commit_info.outputs.commit_date }}" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
-            echo "- Windows MSI (x64) - 安装版" >> $GITHUB_OUTPUT
-            echo "- Windows Portable (x64) - 便携版" >> $GITHUB_OUTPUT
-            echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
-            echo "- Linux DEB (x64 & arm64) - 安装版" >> $GITHUB_OUTPUT
-            echo "- Linux AppImage (x64 & arm64) - 便携版" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "release_name=日常构建 ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
-            echo "is_prerelease=true" >> $GITHUB_OUTPUT
-            echo "release_body<<EOF" >> $GITHUB_OUTPUT
-            echo "自动构建的日常版本 - ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
-            echo "此版本基于最新的主分支代码自动构建，可能包含不稳定的功能。" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "## 构建信息 / Build Information" >> $GITHUB_OUTPUT
-            echo "- **Commit:** [\`${{ steps.commit_info.outputs.commit_sha_short }}\`](https://github.com/sxueck/lvory/commit/${{ steps.commit_info.outputs.commit_sha }})" >> $GITHUB_OUTPUT
-            echo "- **提交消息:** ${{ steps.commit_info.outputs.commit_message }}" >> $GITHUB_OUTPUT
-            echo "- **提交者:** ${{ steps.commit_info.outputs.commit_author }}" >> $GITHUB_OUTPUT
-            echo "- **提交时间:** ${{ steps.commit_info.outputs.commit_date }}" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
-            echo "- Windows MSI (x64) - 安装版" >> $GITHUB_OUTPUT
-            echo "- Windows Portable (x64) - 便携版" >> $GITHUB_OUTPUT
-            echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
-            echo "- Linux DEB (x64 & arm64) - 安装版" >> $GITHUB_OUTPUT
-            echo "- Linux AppImage (x64 & arm64) - 便携版" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          fi
+          echo "release_name=日常构建 ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
+          echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          echo "release_body<<EOF" >> $GITHUB_OUTPUT
+          echo "自动构建的日常版本 - ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
+          echo "此版本基于最新的主分支代码自动构建，可能包含不稳定的功能。" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## 构建信息 / Build Information" >> $GITHUB_OUTPUT
+          echo "- **Commit:** [\`${{ steps.commit_info.outputs.commit_sha_short }}\`](https://github.com/sxueck/lvory/commit/${{ steps.commit_info.outputs.commit_sha }})" >> $GITHUB_OUTPUT
+          echo "- **提交消息:** ${{ steps.commit_info.outputs.commit_message }}" >> $GITHUB_OUTPUT
+          echo "- **提交者:** ${{ steps.commit_info.outputs.commit_author }}" >> $GITHUB_OUTPUT
+          echo "- **提交时间:** ${{ steps.commit_info.outputs.commit_date }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
+          echo "- Windows MSI (x64) - 安装版" >> $GITHUB_OUTPUT
+          echo "- Windows Portable (x64) - 便携版" >> $GITHUB_OUTPUT
+          echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
+          echo "- Linux DEB (x64 & arm64) - 安装版" >> $GITHUB_OUTPUT
+          echo "- Linux AppImage (x64 & arm64) - 便携版" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
       
-      - name: Create a Release
+      - name: Create a Release (for non-tag builds only)
         id: create_release
+        if: steps.check_tag.outputs.is_tag != 'true'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -365,6 +346,18 @@ jobs:
           draft: false
           prerelease: ${{ steps.release_details.outputs.is_prerelease }}
           files: |
+            artifacts/windows/*.msi
+            artifacts/windows/*portable*.exe
+            artifacts/macos/*.dmg
+            artifacts/linux/*.deb
+            artifacts/linux/*.AppImage
+      
+      - name: Upload build artifacts for tag builds
+        if: steps.check_tag.outputs.is_tag == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tag-build-${{ steps.check_tag.outputs.tag_name }}-artifacts
+          path: |
             artifacts/windows/*.msi
             artifacts/windows/*portable*.exe
             artifacts/macos/*.dmg
