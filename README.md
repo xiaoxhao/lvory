@@ -54,7 +54,7 @@ Lvory 是一个基于 Electron 开发的高度灵活的跨平台 SingBox 客户�
 
 从 [GitHub Releases](https://github.com/sxueck/lvory/releases) 页面下载最新版本。
 
-选择适合您操作系统的安装包
+选择适合您操作系统的安装包，日常构建版本通常是基于每次 main 分支的提交都会进行一次编译，其会包含实时最新开发特性，但也包含例如无法启动或者包含严重 Bug 等风险，而 RC 版本则代表经过简单测试未发现问题后编译版本，Stable 则是正式可完全日常使用的版本
 
 ### 快速使用
 

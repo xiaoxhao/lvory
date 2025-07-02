@@ -62,14 +62,20 @@ function getConfigDir() {
 }
 
 function getBinDir() {
-  const appDataDir = getAppDataDir();
-  const binDir = path.join(appDataDir, 'bin');
+  let binDir;
   
-  if (!fs.existsSync(binDir)) {
-    try {
-      fs.mkdirSync(binDir, { recursive: true });
-    } catch (error) {
-      console.error(`创建bin目录失败: ${error.message}`);
+  if (isPortableMode()) {
+    binDir = path.dirname(process.execPath);
+  } else {
+    const appDataDir = getAppDataDir();
+    binDir = path.join(appDataDir, 'bin');
+    
+    if (!fs.existsSync(binDir)) {
+      try {
+        fs.mkdirSync(binDir, { recursive: true });
+      } catch (error) {
+        console.error(`创建bin目录失败: ${error.message}`);
+      }
     }
   }
   
