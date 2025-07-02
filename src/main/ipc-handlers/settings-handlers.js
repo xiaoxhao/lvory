@@ -76,6 +76,142 @@ function setup() {
     return { success: true, settings };
   });
 
+  // 清理应用缓存和数据
+  ipcMain.handle('clear-app-cache', async () => {
+    try {
+      const { getAppDataDir, getConfigDir, getLogDir, getStorePath } = require('../../utils/paths');
+      
+      let clearedItems = [];
+      let errors = [];
+      
+      // 1. 清理store.json
+      try {
+        const storePath = getStorePath();
+        if (fs.existsSync(storePath)) {
+          fs.unlinkSync(storePath);
+          clearedItems.push('应用数据存储 (store.json)');
+        }
+      } catch (error) {
+        errors.push(`清理应用数据存储失败: ${error.message}`);
+      }
+      
+      // 2. 清理日志目录
+      try {
+        const logDir = getLogDir();
+        if (fs.existsSync(logDir)) {
+          const logFiles = fs.readdirSync(logDir);
+          let logCount = 0;
+          for (const file of logFiles) {
+            const filePath = path.join(logDir, file);
+            const stat = fs.statSync(filePath);
+            if (stat.isFile()) {
+              fs.unlinkSync(filePath);
+              logCount++;
+            }
+          }
+          if (logCount > 0) {
+            clearedItems.push(`应用日志文件 (${logCount} 个文件)`);
+          }
+        }
+      } catch (error) {
+        errors.push(`清理应用日志失败: ${error.message}`);
+      }
+      
+      // 3. 清理Lvory缓存文件和meta.cache
+      try {
+        const configDir = getConfigDir();
+        if (fs.existsSync(configDir)) {
+          const { readMetaCache, writeMetaCache } = require('./utils');
+          const metaCache = readMetaCache();
+          
+          let cacheCount = 0;
+          // 遍历meta.cache找到所有缓存文件并删除
+          Object.keys(metaCache).forEach(key => {
+            const meta = metaCache[key];
+            if (meta && meta.isCache === true) {
+              const cachePath = path.join(configDir, key);
+              if (fs.existsSync(cachePath)) {
+                fs.unlinkSync(cachePath);
+                cacheCount++;
+              }
+            }
+          });
+          
+          // 清空meta.cache文件，但保留非缓存文件的记录
+          const cleanedMetaCache = {};
+          Object.keys(metaCache).forEach(key => {
+            const meta = metaCache[key];
+            if (meta && meta.isCache !== true) {
+              // 保留非缓存文件的记录，但清理缓存相关字段
+              cleanedMetaCache[key] = {
+                ...meta,
+                singboxCache: undefined
+              };
+              // 移除undefined字段
+              if (cleanedMetaCache[key].singboxCache === undefined) {
+                delete cleanedMetaCache[key].singboxCache;
+              }
+            }
+          });
+          writeMetaCache(cleanedMetaCache);
+          
+          if (cacheCount > 0) {
+            clearedItems.push(`配置缓存文件 (${cacheCount} 个文件)`);
+          }
+          clearedItems.push('元数据缓存 (meta.cache)');
+        }
+      } catch (error) {
+        errors.push(`清理配置缓存失败: ${error.message}`);
+      }
+      
+      // 4. 清理内存中的日志历史
+      try {
+        logger.clearHistory();
+        clearedItems.push('内存日志历史');
+      } catch (error) {
+        errors.push(`清理内存日志失败: ${error.message}`);
+      }
+      
+      // 5. 清理连接日志历史
+      try {
+        connectionLogger.clearConnectionHistory();
+        clearedItems.push('连接日志历史');
+      } catch (error) {
+        errors.push(`清理连接日志失败: ${error.message}`);
+      }
+      
+      // 6. 清理cache.db (SQLite数据库)
+      try {
+        const appDataDir = getAppDataDir();
+        const cacheDbPath = path.join(appDataDir, '..', 'cache.db'); // cache.db在项目根目录
+        if (fs.existsSync(cacheDbPath)) {
+          fs.unlinkSync(cacheDbPath);
+          clearedItems.push('SQLite缓存数据库 (cache.db)');
+        }
+      } catch (error) {
+        errors.push(`清理SQLite缓存失败: ${error.message}`);
+      }
+      
+      logger.info(`缓存清理完成，已清理: ${clearedItems.join(', ')}`);
+      if (errors.length > 0) {
+        logger.warn(`缓存清理中的错误: ${errors.join('; ')}`);
+      }
+      
+      return {
+        success: true,
+        clearedItems,
+        errors,
+        message: `成功清理 ${clearedItems.length} 项缓存数据${errors.length > 0 ? `，但有 ${errors.length} 项清理失败` : ''}`
+      };
+    } catch (error) {
+      logger.error(`清理应用缓存失败: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
   // 获取SingBox日志文件列表
   ipcMain.handle('get-singbox-log-files', async () => {
     try {

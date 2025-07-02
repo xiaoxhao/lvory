@@ -67,6 +67,18 @@ export default {
     projectUrl: '项目地址',
     aboutDisclaimer: 'lvory 是一个基于 Sing-Box 内核的通用桌面GUI客户端，旨在提供高性能、灵活且易用的网络代理服务。',
     
+    // 开发者工具
+    developerTools: '开发者工具',
+    developerToolsDesc: '开发和调试相关的工具和功能',
+    versionManager: '版本管理',
+    versionManagerDesc: '管理应用版本和内核版本',
+    clearCache: '重置缓存',
+    clearCacheDesc: '清理应用的所有缓存数据、日志文件和临时文件',
+    clearCacheConfirm: '确定要清理所有缓存数据吗？这将删除日志文件、应用数据存储和配置缓存。',
+    clearCacheSuccess: '缓存清理成功',
+    clearCacheFailed: '缓存清理失败',
+    clearing: '清理中...',
+    
     // 按钮
     reset: '重置',
     apply: '应用',
@@ -132,7 +144,11 @@ export default {
 
   // 配置文件下载对话框相关
   profileModal: {
-    title: '添加配置文件',
+    downloadTitle: '下载配置文件',
+    loadTitle: '载入本地文件',
+    // 模式选择
+    downloadMode: '下载',
+    localMode: '本地文件',
     // 协议选择
     protocolSelection: '协议类型',
     singboxProtocol: 'SingBox 原生',
@@ -144,6 +160,9 @@ export default {
     urlPlaceholder: 'https://example.com/profile.config',
     customFileName: '自定义文件名（可选）：',
     fileNamePlaceholder: 'my_profile.config',
+    // 本地文件选择
+    selectFile: '选择本地文件：',
+    chooseFile: '选择文件',
     // 更新设置
     autoUpdateInterval: '自动更新间隔：',
     noAutoUpdate: '不自动更新',
@@ -156,18 +175,24 @@ export default {
     // 按钮
     cancel: '取消',
     download: '下载',
+    loadFile: '载入文件',
     tryAgain: '重试',
     // 状态信息
     downloading: '正在下载配置文件...',
+    loadingFile: '正在载入文件...',
     downloadSuccess: '配置文件下载成功！',
-    successTitle: '下载完成',
+    loadSuccess: '文件载入成功！',
+    successTitle: '操作完成',
 
     autoUpdateSet: '自动更新已设置为每 {interval} 一次',
     downloadFailed: '下载失败，请重试。',
+    loadFailed: '载入失败，请重试。',
     showErrorDetails: '显示错误详情',
     hideErrorDetails: '隐藏错误详情',
     // 验证信息
     pleaseEnterUrl: '请输入URL',
+    pleaseSelectFile: '请选择文件',
+    invalidFileType: '不支持的文件类型。请选择 .json、.yaml 或 .yml 文件',
     invalidUrlFormat: 'URL格式无效，请输入有效的URL，包括 http:// 或 https://',
     // 时间单位转换
     hours: '小时',

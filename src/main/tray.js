@@ -146,7 +146,7 @@ const createTray = () => {
             
             // 先更新UI状态
             const mainWindow = windowManager.getMainWindow();
-            if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow?.isDestroyed?.() === false) {
               mainWindow.webContents.send('status-update', { isRunning: false });
             }
             
@@ -157,7 +157,7 @@ const createTray = () => {
             
             if (!result.success) {
               // 停止失败，恢复状态
-              if (mainWindow && !mainWindow.isDestroyed()) {
+              if (mainWindow?.isDestroyed?.() === false) {
                 mainWindow.webContents.send('status-update', { isRunning: true });
               }
               updateTrayMenuCallback(true);
@@ -167,7 +167,7 @@ const createTray = () => {
             logger.error('从托盘停止sing-box内核失败:', error);
             // 恢复状态
             const mainWindow = windowManager.getMainWindow();
-            if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow?.isDestroyed?.() === false) {
               mainWindow.webContents.send('status-update', { isRunning: true });
             }
             updateTrayMenuCallback(true);
@@ -216,7 +216,7 @@ const createTray = () => {
     
     // 同时通知前端 UI 更新状态
     const mainWindow = windowManager.getMainWindow();
-    if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow?.isDestroyed?.() === false) {
       logger.info(`[Tray] 向前端发送状态更新: isRunning=${isRunning}`);
       mainWindow.webContents.send('status-update', { isRunning });
     } else {

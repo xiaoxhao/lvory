@@ -276,28 +276,52 @@ async function getVersionDescription(releaseUrl) {
     
     const req = https.request(options, (res) => {
       let data = '';
+      let dataSize = 0;
+      const maxSize = 100 * 1024; // 限制响应大小为100KB
       
       res.on('data', (chunk) => {
+        dataSize += chunk.length;
+        if (dataSize > maxSize) {
+          req.destroy();
+          reject(new Error('响应数据过大'));
+          return;
+        }
         data += chunk;
       });
       
       res.on('end', () => {
         try {
-          // 简单提取版本说明，使用正则表达式
-          const descriptionMatch = data.match(/<div class="markdown-body my-3">([\s\S]*?)<\/div>/);
-          if (descriptionMatch && descriptionMatch[1]) {
-            // 简单清理HTML标签
-            let description = descriptionMatch[1]
-              .replace(/<[^>]*>/g, '')
-              .replace(/\n+/g, '\n')
-              .trim();
+          const searchLimit = Math.min(data.length, 50000); // 只搜索前50KB
+          const limitedData = data.substring(0, searchLimit);
+          
+          // 查找markdown-body div的开始位置
+          const startPattern = '<div class="markdown-body my-3">';
+          const endPattern = '</div>';
+          const startIndex = limitedData.indexOf(startPattern);
+          
+          if (startIndex !== -1) {
+            const contentStart = startIndex + startPattern.length;
+            const contentEnd = limitedData.indexOf(endPattern, contentStart);
             
-            // 限制长度
-            if (description.length > 300) {
-              description = description.substring(0, 300) + '...';
+            if (contentEnd !== -1) {
+              let description = limitedData.substring(contentStart, contentEnd);
+              
+              // 安全地清理HTML标签，使用简单的字符串替换而非复杂正则
+              description = description
+                .replace(/</g, ' <')  // 在<前添加空格，避免标签粘连
+                .replace(/<[^>]{1,100}>/g, '')  // 限制标签长度，防止恶意构造的超长标签
+                .replace(/\s+/g, ' ')  // 合并多个空白字符
+                .trim();
+              
+              // 限制长度
+              if (description.length > 300) {
+                description = description.substring(0, 300) + '...';
+              }
+              
+              resolve(description);
+            } else {
+              resolve('');
             }
-            
-            resolve(description);
           } else {
             resolve('');
           }
@@ -309,6 +333,12 @@ async function getVersionDescription(releaseUrl) {
     
     req.on('error', (error) => {
       reject(error);
+    });
+    
+    // 设置请求超时，防止长时间等待
+    req.setTimeout(10000, () => {
+      req.destroy();
+      reject(new Error('请求超时'));
     });
     
     req.end();

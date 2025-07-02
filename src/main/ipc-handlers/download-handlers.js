@@ -164,7 +164,8 @@ function setup() {
               lastUpdated: new Date().toISOString(),
               updateCount: 0,
               failCount: 0,
-              status: 'active'
+              status: 'active',
+              protocol: data.protocolType || 'singbox'
             };
             
             try {

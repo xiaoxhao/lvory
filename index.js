@@ -53,23 +53,16 @@ app.commandLine.appendSwitch('disable-background-networking');
 // 懒加载 AdmZip
 let AdmZip;
 const loadAdmZip = () => {
-  try {
-    if (!AdmZip) {
-      AdmZip = require('adm-zip');
-    }
-    return AdmZip;
-  } catch (error) {
-    logger.warn('AdmZip库未安装，解压功能将不可用');
-    return null;
+  if (!AdmZip) {
+    AdmZip = require('adm-zip');
   }
+  return AdmZip;
 };
 
-try {
-  if (require('electron-squirrel-startup')) {
-    app.quit();
-  }
-} catch (error) {
-  logger.info('electron-squirrel-startup not found, skipping');
+// 检查 electron-squirrel-startup
+const electronSquirrelStartup = require('electron-squirrel-startup');
+if (electronSquirrelStartup) {
+  app.quit();
 }
 
 // 判断是否是开发环境
@@ -150,7 +143,7 @@ const restoreProxyState = async () => {
         });
 
         // 通知UI更新状态
-        if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow?.isDestroyed?.() === false) {
           mainWindow.webContents.send('proxy-state-restored', {
             success: result.success,
             isRunning: result.success,
@@ -234,7 +227,7 @@ app.on('ready', () => {
       sb.getVersion().then(result => {
         logger.info(`sing-box版本获取结果: success=${result.success}, version=${result.version || 'N/A'}`);
         const mainWindow = windowManager.getMainWindow();
-        if (result.success && mainWindow && !mainWindow.isDestroyed()) {
+        if (result.success && mainWindow?.isDestroyed?.() === false) {
           // 通知渲染进程更新版本信息
           const versionData = {
             version: result.version,

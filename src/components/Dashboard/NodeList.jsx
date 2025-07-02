@@ -170,8 +170,6 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
 };
 
 const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onToggleExpandedView }) => {
-  const [ruleSets, setRuleSets] = useState([]);
-  const [selectedTab, setSelectedTab] = useState('nodes'); // 'nodes' 或 'rules'
   const [nodeGroups, setNodeGroups] = useState([]); // 节点组数据
   const [nodes, setNodes] = useState([]); // 包含组信息的节点数据
   const [selectedGroup, setSelectedGroup] = useState('all'); // 当前选中的节点组，'all'表示全部
@@ -188,19 +186,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
   const testInterval = 3600000; // 默认1小时 (3600000毫秒)
 
   useEffect(() => {
-    const loadRuleSets = async () => {
-      if (window.electron && window.electron.getRuleSets) {
-        try {
-          const ruleSetResult = await window.electron.getRuleSets();
-          if (ruleSetResult.success && Array.isArray(ruleSetResult.ruleSets)) {
-            setRuleSets(ruleSetResult.ruleSets);
-          }
-        } catch (error) {
-          console.error('获取规则集失败:', error);
-        }
-      }
-    };
-
     const loadNodeGroups = async () => {
       if (window.electron && window.electron.getNodeGroups) {
         try {
@@ -216,7 +201,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     };
 
     const refreshData = () => {
-      loadRuleSets();
       loadNodeGroups();
       // 重置选中的组为"all"
       setSelectedGroup('all');
@@ -387,38 +371,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     }
   };
 
-  // 获取规则集类型的颜色
-  const getRuleSetTypeColor = (type) => {
-    switch (type) {
-      case 'remote':
-        return '#666666'; // 使用指定色调
-      case 'local':
-        return '#666666'; // 使用指定色调
-      case 'source':
-        return '#ad0c3a'; // 使用指定色调
-      case 'binary':
-        return '#ad0c3a'; // 使用指定色调
-      default:
-        return '#333333'; // 使用指定色调
-    }
-  };
-
-  // 获取节点组类型的颜色
-  const getNodeGroupTypeColor = (type) => {
-    switch (type) {
-      case 'urltest':
-        return '#666666'; // 使用指定色调
-      case 'selector':
-        return '#ad0c3a'; // 使用指定色调
-      case 'direct':
-        return '#666666'; // 使用指定色调
-      case 'reject':
-        return '#ad0c3a'; // 使用指定色调
-      default:
-        return '#333333'; // 使用指定色调
-    }
-  };
-
   // 打开节点详情弹窗
   const openNodeDetail = (node) => {
     setSelectedNode(node);
@@ -483,146 +435,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       </div>
     );
   };
-
-  // 渲染规则集卡片
-  const renderRuleSets = () => (
-    <div className="customer-cards" style={{ 
-      height: '100%',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      {ruleSets.length > 0 ? (
-        <div className="profile-tags-container" style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '12px', 
-          padding: '10px 0',
-          width: '100%',
-          overflow: 'auto', // 只有这个容器可以滚动
-          scrollBehavior: 'smooth'
-        }}>
-          {ruleSets.map((ruleSet, index) => (
-            <div key={index} className="material-rule-card" style={{ 
-              backgroundColor: '#f8f8f8',
-              borderRadius: '12px',
-              padding: '10px', 
-              width: 'calc(25% - 12px)',
-              margin: '0 0 12px 0',
-              height: '64%',
-              display: 'flex', 
-              flexDirection: 'column', 
-              transition: 'all 0.15s ease',
-              cursor: 'pointer',
-              position: 'relative',
-              overflow: 'hidden',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0, 0, 0, 0.06)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
-            }}
-            >
-              <div style={{ 
-                fontWeight: '500', 
-                fontSize: '13px', 
-                marginBottom: '8px', 
-                color: '#333333',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                <span style={{ 
-                  display: 'inline-block',
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: getRuleSetTypeColor(ruleSet.format || ruleSet.type),
-                  flexShrink: 0
-                }}></span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {ruleSet.tag}
-                </span>
-              </div>
-              <div style={{ 
-                fontSize: '11px', 
-                color: '#666666',
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '6px'
-              }}>
-                <span style={{
-                  display: 'inline-block',
-                  padding: '3px 6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.65)',
-                  borderRadius: '3px',
-                  fontSize: '11px',
-                  color: getRuleSetTypeColor(ruleSet.format || ruleSet.type),
-                  border: `1px solid ${getRuleSetTypeColor(ruleSet.format || ruleSet.type)}20`
-                }}>
-                  {ruleSet.format || ruleSet.type}
-                </span>
-              </div>
-              {ruleSet.url && (
-                <div style={{
-                  fontSize: '11px',
-                  color: '#444444',
-                  marginTop: '6px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }} title={ruleSet.url}>
-                  {ruleSet.url.length > 40 ? ruleSet.url.substring(0, 37) + '...' : ruleSet.url}
-                </div>
-              )}
-              {ruleSet.update_interval && (
-                <div style={{
-                  fontSize: '11px',
-                  color: '#444444',
-                  marginTop: '3px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px'
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.2 16.2L17 14.9L12.5 12.2V7Z" fill="#666666"/>
-                  </svg>
-                  更新间隔: {ruleSet.update_interval}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ 
-          padding: '40px 20px', 
-          textAlign: 'center', 
-          color: '#666666', 
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '16px',
-          height: '100%'
-        }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15 13H17V16H15V13Z" fill="#666666"/>
-          </svg>
-          No rule sets found.
-        </div>
-      )}
-    </div>
-  );
 
   // 渲染节点组选择条
   const renderGroupTabs = () => (
@@ -752,7 +564,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     </div>
   );
 
-  {/* 如果展开了更多选项，渲染二级选项卡 */}
+  // 如果展开了更多选项，渲染二级选项卡
   const renderSecondaryTabs = () => {
     if (!showMore || !isOverflow) return null;
     
@@ -851,52 +663,13 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         alignItems: 'center',
         marginBottom: '15px'
       }}>
-        <div className="material-tabs" style={{
-          display: 'flex',
-          border: '1px solid rgba(90, 108, 87, 0.3)',
-          borderRadius: '20px',
-          padding: '2px',
-          backgroundColor: 'transparent',
-          width: 'fit-content'
+        <div style={{
+          fontSize: '16px',
+          fontWeight: '600',
+          color: '#333333',
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
         }}>
-          <div 
-            className={`material-tab ${selectedTab === 'nodes' ? 'active-tab' : ''}`}
-            onClick={() => setSelectedTab('nodes')}
-            style={{
-              cursor: 'pointer',
-              padding: '6px 20px',
-              position: 'relative',
-              color: selectedTab === 'nodes' ? '#5a6c57' : '#666666',
-              fontWeight: selectedTab === 'nodes' ? '500' : '400',
-              fontSize: '12px',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              transition: 'all 0.2s ease',
-              borderRadius: '18px',
-              backgroundColor: selectedTab === 'nodes' ? 'rgba(90, 108, 87, 0.1)' : 'transparent',
-              border: 'none'
-            }}
-          >
-            Nodes
-          </div>
-          <div 
-            className={`material-tab ${selectedTab === 'rules' ? 'active-tab' : ''}`}
-            onClick={() => setSelectedTab('rules')}
-            style={{
-              cursor: 'pointer',
-              padding: '6px 20px',
-              position: 'relative',
-              color: selectedTab === 'rules' ? '#5a6c57' : '#666666',
-              fontWeight: selectedTab === 'rules' ? '500' : '400',
-              fontSize: '12px',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              transition: 'all 0.2s ease',
-              borderRadius: '18px',
-              backgroundColor: selectedTab === 'rules' ? 'rgba(90, 108, 87, 0.1)' : 'transparent',
-              border: 'none'
-            }}
-          >
-            Rules
-          </div>
+          Nodes
         </div>
         <button 
           className="material-button" 
@@ -925,9 +698,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             e.currentTarget.style.backgroundColor = 'rgba(246, 247, 237, 0.5)';
           }}
         >
-          <span>{selectedTab === 'nodes' 
-            ? (profileData && profileData.length || 0) 
-            : (ruleSets && ruleSets.length || 0)}</span>
+          <span>{profileData && profileData.length || 0}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             {isExpandedView ? (
               <path d="M12 20V4M12 20L6 14M12 20L18 14" stroke="#666666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -938,8 +709,8 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         </button>
       </div>
       
-      {selectedTab === 'nodes' && renderGroupTabs()}
-      {selectedTab === 'nodes' && renderSecondaryTabs()}
+      {renderGroupTabs()}
+      {renderSecondaryTabs()}
 
       <div style={{ 
         overflow: 'hidden', // 外层容器不滚动
@@ -948,7 +719,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         borderRadius: '8px',
         minHeight: 0 // 确保flex子元素可以正确收缩
       }}>
-        {selectedTab === 'nodes' ? renderNodes() : renderRuleSets()}
+        {renderNodes()}
       </div>
       
       {/* 节点详情弹窗 */}

@@ -210,7 +210,8 @@ contextBridge.exposeInMainWorld('electron', {
     save: (settings) => ipcRenderer.invoke('save-settings', settings),
     get: () => ipcRenderer.invoke('get-settings'),
     setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
-    getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch')
+    getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+    clearCache: () => ipcRenderer.invoke('clear-app-cache')
   },
 
   // 获取规则集和节点组信息

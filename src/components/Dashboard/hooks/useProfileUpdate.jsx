@@ -68,11 +68,16 @@ const useProfileUpdate = (setProfileData) => {
   };
 
   // 处理下载成功后的回调
-  const handleDownloadSuccess = (url, fileName, interval) => {
+  const handleDownloadSuccess = (url, fileName, interval, protocolType) => {
     setUpdateInterval(interval);
     // 设置定时更新（如果有的话）
     if (interval !== '0') {
       setupUpdateTimer(url, fileName);
+    }
+    
+    // 如果提供了协议类型，通知 Profiles 组件刷新数据
+    if (protocolType && window.electron && window.electron.profiles && window.electron.profiles.setUserProtocolChoice) {
+      window.electron.profiles.setUserProtocolChoice(fileName, protocolType);
     }
   };
 

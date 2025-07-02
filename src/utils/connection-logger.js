@@ -425,7 +425,7 @@ class ConnectionLogger {
   }
 
   sendConnectionLogToRenderer(logEntry) {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+    if (this.mainWindow?.isDestroyed?.() === false) {
       const connectionLog = {
         type: logEntry.type,
         payload: logEntry.payload,
@@ -501,7 +501,7 @@ class ConnectionLogger {
   }
 
   sendConnectionGroupsToRenderer() {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+    if (this.mainWindow?.isDestroyed?.() === false) {
       const groupsData = {
         domain: this.getGroupArray('domain'),
         networkType: this.getGroupArray('networkType'),

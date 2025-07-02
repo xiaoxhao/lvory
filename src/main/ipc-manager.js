@@ -16,19 +16,19 @@ class IPCManager {
 
   handleWindowControls() {
     ipcMain.on('window-minimize', () => {
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      if (this.mainWindow?.isDestroyed?.() === false) {
         this.mainWindow.minimize();
       }
     });
 
     ipcMain.on('window-close', () => {
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      if (this.mainWindow?.isDestroyed?.() === false) {
         this.mainWindow.hide();
       }
     });
 
     ipcMain.on('window-maximize', () => {
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      if (this.mainWindow?.isDestroyed?.() === false) {
         if (this.mainWindow.isMaximized()) {
           this.mainWindow.unmaximize();
         } else {
