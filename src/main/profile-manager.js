@@ -109,10 +109,6 @@ function applyConfigMapping(userConfig, targetConfig = {}) {
   }
 }
 
-
-
-
-
 /**
  * 保存用户配置并应用映射到sing-box配置
  * @param {Object} userConfig 用户配置
@@ -129,18 +125,23 @@ function saveUserConfig(userConfig) {
     // 获取当前sing-box配置（如果存在）
     let targetConfig = {};
     const configPath = getConfigPath();
+    
+    // 只有当配置文件存在时才应用映射，避免自动创建默认配置
     if (fs.existsSync(configPath)) {
       const configContent = fs.readFileSync(configPath, 'utf8');
       targetConfig = JSON.parse(configContent);
+      
+      // 应用映射
+      const mappedConfig = applyConfigMapping(userConfig, targetConfig);
+      
+      // 保存映射后的sing-box配置
+      fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
+      
+      logger.info(`用户配置已保存，映射已应用到现有配置文件: ${configPath}`);
+    } else {
+      logger.info(`用户配置已保存，但未找到配置文件，跳过映射应用`);
     }
     
-    // 应用映射
-    const mappedConfig = applyConfigMapping(userConfig, targetConfig);
-    
-    // 保存映射后的sing-box配置
-    fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
-    
-    logger.info(`用户配置和映射后的sing-box配置已保存`);
     return true;
   } catch (error) {
     logger.error(`保存用户配置并应用映射失败: ${error.message}`);
@@ -165,7 +166,6 @@ function loadUserConfig() {
     // 返回默认用户配置
     return {
       settings: {
-        proxy_port: 12345,
         allow_lan: false
       },
       nodes: []
@@ -174,7 +174,6 @@ function loadUserConfig() {
     logger.error(`加载用户配置失败: ${error.message}`);
     return {
       settings: {
-        proxy_port: 12345,
         allow_lan: false
       },
       nodes: []
@@ -616,7 +615,6 @@ async function preprocessConfig(configPath) {
     // 构建用户配置对象
     const userConfig = {
       settings: {
-        proxy_port: parseInt(settings.proxyPort) || 7890,
         allow_lan: settings.allowLan || false,
         api_address: settings.apiAddress || '127.0.0.1:9090',
         tun_mode: settings.tunMode || false,

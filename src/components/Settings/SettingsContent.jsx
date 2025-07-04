@@ -408,7 +408,6 @@ const SettingsContent = ({ section }) => {
               proxyPort: proxyPort,
               apiAddress: apiAddress
             }));
-            
           } catch (parseError) {
             console.error('解析配置值失败:', parseError);
             setConfigValues({
@@ -517,7 +516,6 @@ const SettingsContent = ({ section }) => {
 
     // 映射关系对象
     const mappings = {
-      proxyPort: 'proxy_port',
       allowLan: 'allow_lan',
       apiAddress: 'api_address',
 
@@ -681,7 +679,6 @@ const SettingsContent = ({ section }) => {
     const config = result.config.settings;
     return {
       ...prevSettings,
-      proxyPort: config.proxy_port || prevSettings.proxyPort,
       allowLan: config.allow_lan || false,
       apiAddress: config.api_address || prevSettings.apiAddress,
 

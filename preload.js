@@ -221,7 +221,6 @@ contextBridge.exposeInMainWorld('electron', {
   // 添加引擎到窗口对象，用于前端直接使用
   engine: {
     getValueByPath: (obj, path) => {
-      // 这里简单实现getValueByPath，如果需要更复杂的实现，可以考虑引入完整的引擎
       try {
         const keys = path.split('.');
         let current = obj;

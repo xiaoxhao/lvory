@@ -11,13 +11,6 @@ function getDefaultMappingDefinition() {
   return {
     "mappings": [
       {
-        "user_path": "settings.proxy_port",
-        "target_path": "inbounds.[type=mixed].listen_port",
-        "type": "number",
-        "default": 7890,
-        "description": "代理服务器端口"
-      },
-      {
         "user_path": "settings.allow_lan",
         "target_path": "inbounds.[type=mixed].listen",
         "type": "boolean",
@@ -113,7 +106,7 @@ function getTunConfigTemplate() {
       "http_proxy": {
         "enabled": true,
         "server": "127.0.0.1",
-        "server_port": "{settings.proxy_port}"
+        "server_port": 7890
       }
     }
   };
