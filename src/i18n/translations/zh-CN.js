@@ -27,6 +27,8 @@ export default {
     configureAdvanced: '配置高级设置和功能',
     kernelWatchdog: '内核看门狗',
     kernelWatchdogDesc: '当内核崩溃或停止响应时自动重启',
+    foregroundOnly: '仅前台运行',
+    foregroundOnlyDesc: '启用后，关闭窗口将直接退出程序而非隐藏到托盘',
     logSettings: '日志设置',
     logRotation: '日志轮转周期（天）',
     
@@ -36,9 +38,6 @@ export default {
     logOutputPlaceholder: '留空则输出到控制台（如: box.log）',
     logOutputDesc: '指定日志文件路径，留空则输出到控制台',
     singboxLogDisabled: '禁用 SingBox 日志',
-    logDisabledDesc: '启用后 SingBox 内核将不输出任何日志',
-    singboxLogTimestamp: 'SingBox 日志时间戳',
-    logTimestampDesc: '在每行日志前添加时间戳信息',
     
     // 节点设置
     nodesSettings: '节点设置',

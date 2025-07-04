@@ -21,7 +21,6 @@ class SettingsManager {
       logLevel: 'info',
       logOutput: '',
       logDisabled: false,
-      logTimestamp: true,
       
       // Nodes 相关设置
       nodeAdvancedMonitoring: false,
@@ -29,14 +28,11 @@ class SettingsManager {
       nodeExitIPPurity: false,
       keepNodeTrafficHistory: false,
       
-      // 多云互联设置
-      cloudInterconnection: false,
-      backendAddress: '',
-      
       // 高级设置
       kernelWatchdog: true,
       logRotationPeriod: 7,
-      language: 'zh_CN'
+      language: 'zh_CN',
+      foregroundOnly: false
     };
     
     this.configParser = new ConfigParser();

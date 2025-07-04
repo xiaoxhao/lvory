@@ -604,8 +604,7 @@ async function preprocessConfig(configPath) {
         apiAddress: '127.0.0.1:9090',
         tunMode: false,
         logLevel: 'info',
-        logDisabled: false,
-        logTimestamp: true
+        logDisabled: false
       };
       // 使用默认日志路径
       const { generateDefaultLogPath } = require('../utils/paths');
@@ -622,7 +621,7 @@ async function preprocessConfig(configPath) {
         log_level: settings.logLevel || 'info',
         log_output: logPath,
         log_disabled: settings.logDisabled || false,
-        log_timestamp: settings.logTimestamp !== false
+        log_timestamp: true
       }
     };
     

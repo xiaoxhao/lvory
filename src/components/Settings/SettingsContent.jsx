@@ -866,6 +866,10 @@ const SettingsContent = ({ section }) => {
               {renderToggle(t('settings.kernelWatchdog'), 'kernelWatchdog', settings.kernelWatchdog)}
               <DescriptionText>{t('settings.kernelWatchdogDesc')}</DescriptionText>
 
+              {/* 仅前台运行 */}
+              {renderToggle(t('settings.foregroundOnly'), 'foregroundOnly', settings.foregroundOnly)}
+              <DescriptionText>{t('settings.foregroundOnlyDesc')}</DescriptionText>
+
 
 
               {/* 日志设置 */}
@@ -902,11 +906,6 @@ const SettingsContent = ({ section }) => {
                 
                 {/* 禁用 SingBox 日志 */}
                 {renderToggle(t('settings.singboxLogDisabled'), 'logDisabled', settings.logDisabled)}
-                <DescriptionText>{t('settings.logDisabledDesc')}</DescriptionText>
-                
-                {/* SingBox 日志时间戳 */}
-                {renderToggle(t('settings.singboxLogTimestamp'), 'logTimestamp', settings.logTimestamp)}
-                <DescriptionText>{t('settings.logTimestampDesc')}</DescriptionText>
 
                 {/* 应用日志设置分隔线 */}
                 <div style={{ margin: '20px 0', borderTop: '1px solid #e5e7eb' }}></div>

@@ -6,6 +6,7 @@ const logger = require('../../../utils/logger');
 const utils = require('../utils');
 const { WINDOW } = require('../constants');
 const singbox = require('../../../utils/sing-box');
+const settingsManager = require('../../settings-manager');
 
 /**
  * 处理窗口控制命令
@@ -13,7 +14,7 @@ const singbox = require('../../../utils/sing-box');
  * @param {Object} params 参数对象
  * @param {String} params.action 动作类型: minimize, maximize, close
  */
-function handleWindowControl(event, params) {
+async function handleWindowControl(event, params) {
   const { action } = params;
   const mainWindow = utils.getMainWindow();
   if (!mainWindow) return;
@@ -38,8 +39,25 @@ function handleWindowControl(event, params) {
       }
       break;
     case 'close':
-      // 只是隐藏窗口，不真正关闭
-      mainWindow.hide();
+      // 检查仅前台运行设置
+      const settings = settingsManager.getSettings();
+      if (settings.foregroundOnly) {
+        // 仅前台运行模式：执行退出操作
+        try {
+          logger.info('仅前台运行模式，从窗口控制退出程序');
+          await singbox.disableSystemProxy();
+          await singbox.stopCore();
+          global.isQuitting = true;
+          require('electron').app.quit();
+        } catch (error) {
+          logger.error('退出前清理失败:', error);
+          global.isQuitting = true;
+          require('electron').app.quit();
+        }
+      } else {
+        // 正常模式：隐藏窗口
+        mainWindow.hide();
+      }
       break;
     default:
       logger.warn(`未知的窗口控制命令: ${action}`);

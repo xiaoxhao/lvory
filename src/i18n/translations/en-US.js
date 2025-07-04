@@ -27,6 +27,8 @@ export default {
     configureAdvanced: 'Configure advanced settings and features',
     kernelWatchdog: 'Kernel Watchdog',
     kernelWatchdogDesc: 'Automatically restart the core if it crashes or stops responding',
+    foregroundOnly: 'Foreground Only',
+    foregroundOnlyDesc: 'When enabled, closing the window will exit the program instead of hiding to tray',
     logSettings: 'Log Settings',
     logRotation: 'Log Rotation Period (Days)',
     
@@ -36,9 +38,6 @@ export default {
     logOutputPlaceholder: 'Leave empty for console output (e.g. box.log)',
     logOutputDesc: 'Specify log file path, leave empty for console output',
     singboxLogDisabled: 'Disable SingBox Logs',
-    logDisabledDesc: 'When enabled, SingBox core will not output any logs',
-    singboxLogTimestamp: 'SingBox Log Timestamp',
-    logTimestampDesc: 'Add timestamp information to each log line',
     
     // Nodes settings
     nodesSettings: 'Nodes Settings',
