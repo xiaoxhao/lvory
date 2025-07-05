@@ -517,6 +517,7 @@ const SettingsContent = ({ section }) => {
     // 映射关系对象
     const mappings = {
       allowLan: 'allow_lan',
+      proxyPort: 'proxy_port',
       apiAddress: 'api_address',
 
       checkUpdateOnBoot: 'check_update_on_boot',
@@ -680,6 +681,7 @@ const SettingsContent = ({ section }) => {
     return {
       ...prevSettings,
       allowLan: config.allow_lan || false,
+      proxyPort: config.proxy_port || prevSettings.proxyPort,
       apiAddress: config.api_address || prevSettings.apiAddress,
 
       checkUpdateOnBoot: config.check_update_on_boot !== undefined ? config.check_update_on_boot : prevSettings.checkUpdateOnBoot,

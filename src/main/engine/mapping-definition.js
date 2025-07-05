@@ -21,6 +21,13 @@ function getDefaultMappingDefinition() {
         "description": "是否允许局域网连接"
       },
       {
+        "user_path": "settings.proxy_port",
+        "target_path": "inbounds.[type=mixed].listen_port",
+        "type": "number",
+        "default": 7890,
+        "description": "代理端口设置"
+      },
+      {
         "user_path": "settings.api_address",
         "target_path": "experimental.clash_api.external_controller",
         "type": "string",
@@ -106,7 +113,7 @@ function getTunConfigTemplate() {
       "http_proxy": {
         "enabled": true,
         "server": "127.0.0.1",
-        "server_port": 7890
+        "server_port": "{settings.proxy_port}"
       }
     }
   };
