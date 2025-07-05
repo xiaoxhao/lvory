@@ -75,6 +75,17 @@ const Sidebar = ({ activeItem, onItemClick, profilesCount, isMinimized }) => {
             <span className="ripple" style={activeItem === 'profiles' ? rippleStyle : { display: 'none' }}></span>
           </li>
           <li 
+            className={`menu-item ${activeItem === 'tools' ? 'active' : ''}`}
+            onClick={(e) => handleItemClick('tools', e)}
+            title={isMinimized ? 'Tools' : ''}
+            role="button"
+            tabIndex={0}
+          >
+            <span className="icon tools-icon"></span>
+            {!isMinimized && <span>Tools</span>}
+            <span className="ripple" style={activeItem === 'tools' ? rippleStyle : { display: 'none' }}></span>
+          </li>
+          <li 
             className={`menu-item ${activeItem === 'settings' ? 'active' : ''}`}
             onClick={(e) => handleItemClick('settings', e)}
             title={isMinimized ? 'Settings' : ''}

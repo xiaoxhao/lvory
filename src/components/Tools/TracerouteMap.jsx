@@ -4,7 +4,7 @@ import * as echarts from 'echarts';
 import IPService from '../../services/ip/IPService';
 import TracerouteService from '../../services/network/TracerouteService';
 
-const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onTraceComplete, existingData }, ref) => {
+const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onTraceComplete, existingData, onBackToTable }, ref) => {
   const { t } = useTranslation();
   const chartRef = useRef(null);
   const [chart, setChart] = useState(null);
@@ -25,17 +25,37 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
     getSourceInfo();
   }, []);
 
-  // 当接收到现有数据时，直接绘制地图
   useEffect(() => {
     if (existingData && existingData.length > 0 && chart) {
+      console.log('TracerouteMap: Received existing data:', existingData);
       setTracerouteData(existingData);
-      
+
+      // 过滤掉无效的经纬度数据
+      const validData = existingData.filter(hop => {
+        const isValid = hop.latitude != null && hop.longitude != null &&
+          hop.latitude !== 0 && hop.longitude !== 0 &&
+          hop.ip !== '*' && hop.ip !== undefined &&
+          typeof hop.latitude === 'number' && typeof hop.longitude === 'number';
+
+        if (!isValid) {
+          console.log('TracerouteMap: Filtering out invalid hop:', hop);
+        }
+        return isValid;
+      });
+
+      console.log('TracerouteMap: Valid data for mapping:', validData);
+
+      if (validData.length === 0) {
+        console.log('TracerouteMap: No valid data to display on map');
+        return;
+      }
+
       // 构建连线数据
       let allLines = [];
-      for (let i = 1; i < existingData.length; i++) {
-        const prevHop = existingData[i - 1];
-        const currentHop = existingData[i];
-        
+      for (let i = 1; i < validData.length; i++) {
+        const prevHop = validData[i - 1];
+        const currentHop = validData[i];
+
         allLines.push({
           coords: [
             [prevHop.longitude, prevHop.latitude],
@@ -46,8 +66,11 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
           rtt: currentHop.rtt
         });
       }
-      
-      updateChart(existingData, allLines);
+
+      console.log('TracerouteMap: Lines data:', allLines);
+      setTimeout(() => {
+        updateChart(validData, allLines);
+      }, 200);
     }
   }, [existingData, chart]);
 
@@ -56,19 +79,26 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
 
     // 初始化ECharts实例
     const chartInstance = echarts.init(chartRef.current);
-    setChart(chartInstance);
 
     // 注册世界地图
     fetch('https://cdn.jsdelivr.net/npm/echarts@latest/map/json/world.json')
-      .then(response => response.json())
+      .then(response => {
+        console.log('TracerouteMap: World map response received');
+        return response.json();
+      })
       .then(worldMapData => {
+        console.log('TracerouteMap: World map data loaded successfully', worldMapData ? 'Data exists' : 'No data');
         echarts.registerMap('world', worldMapData);
         initializeChart(chartInstance);
+        // 在图表完全初始化后设置chart状态
+        setChart(chartInstance);
       })
       .catch(error => {
-        console.error('加载世界地图数据失败:', error);
-        // 如果网络加载失败，使用简化的初始化
+        console.error('TracerouteMap: 加载世界地图数据失败:', error);
+        console.log('TracerouteMap: Initializing chart without world map data');
         initializeChart(chartInstance);
+        // 在图表完全初始化后设置chart状态
+        setChart(chartInstance);
       });
 
     // 清理函数
@@ -120,12 +150,15 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
         const hop = hops[i];
         allPoints.push(hop);
 
-        // 创建连线
-        if (i === 0 && sourceInfo) {
+        // 创建连线 - 只有当坐标有效时才创建
+        if (i === 0 && sourceInfo && 
+            sourceInfo.longitude != null && sourceInfo.latitude != null &&
+            hop.longitude != null && hop.latitude != null &&
+            hop.longitude !== 0 && hop.latitude !== 0) {
           // 从源点到第一跳
           allLines.push({
             coords: [
-              [sourceInfo.longitude || 0, sourceInfo.latitude || 0],
+              [sourceInfo.longitude, sourceInfo.latitude],
               [hop.longitude, hop.latitude]
             ],
             fromName: sourceInfo.ip,
@@ -135,15 +168,20 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
         } else if (i > 0) {
           // 跳之间的连线
           const prevHop = hops[i - 1];
-          allLines.push({
-            coords: [
-              [prevHop.longitude, prevHop.latitude],
-              [hop.longitude, hop.latitude]
-            ],
-            fromName: prevHop.ip,
-            toName: hop.ip,
-            rtt: hop.rtt
-          });
+          if (prevHop.longitude != null && prevHop.latitude != null &&
+              hop.longitude != null && hop.latitude != null &&
+              prevHop.longitude !== 0 && prevHop.latitude !== 0 &&
+              hop.longitude !== 0 && hop.latitude !== 0) {
+            allLines.push({
+              coords: [
+                [prevHop.longitude, prevHop.latitude],
+                [hop.longitude, hop.latitude]
+              ],
+              fromName: prevHop.ip,
+              toName: hop.ip,
+              rtt: hop.rtt
+            });
+          }
         }
 
         // 更新图表
@@ -183,6 +221,7 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
   };
 
   const initializeChart = (chartInstance) => {
+    console.log('TracerouteMap: Initializing chart');
     const option = {
       backgroundColor: '#ffffff',
       tooltip: {
@@ -203,7 +242,7 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
               return `
                 <div style="text-align: left; padding: 8px;">
                   <div style="color: #3182ce; font-weight: bold; margin-bottom: 4px;">
-                    ${hopData.type === 'source' ? `🏠 ${t('tools.source')}` : hopData.type === 'destination' ? `🎯 ${t('tools.destination')}` : `🌐 ${t('tools.hop')} ${hopData.hop}`}
+                    ${hopData.type === 'source' ? `${t('tools.source')}` : hopData.type === 'destination' ? `${t('tools.destination')}` : `${t('tools.hop')} ${hopData.hop}`}
                   </div>
                   <div style="margin-bottom: 2px;">
                     <span style="color: #718096;">IP:</span> 
@@ -225,7 +264,7 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
               const lineData = params.data;
               return `
                 <div style="text-align: left; padding: 8px;">
-                  <div style="color: #3182ce; font-weight: bold; margin-bottom: 4px;">🔗 ${t('tools.routeConnection')}</div>
+                  <div style="color: #3182ce; font-weight: bold; margin-bottom: 4px;">${t('tools.routeConnection')}</div>
                   <div style="margin-bottom: 2px;">
                     <span style="color: #718096;">${t('tools.from')}:</span> 
                     <span style="color: #2d3748; font-family: monospace;">${lineData.fromName}</span>
@@ -312,10 +351,39 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
     };
 
     chartInstance.setOption(option);
+    console.log('TracerouteMap: Chart initialized successfully');
+
+    // 验证初始化后的配置
+    const verifyOption = chartInstance.getOption();
+    console.log('TracerouteMap: Geo config after init:', verifyOption.geo ? 'Present' : 'Missing');
+    console.log('TracerouteMap: Series config after init:', verifyOption.series ? verifyOption.series.length : 0, 'series');
   };
 
+
   const updateChart = (points, lines) => {
-    if (!chart) return;
+    if (!chart) {
+      console.log('TracerouteMap: Chart not initialized');
+      return;
+    }
+
+    if (!points || points.length === 0) {
+      console.log('TracerouteMap: No valid points to display');
+      return;
+    }
+
+    // 检查geo坐标系是否已经初始化
+    try {
+      const currentOption = chart.getOption();
+      if (!currentOption || !currentOption.geo || !currentOption.geo[0]) {
+        console.log('TracerouteMap: Geo coordinate system not initialized, retrying...');
+        setTimeout(() => updateChart(points, lines), 100);
+        return;
+      }
+    } catch (error) {
+      console.log('TracerouteMap: Error checking chart option, retrying...', error);
+      setTimeout(() => updateChart(points, lines), 100);
+      return;
+    }
 
     const scatterData = points.map(point => [
       point.longitude,
@@ -324,50 +392,79 @@ const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onT
       point
     ]);
 
+    console.log('TracerouteMap: Updating chart with scatter data:', scatterData);
+    console.log('TracerouteMap: Updating chart with lines data:', lines);
+
+    const validLines = lines || [];
+
+    // 完整更新series配置，确保coordinateSystem正确设置
     const option = {
       series: [
         {
           name: 'Route Points',
-          data: scatterData
+          type: 'scatter',
+          coordinateSystem: 'geo',
+          data: scatterData,
+          symbolSize: function(val) {
+            return val[2] === 'source' ? 12 : 8;
+          },
+          itemStyle: {
+            color: function(params) {
+              const data = params.data;
+              if (data[2] === 'source') return '#38a169';
+              if (data[2] === 'destination') return '#e53e3e';
+              return '#3182ce';
+            }
+          },
+          label: {
+            show: false,
+            position: 'right',
+            fontSize: 12,
+            color: '#2d3748'
+          }
         },
         {
           name: 'Route Lines',
-          data: lines
+          type: 'lines',
+          coordinateSystem: 'geo',
+          data: validLines,
+          lineStyle: {
+            color: function(params) {
+              const colors = ['#38a169', '#3182ce', '#ed8936', '#805ad5', '#319795'];
+              return colors[params.dataIndex % colors.length];
+            },
+            width: 2,
+            curveness: 0.2,
+            opacity: 0.8
+          },
+          effect: {
+            show: true,
+            period: 6,
+            trailLength: 0.2,
+            color: '#2d3748',
+            symbolSize: 3
+          }
         }
       ]
     };
 
     chart.setOption(option, false);
+    console.log('TracerouteMap: Chart updated successfully');
   };
 
   return (
     <div className="traceroute-map-container">
-      <div className="map-container" ref={chartRef} style={{ width: '100%', height: '500px' }} />
-
-      {tracerouteData.length > 0 && (
-        <div className="traceroute-info">
-          <h4>{t('tools.routeInfo')} ({tracerouteData.length} {t('tools.hopCount')})</h4>
-          <div className="hop-list">
-            {tracerouteData.map((hop, index) => (
-              <div key={index} className={`hop-item ${hop.type}`}>
-                <span className="hop-number">
-                  {hop.type === 'source' ? '🏠' : hop.type === 'destination' ? '🎯' : hop.hop}
-                </span>
-                <span className="hop-ip">{hop.ip}</span>
-                <span className="hop-location">
-                  {hop.country}
-                  {hop.city && hop.city !== hop.country ? `, ${hop.city}` : ''}
-                </span>
-                {hop.rtt && (
-                  <span className="hop-rtt">
-                    {Math.round(hop.rtt * 100) / 100}ms
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="map-header">
+        {onBackToTable && (
+          <button
+            className="back-to-table-button"
+            onClick={onBackToTable}
+          >
+            {t('tools.backToTable')}
+          </button>
+        )}
+      </div>
+      <div className="map-container" ref={chartRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 });

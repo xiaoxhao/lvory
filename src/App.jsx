@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Profiles from './components/Profiles';
+import Tools from './components/Tools';
 import Settings from './components/Settings/Settings';
 import UpdateNotification from './components/UpdateNotification';
 import { AppProvider, useAppContext } from './context/AppContext';
@@ -300,6 +301,17 @@ const App = () => {
                       left: 0
                     }}>
                       <Profiles />
+                    </div>
+                  )}
+                  {activeItem === 'tools' && (
+                    <div style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0
+                    }}>
+                      <Tools />
                     </div>
                   )}
                   {activeItem === 'settings' && (
