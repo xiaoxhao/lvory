@@ -1,10 +1,10 @@
 const { ipcMain } = require('electron');
-const { spawn } = require('child_process');
-const os = require('os');
+const Traceroute = require('nodejs-traceroute');
 const http = require('http');
 const logger = require('../../utils/logger');
 
 class TracerouteHandlers {
+  static currentTracer = null;
   static isValidTarget(target) {
     if (!target || typeof target !== 'string' || target.trim().length === 0) {
       return false;
@@ -19,31 +19,42 @@ class TracerouteHandlers {
 
   static async getLocationInfo(ip) {
     return new Promise((resolve) => {
-      const url = `http://ip-api.com/json/${ip}`;
-      
+      const url = `http://ip-api.com/json/${ip}?lang=zh-CN`;
+
       http.get(url, (res) => {
         let data = '';
-        
+
         res.on('data', (chunk) => {
           data += chunk;
         });
-        
+
         res.on('end', () => {
           try {
             const parsed = JSON.parse(data);
+            logger.info(`Location API response for ${ip}:`, parsed);
+
             if (parsed.status === 'success') {
-              resolve({
+              const result = {
                 country: parsed.country || 'Unknown',
                 city: parsed.city || parsed.regionName || 'Unknown',
-                latitude: parsed.lat || 0,
-                longitude: parsed.lon || 0
-              });
+                latitude: parsed.lat || null,
+                longitude: parsed.lon || null,
+                isp: parsed.isp || '',
+                org: parsed.org || '',
+                timezone: parsed.timezone || ''
+              };
+              logger.info(`Resolved location for ${ip}:`, result);
+              resolve(result);
             } else {
+              logger.warn(`Location API failed for ${ip}:`, parsed);
               resolve({
                 country: 'Unknown',
                 city: 'Unknown',
-                latitude: 0,
-                longitude: 0
+                latitude: null,
+                longitude: null,
+                isp: '',
+                org: '',
+                timezone: ''
               });
             }
           } catch (error) {
@@ -51,8 +62,11 @@ class TracerouteHandlers {
             resolve({
               country: 'Unknown',
               city: 'Unknown',
-              latitude: 0,
-              longitude: 0
+              latitude: null,
+              longitude: null,
+              isp: '',
+              org: '',
+              timezone: ''
             });
           }
         });
@@ -61,8 +75,11 @@ class TracerouteHandlers {
         resolve({
           country: 'Unknown',
           city: 'Unknown',
-          latitude: 0,
-          longitude: 0
+          latitude: null,
+          longitude: null,
+          isp: '',
+          org: '',
+          timezone: ''
         });
       });
     });
@@ -70,111 +87,351 @@ class TracerouteHandlers {
 
   static async executeTraceroute(target) {
     return new Promise((resolve, reject) => {
-      const isWindows = os.platform() === 'win32';
-      const command = isWindows ? 'tracert' : 'traceroute';
-      const args = isWindows ? ['-d', '-h', '30', target] : ['-n', '-m', '30', target];
-      
-      logger.info(`Starting traceroute to ${target} with command: ${command} ${args.join(' ')}`);
-      
-      const tracerouteProcess = spawn(command, args);
-      let outputBuffer = '';
+      logger.info(`Starting traceroute to ${target} using nodejs-traceroute`);
 
-      tracerouteProcess.stdout.on('data', (data) => {
-        outputBuffer += data.toString();
-      });
+      const hops = [];
+      const tracer = new Traceroute();
+      let hopTimeouts = new Map(); // 存储每个hop的超时计时器
+      const HOP_TIMEOUT = 100000; // 每个hop的超时时间：100秒
+      const MAX_TOTAL_TIME = 300000; // 最大总时间：5分钟
 
-      tracerouteProcess.stderr.on('data', (data) => {
-        logger.error('Traceroute stderr:', data.toString());
-      });
+      // 设置全局超时机制作为最后保障
+      const globalTimeout = setTimeout(() => {
+        logger.warn(`Traceroute to ${target} reached maximum time limit`);
+        hopTimeouts.forEach(timeout => clearTimeout(timeout));
+        hopTimeouts.clear();
+        if (hops.length > 0) {
+          resolve(hops);
+        } else {
+          reject(new Error('Traceroute timed out'));
+        }
+      }, MAX_TOTAL_TIME);
 
-      tracerouteProcess.on('close', async (code) => {
-        if (code !== 0) {
-          reject(new Error(`Traceroute process exited with code ${code}`));
-          return;
+      // 为当前hop设置超时
+      const setHopTimeout = (hopNumber) => {
+        // 清除之前的hop超时
+        if (hopTimeouts.has(hopNumber - 1)) {
+          clearTimeout(hopTimeouts.get(hopNumber - 1));
+          hopTimeouts.delete(hopNumber - 1);
         }
 
-        try {
-          const parsedHops = await this.parseTracerouteOutput(outputBuffer, isWindows);
-          resolve(parsedHops);
-        } catch (error) {
-          reject(error);
-        }
-      });
+        const timeout = setTimeout(() => {
+          logger.warn(`Hop ${hopNumber} timed out after ${HOP_TIMEOUT}ms`);
+          // 添加超时的hop数据
+          const timeoutHopData = {
+            hop: hopNumber,
+            ip: '*',
+            rtt: null,
+            type: 'hop',
+            country: 'Unknown',
+            city: 'Unknown',
+            latitude: null,
+            longitude: null,
+            timeout: true
+          };
+          hops.push(timeoutHopData);
+          hopTimeouts.delete(hopNumber);
+        }, HOP_TIMEOUT);
 
-      tracerouteProcess.on('error', (error) => {
-        reject(new Error(`Failed to start traceroute: ${error.message}`));
-      });
-    });
-  }
+        hopTimeouts.set(hopNumber, timeout);
+      };
 
-  static async parseTracerouteOutput(output, isWindows) {
-    const lines = output.split('\n');
-    const hops = [];
-    const ipRegex = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/;
-    const timeRegex = /(\d+(?:\.\d+)?)\s*ms/g;
+      tracer
+        .on('pid', (pid) => {
+          logger.info(`Traceroute process started with PID: ${pid}`);
+          // 为第一个hop设置超时
+          setHopTimeout(1);
+        })
+        .on('destination', (destination) => {
+          logger.info(`Traceroute destination: ${destination}`);
+        })
+        .on('hop', async (hop) => {
+          logger.info(`Received hop: ${JSON.stringify(hop)}`);
 
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      
-      if (!trimmedLine || trimmedLine.includes('Tracing route') || 
-          trimmedLine.includes('over a maximum') || trimmedLine.includes('Trace complete')) {
-        continue;
-      }
-
-      const hopMatch = isWindows ? 
-        trimmedLine.match(/^\s*(\d+)\s+(.+)/) :
-        trimmedLine.match(/^\s*(\d+)\s+(.+)/);
-
-      if (hopMatch) {
-        const hopNumber = parseInt(hopMatch[1]);
-        const hopData = hopMatch[2];
-        
-        const ipMatch = hopData.match(ipRegex);
-        if (ipMatch) {
-          const ip = ipMatch[1];
-          
-          const times = [];
-          let timeMatch;
-          const timeRegexCopy = new RegExp(timeRegex.source, timeRegex.flags);
-          while ((timeMatch = timeRegexCopy.exec(hopData)) !== null) {
-            times.push(parseFloat(timeMatch[1]));
+          // 清除当前hop的超时计时器
+          if (hopTimeouts.has(hop.hop)) {
+            clearTimeout(hopTimeouts.get(hop.hop));
+            hopTimeouts.delete(hop.hop);
           }
-          
-          const avgTime = times.length > 0 ? times.reduce((a, b) => a + b) / times.length : 0;
-          
+
+          // 为下一个hop设置超时
+          setHopTimeout(hop.hop + 1);
+
           try {
-            const locationInfo = await this.getLocationInfo(ip);
-            
-            hops.push({
-              hop: hopNumber,
-              ip: ip,
-              rtt: avgTime,
-              type: hopNumber === 1 ? 'hop' : 'hop',
+            // 跳过空IP或星号
+            if (!hop.ip || hop.ip === '*' || hop.ip.trim() === '') {
+              const hopData = {
+                hop: hop.hop,
+                ip: '*',
+                rtt: null,
+                type: 'hop',
+                country: 'Unknown',
+                city: 'Unknown',
+                latitude: null,
+                longitude: null
+              };
+              hops.push(hopData);
+              return;
+            }
+
+            const locationInfo = await this.getLocationInfo(hop.ip);
+
+            // 解析RTT值，支持多种格式
+            let rtt = null;
+            if (hop.rtt1 && hop.rtt1 !== '*') {
+              rtt = parseFloat(hop.rtt1.replace(/[^\d.]/g, ''));
+            } else if (hop.rtt2 && hop.rtt2 !== '*') {
+              rtt = parseFloat(hop.rtt2.replace(/[^\d.]/g, ''));
+            } else if (hop.rtt3 && hop.rtt3 !== '*') {
+              rtt = parseFloat(hop.rtt3.replace(/[^\d.]/g, ''));
+            }
+
+            const hopData = {
+              hop: hop.hop,
+              ip: hop.ip,
+              rtt: isNaN(rtt) ? null : rtt,
+              type: 'hop',
               ...locationInfo
-            });
+            };
+
+            hops.push(hopData);
           } catch (error) {
-            logger.warn(`Failed to get location for hop ${hopNumber} (${ip}):`, error);
+            logger.warn(`Failed to process hop ${hop.hop} (${hop.ip}):`, error);
             hops.push({
-              hop: hopNumber,
-              ip: ip,
-              rtt: avgTime,
+              hop: hop.hop,
+              ip: hop.ip || '*',
+              rtt: null,
               type: 'hop',
               country: 'Unknown',
               city: 'Unknown',
-              latitude: 0,
-              longitude: 0
+              latitude: null,
+              longitude: null
             });
           }
+        })
+        .on('close', (code) => {
+          logger.info(`Traceroute process closed with code: ${code}`);
+          clearTimeout(globalTimeout);
+          hopTimeouts.forEach(timeout => clearTimeout(timeout));
+          hopTimeouts.clear();
+
+          if (hops.length > 0) {
+            hops[hops.length - 1].type = 'destination';
+          }
+
+          resolve(hops);
+        })
+        .on('error', (error) => {
+          logger.error('Traceroute error:', error);
+          clearTimeout(globalTimeout);
+          hopTimeouts.forEach(timeout => clearTimeout(timeout));
+          hopTimeouts.clear();
+          reject(new Error(`Traceroute failed: ${error.message}`));
+        });
+
+      try {
+        tracer.trace(target);
+      } catch (error) {
+        clearTimeout(globalTimeout);
+        hopTimeouts.forEach(timeout => clearTimeout(timeout));
+        hopTimeouts.clear();
+        reject(new Error(`Failed to start traceroute: ${error.message}`));
+      }
+    });
+  }
+
+  static async executeTracerouteRealtime(event, target) {
+    return new Promise((resolve, reject) => {
+      logger.info(`Starting realtime traceroute to ${target} using nodejs-traceroute`);
+
+      const tracer = new Traceroute();
+      TracerouteHandlers.currentTracer = tracer;
+      let sourceAdded = false;
+      let hopTimeouts = new Map(); // 存储每个hop的超时计时器
+      const HOP_TIMEOUT = 10000; // 每个hop的超时时间：10秒
+      const MAX_TOTAL_TIME = 300000; // 最大总时间：5分钟
+
+      // 设置全局超时机制作为最后保障
+      const globalTimeout = setTimeout(() => {
+        logger.warn(`Realtime traceroute to ${target} reached maximum time limit`);
+        hopTimeouts.forEach(timeout => clearTimeout(timeout));
+        hopTimeouts.clear();
+        event.sender.send('traceroute:timeout', { target });
+        resolve();
+      }, MAX_TOTAL_TIME);
+
+      // 为当前hop设置超时
+      const setHopTimeout = (hopNumber) => {
+        // 清除之前的hop超时
+        if (hopTimeouts.has(hopNumber - 1)) {
+          clearTimeout(hopTimeouts.get(hopNumber - 1));
+          hopTimeouts.delete(hopNumber - 1);
         }
+
+        const timeout = setTimeout(() => {
+          logger.warn(`Hop ${hopNumber} timed out after ${HOP_TIMEOUT}ms`);
+          // 发送超时的hop数据
+          const timeoutHopData = {
+            hop: hopNumber,
+            ip: '*',
+            rtt: null,
+            type: 'hop',
+            country: 'Unknown',
+            city: 'Unknown',
+            latitude: null,
+            longitude: null,
+            timeout: true
+          };
+          event.sender.send('traceroute:hop', timeoutHopData);
+          hopTimeouts.delete(hopNumber);
+        }, HOP_TIMEOUT);
+
+        hopTimeouts.set(hopNumber, timeout);
+      };
+
+      tracer
+        .on('pid', (pid) => {
+          logger.info(`Traceroute process started with PID: ${pid}`);
+          event.sender.send('traceroute:started', { pid, target });
+          setHopTimeout(1);
+        })
+        .on('destination', (destination) => {
+          logger.info(`Traceroute destination: ${destination}`);
+          event.sender.send('traceroute:destination', { destination });
+        })
+        .on('hop', async (hop) => {
+          logger.info(`Received hop: ${JSON.stringify(hop)}`);
+
+          if (hopTimeouts.has(hop.hop)) {
+            clearTimeout(hopTimeouts.get(hop.hop));
+            hopTimeouts.delete(hop.hop);
+          }
+
+          // 为下一个hop设置超时
+          setHopTimeout(hop.hop + 1);
+
+          try {
+            // 如果是第一跳且还没有添加源点信息，先添加源点
+            if (hop.hop === 1 && !sourceAdded) {
+              try {
+                const sourceInfo = await this.getLocationInfo();
+                const sourceData = {
+                  hop: 0,
+                  ip: sourceInfo.ip || 'localhost',
+                  rtt: 0,
+                  type: 'source',
+                  country: sourceInfo.country || 'Unknown',
+                  city: sourceInfo.city || 'Unknown',
+                  latitude: sourceInfo.latitude || null,
+                  longitude: sourceInfo.longitude || null
+                };
+                event.sender.send('traceroute:hop', sourceData);
+                sourceAdded = true;
+              } catch (sourceError) {
+                logger.warn('Failed to get source IP info:', sourceError);
+              }
+            }
+
+            // 跳过空IP或星号
+            if (!hop.ip || hop.ip === '*' || hop.ip.trim() === '') {
+              const hopData = {
+                hop: hop.hop,
+                ip: '*',
+                rtt: null,
+                type: 'hop',
+                country: 'Unknown',
+                city: 'Unknown',
+                latitude: null,
+                longitude: null
+              };
+              event.sender.send('traceroute:hop', hopData);
+              return;
+            }
+
+            // 获取当前跳的IP地理位置信息
+            const locationInfo = await this.getLocationInfo(hop.ip);
+
+            // 解析RTT值，支持多种格式
+            let rtt = null;
+            if (hop.rtt1 && hop.rtt1 !== '*') {
+              rtt = parseFloat(hop.rtt1.replace(/[^\d.]/g, ''));
+            } else if (hop.rtt2 && hop.rtt2 !== '*') {
+              rtt = parseFloat(hop.rtt2.replace(/[^\d.]/g, ''));
+            } else if (hop.rtt3 && hop.rtt3 !== '*') {
+              rtt = parseFloat(hop.rtt3.replace(/[^\d.]/g, ''));
+            }
+
+            const hopData = {
+              hop: hop.hop,
+              ip: hop.ip,
+              rtt: isNaN(rtt) ? null : rtt,
+              type: 'hop',
+              ...locationInfo
+            };
+
+            // 发送实时跳点数据
+            event.sender.send('traceroute:hop', hopData);
+          } catch (error) {
+            logger.warn(`Failed to process hop ${hop.hop} (${hop.ip}):`, error);
+            const hopData = {
+              hop: hop.hop,
+              ip: hop.ip || '*',
+              rtt: null,
+              type: 'hop',
+              country: 'Unknown',
+              city: 'Unknown',
+              latitude: null,
+              longitude: null
+            };
+            event.sender.send('traceroute:hop', hopData);
+          }
+        })
+        .on('close', (code) => {
+          logger.info(`Traceroute process closed with code: ${code}`);
+          clearTimeout(globalTimeout);
+          hopTimeouts.forEach(timeout => clearTimeout(timeout));
+          hopTimeouts.clear();
+          TracerouteHandlers.currentTracer = null;
+          event.sender.send('traceroute:complete', { code });
+          resolve();
+        })
+        .on('error', (error) => {
+          logger.error('Traceroute error:', error);
+          clearTimeout(globalTimeout);
+          hopTimeouts.forEach(timeout => clearTimeout(timeout));
+          hopTimeouts.clear();
+          TracerouteHandlers.currentTracer = null;
+          event.sender.send('traceroute:error', { error: error.message });
+          reject(new Error(`Traceroute failed: ${error.message}`));
+        });
+
+      try {
+        tracer.trace(target);
+      } catch (error) {
+        clearTimeout(globalTimeout);
+        hopTimeouts.forEach(timeout => clearTimeout(timeout));
+        hopTimeouts.clear();
+        TracerouteHandlers.currentTracer = null;
+        reject(new Error(`Failed to start traceroute: ${error.message}`));
+      }
+    });
+  }
+
+  static stopTraceroute() {
+    if (TracerouteHandlers.currentTracer) {
+      try {
+        logger.info('Stopping current traceroute process');
+        TracerouteHandlers.currentTracer.kill();
+        TracerouteHandlers.currentTracer = null;
+        return { success: true, message: 'Traceroute stopped' };
+      } catch (error) {
+        logger.error('Failed to stop traceroute:', error);
+        return { success: false, error: error.message };
       }
     }
-
-    if (hops.length > 0) {
-      hops[hops.length - 1].type = 'destination';
-    }
-
-    return hops;
+    return { success: false, error: 'No active traceroute process' };
   }
+
 }
 
 function registerTracerouteHandlers() {
@@ -183,7 +440,7 @@ function registerTracerouteHandlers() {
       if (!TracerouteHandlers.isValidTarget(target)) {
         throw new Error('Invalid target address');
       }
-      
+
       const hops = await TracerouteHandlers.executeTraceroute(target);
       return { success: true, hops };
     } catch (error) {
@@ -191,9 +448,27 @@ function registerTracerouteHandlers() {
       return { success: false, error: error.message };
     }
   });
-  
+
+  ipcMain.handle('traceroute:executeRealtime', async (event, target) => {
+    try {
+      if (!TracerouteHandlers.isValidTarget(target)) {
+        throw new Error('Invalid target address');
+      }
+
+      await TracerouteHandlers.executeTracerouteRealtime(event, target);
+      return { success: true };
+    } catch (error) {
+      logger.error('Realtime traceroute execution failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('traceroute:validate', async (event, target) => {
     return TracerouteHandlers.isValidTarget(target);
+  });
+
+  ipcMain.handle('traceroute:stop', async (event) => {
+    return TracerouteHandlers.stopTraceroute();
   });
 }
 

@@ -203,11 +203,12 @@ export default {
     networkTools: '网络工具',
     toolsDescription: '网络诊断与可视化工具',
     selectTool: '选择工具',
-    traceroute: 'Traceroute 路由跟踪',
+    traceroute: '路由追踪',
     tracerouteDescription: '可视化网络路径跟踪',
     targetHost: '目标主机',
     targetPlaceholder: '输入域名或IP地址',
     startTrace: '开始追踪',
+    stopTrace: '停止追踪',
     tracing: '追踪中...',
     routeInfo: '路由跳点信息',
     hopCount: '个跳点',
@@ -220,7 +221,9 @@ export default {
     to: '到',
     latency: '延迟',
     location: '位置',
-    rtt: 'RTT'
+    rtt: 'RTT',
+    viewMap: '查看地图',
+    backToTable: '返回表格'
   },
 
   // 更新相关

@@ -261,6 +261,40 @@ contextBridge.exposeInMainWorld('electron', {
     getAll: () => ipcRenderer.invoke('get-all-versions')
   },
 
+  // 统一的网络工具接口
+  traceroute: {
+    execute: (target) => ipcRenderer.invoke('traceroute:execute', target),
+    executeRealtime: (target) => ipcRenderer.invoke('traceroute:executeRealtime', target),
+    validate: (target) => ipcRenderer.invoke('traceroute:validate', target),
+    stop: () => ipcRenderer.invoke('traceroute:stop'),
+
+    // 实时事件监听
+    onStarted: (callback) => {
+      ipcRenderer.on('traceroute:started', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('traceroute:started', callback);
+    },
+    onDestination: (callback) => {
+      ipcRenderer.on('traceroute:destination', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('traceroute:destination', callback);
+    },
+    onHop: (callback) => {
+      ipcRenderer.on('traceroute:hop', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('traceroute:hop', callback);
+    },
+    onComplete: (callback) => {
+      ipcRenderer.on('traceroute:complete', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('traceroute:complete', callback);
+    },
+    onError: (callback) => {
+      ipcRenderer.on('traceroute:error', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('traceroute:error', callback);
+    },
+    onTimeout: (callback) => {
+      ipcRenderer.on('traceroute:timeout', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('traceroute:timeout', callback);
+    }
+  },
+
   // 暴露ipcRenderer用于监听特定事件
   ipcRenderer: {
     on: (channel, callback) => {

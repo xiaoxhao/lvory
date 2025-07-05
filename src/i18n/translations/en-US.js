@@ -208,6 +208,7 @@ export default {
     targetHost: 'Target Host',
     targetPlaceholder: 'Enter domain or IP address',
     startTrace: 'Start Trace',
+    stopTrace: 'Stop Trace',
     tracing: 'Tracing...',
     routeInfo: 'Route Hop Information',
     hopCount: 'hops',
@@ -220,7 +221,9 @@ export default {
     to: 'To',
     latency: 'Latency',
     location: 'Location',
-    rtt: 'RTT'
+    rtt: 'RTT',
+    viewMap: 'View Map',
+    backToTable: 'Back to Table'
   },
 
   // Update Related

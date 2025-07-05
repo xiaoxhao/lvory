@@ -2,10 +2,10 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #fafbfc;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   padding: 24px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tools-content {
@@ -13,14 +13,13 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;
 }
 
 .tool-control-panel {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
-  padding: 16px;
+  padding: 16px 16px 0 16px;
 }
 
 .tool-main-controls {
@@ -54,7 +53,7 @@
 }
 
 .tool-select {
-  width: 180px;
+  width: 110px;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -95,61 +94,35 @@
   cursor: not-allowed;
 }
 
-.view-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.view-btn {
-  padding: 6px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: white;
-  color: #4a5568;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.view-btn:hover:not(:disabled) {
-  background: #f7fafc;
-  border-color: #cbd5e0;
-}
-
-.view-btn.active {
-  background: #3182ce;
-  color: white;
-  border-color: #3182ce;
-}
-
-.view-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .tool-view-area {
   flex: 1;
   background: white;
   overflow: hidden;
+  min-height: 0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
 }
 
 .traceroute-map-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   padding: 16px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .traceroute-text-view {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 0 16px 16px 16px;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .trace-header {
@@ -165,10 +138,56 @@
   color: #2d3748;
 }
 
+.trace-status {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f7fafc;
+  border-radius: 6px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3182ce;
+}
+
+.status-dot.pulsing {
+  animation: pulse 2s infinite;
+}
+
+.status-text {
+  font-size: 14px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.current-hop {
+  font-size: 12px;
+  color: #718096;
+  font-weight: 500;
+}
+
 .trace-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stats-info {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+  flex: 1;
 }
 
 .stat-item {
@@ -183,13 +202,15 @@
 .hop-table {
   flex: 1;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
   border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .hop-table-header {
   display: grid;
-  grid-template-columns: 60px 140px 200px 80px 80px;
+  grid-template-columns: 60px 1fr 2fr 100px 80px;
   background: #f7fafc;
   border-bottom: 1px solid #e2e8f0;
   font-weight: 600;
@@ -199,13 +220,14 @@
 }
 
 .hop-table-body {
-  max-height: 400px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .hop-table-row {
   display: grid;
-  grid-template-columns: 60px 140px 200px 80px 80px;
+  grid-template-columns: 60px 1fr 2fr 100px 80px;
   padding: 8px 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
@@ -245,6 +267,14 @@
 .hop-col-ip {
   font-family: 'Consolas', 'Monaco', monospace;
   color: #2d3748;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hop-col-ip:hover {
+  color: #3182ce;
+  background-color: #f0f8ff;
+  border-radius: 4px;
 }
 
 .hop-col-location {
@@ -329,8 +359,6 @@
   cursor: not-allowed;
 }
 
-
-
 .trace-button {
   padding: 10px 20px;
   background: #3182ce;
@@ -357,18 +385,67 @@
   background: #ed8936;
 }
 
+.map-control {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.view-map-button {
+  padding: 6px 16px; /* 降低高度 */
+  background: #38a169;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.view-map-button:hover:not(:disabled) {
+  background: #2f855a;
+}
+
+.view-map-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.map-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.back-to-table-button {
+  padding: 6px 12px; /* 降低高度 */
+  background: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.back-to-table-button:hover {
+  background: #2d3748;
+}
+
 .map-container {
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  flex: 1;
+  min-height: 400px;
+  height: 100%;
 }
 
 .traceroute-info {
   background: #f7fafc;
   border-radius: 8px;
   padding: 20px;
-  border: 1px solid #e2e8f0;
 }
 
 .traceroute-info h4 {
@@ -393,13 +470,11 @@
   border-radius: 6px;
   align-items: center;
   transition: all 0.2s ease;
-  border: 1px solid #e2e8f0;
 }
 
 .hop-item:hover {
   background: #edf2f7;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .hop-item.source {
@@ -442,6 +517,18 @@
 @media (max-width: 768px) {
   .tools-container {
     padding: 12px;
+    height: 100vh;
+  }
+
+  .hop-table-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .traceroute-map-container {
+    gap: 12px;
+    padding: 12px;
   }
   
   .tool-main-controls {
@@ -471,13 +558,9 @@
     margin-top: 8px;
   }
   
-  .view-controls {
-    justify-content: center;
-  }
-  
   .hop-table-header,
   .hop-table-row {
-    grid-template-columns: 40px 120px 1fr 60px 60px;
+    grid-template-columns: 40px 1fr 2fr 60px 60px;
     font-size: 11px;
   }
   
@@ -498,12 +581,23 @@
   }
   
   .trace-stats {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .stats-info {
     gap: 8px;
   }
   
   .stat-item {
     font-size: 11px;
     padding: 3px 6px;
+  }
+  
+  .view-map-button {
+    width: 100%;
+    margin-top: 4px;
   }
 }
 

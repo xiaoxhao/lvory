@@ -28,8 +28,8 @@ class TracerouteService {
    */
   static async trace(target) {
     try {
-      if (window.electron && window.electron.ipcRenderer) {
-        const result = await window.electron.ipcRenderer.invoke('traceroute:execute', target);
+      if (window.electron && window.electron.traceroute) {
+        const result = await window.electron.traceroute.execute(target);
         
         if (result.success) {
           return result.hops || [];
@@ -37,7 +37,7 @@ class TracerouteService {
           throw new Error(result.error || 'Traceroute execution failed');
         }
       } else {
-        throw new Error('Electron IPC not available');
+        throw new Error('Traceroute service not available');
       }
     } catch (error) {
       console.error('Traceroute execution failed:', error);
@@ -52,8 +52,8 @@ class TracerouteService {
    */
   static async validateTarget(target) {
     try {
-      if (window.electron && window.electron.ipcRenderer) {
-        return await window.electron.ipcRenderer.invoke('traceroute:validate', target);
+      if (window.electron && window.electron.traceroute) {
+        return await window.electron.traceroute.validate(target);
       } else {
         return this.isValidTarget(target);
       }
