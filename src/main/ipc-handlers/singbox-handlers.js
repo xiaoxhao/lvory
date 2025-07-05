@@ -249,6 +249,100 @@ function setup() {
       return { success: false, error: error.message };
     }
   });
+
+  // 获取路由规则
+  ipcMain.handle('get-route-rules', async () => {
+    try {
+      const configPath = profileManager.getConfigPath();
+      if (!configPath || !fs.existsSync(configPath)) {
+        return { 
+          success: false, 
+          error: '配置文件不存在',
+          rules: []
+        };
+      }
+
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      const config = JSON.parse(configContent);
+      
+      if (!config.route || !config.route.rules) {
+        return { 
+          success: false, 
+          error: '配置文件中未找到路由规则',
+          rules: []
+        };
+      }
+
+      // 转换路由规则格式
+      const rules = config.route.rules.map((rule, index) => {
+        let type = 'default';
+        let payload = '';
+        let proxy = rule.outbound || 'DIRECT';
+
+        // 根据规则类型解析
+        if (rule.ip_is_private) {
+          type = 'ip_is_private';
+          payload = 'ip_is_private=true';
+        } else if (rule.domain) {
+          type = 'domain';
+          payload = `domain=${Array.isArray(rule.domain) ? `[${rule.domain.join(' ')}]` : rule.domain}`;
+        } else if (rule.domain_keyword) {
+          type = 'domain_keyword';
+          payload = `domain_keyword=${Array.isArray(rule.domain_keyword) ? `[${rule.domain_keyword.join(' ')}]` : rule.domain_keyword}`;
+        } else if (rule.rule_set) {
+          type = 'rule_set';
+          payload = `rule_set=${Array.isArray(rule.rule_set) ? `[${rule.rule_set.join(' ')}]` : rule.rule_set}`;
+        } else if (rule.domain_suffix) {
+          type = 'domain_suffix';
+          payload = `domain_suffix=${Array.isArray(rule.domain_suffix) ? `[${rule.domain_suffix.join(' ')}]` : rule.domain_suffix}`;
+        } else if (rule.geoip) {
+          type = 'geoip';
+          payload = `geoip=${Array.isArray(rule.geoip) ? `[${rule.geoip.join(' ')}]` : rule.geoip}`;
+        } else if (rule.geosite) {
+          type = 'geosite';
+          payload = `geosite=${Array.isArray(rule.geosite) ? `[${rule.geosite.join(' ')}]` : rule.geosite}`;
+        } else if (rule.ip_cidr) {
+          type = 'ip_cidr';
+          payload = `ip_cidr=${Array.isArray(rule.ip_cidr) ? `[${rule.ip_cidr.join(' ')}]` : rule.ip_cidr}`;
+        } else if (rule.port) {
+          type = 'port';
+          payload = `port=${Array.isArray(rule.port) ? `[${rule.port.join(' ')}]` : rule.port}`;
+        } else if (rule.port_range) {
+          type = 'port_range';
+          payload = `port_range=${Array.isArray(rule.port_range) ? `[${rule.port_range.join(' ')}]` : rule.port_range}`;
+        } else if (rule.process_name) {
+          type = 'process_name';
+          payload = `process_name=${Array.isArray(rule.process_name) ? `[${rule.process_name.join(' ')}]` : rule.process_name}`;
+        } else {
+          // 其他类型的规则
+          const keys = Object.keys(rule).filter(key => key !== 'outbound');
+          if (keys.length > 0) {
+            type = keys[0];
+            const value = rule[keys[0]];
+            payload = `${keys[0]}=${Array.isArray(value) ? `[${value.join(' ')}]` : value}`;
+          }
+        }
+
+        return {
+          type,
+          payload,
+          proxy
+        };
+      });
+
+      return {
+        success: true,
+        rules
+      };
+    } catch (error) {
+      logger.error('获取路由规则失败:', error);
+      return { 
+        success: false, 
+        error: error.message,
+        rules: []
+      };
+    }
+  });
 }
 
 module.exports = {

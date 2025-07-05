@@ -217,6 +217,7 @@ contextBridge.exposeInMainWorld('electron', {
   // 获取规则集和节点组信息
   getRuleSets: () => ipcRenderer.invoke('get-rule-sets'),
   getNodeGroups: () => ipcRenderer.invoke('get-node-groups'),
+  getRouteRules: () => ipcRenderer.invoke('get-route-rules'),
 
   // 添加引擎到窗口对象，用于前端直接使用
   engine: {

@@ -11,7 +11,7 @@ export default {
     allowLan: '允许局域网连接',
 
     autoStart: '开机自启动',
-    tunMode: 'TUN 模式支持',
+    tunMode: 'TUN 模式',
     tunModeDesc: '启用后内核将以管理员权限运行，支持系统级流量接管',
     checkUpdates: '启动时检查更新',
     
@@ -245,5 +245,10 @@ export default {
     searchConnections: '搜索连接...',
     searchLogs: '搜索日志...',
     connectionHelp: '疑惑解答'
+  },
+  
+  // 节点列表相关
+  nodeList: {
+    title: '节点/规则'
   }
 }; 

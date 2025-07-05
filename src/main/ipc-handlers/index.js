@@ -44,7 +44,7 @@ const HANDLERS_TO_REMOVE = [
   // 用户配置相关
   'get-user-config', 'save-user-config',
   // 规则集相关
-  'get-rule-sets', 'get-node-groups',
+  'get-rule-sets', 'get-node-groups', 'get-route-rules',
   // 映射引擎相关
   'get-mapping-definition', 'save-mapping-definition', 'apply-config-mapping',
   'get-mapping-definition-path', 'get-default-mapping-definition',

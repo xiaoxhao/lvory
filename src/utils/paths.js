@@ -14,8 +14,7 @@ function getAppDataDir() {
   let appDir;
   
   if (isPortableMode()) {
-    const executableDir = path.dirname(process.execPath);
-    appDir = path.join(executableDir, 'data');
+    appDir = path.join(process.cwd(), 'data');
     } else {
     if (process.platform === 'win32') {
       const appDataDir = process.env.LOCALAPPDATA || '';
@@ -65,7 +64,7 @@ function getBinDir() {
   let binDir;
   
   if (isPortableMode()) {
-    binDir = path.dirname(process.execPath);
+    binDir = process.cwd();
   } else {
     const appDataDir = getAppDataDir();
     binDir = path.join(appDataDir, 'bin');
