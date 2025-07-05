@@ -11,13 +11,6 @@ function getDefaultMappingDefinition() {
   return {
     "mappings": [
       {
-        "user_path": "settings.proxy_port",
-        "target_path": "inbounds.[type=mixed].listen_port",
-        "type": "number",
-        "default": 7890,
-        "description": "代理服务器端口"
-      },
-      {
         "user_path": "settings.allow_lan",
         "target_path": "inbounds.[type=mixed].listen",
         "type": "boolean",
@@ -26,6 +19,13 @@ function getDefaultMappingDefinition() {
         "true_value": "0.0.0.0",
         "false_value": "127.0.0.1",
         "description": "是否允许局域网连接"
+      },
+      {
+        "user_path": "settings.proxy_port",
+        "target_path": "inbounds.[type=mixed].listen_port",
+        "type": "number",
+        "default": 7890,
+        "description": "代理端口设置"
       },
       {
         "user_path": "settings.api_address",

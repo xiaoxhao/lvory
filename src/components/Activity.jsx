@@ -403,10 +403,14 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
         const activeFile = result.files.find(file => file.isActive);
         if (activeFile && !selectedLogFile) {
           setSelectedLogFile(activeFile);
+          // 自动加载活动文件的内容
+          loadSingboxLogContent(activeFile.path);
         }
+      } else {
+        setSingboxLogFiles([]);
       }
     } catch (error) {
-      console.error('加载SingBox日志文件列表失败:', error);
+      setSingboxLogFiles([]);
     }
   };
 
@@ -418,11 +422,9 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
       if (result.success) {
         setSingboxLogs(result.content);
       } else {
-        console.error('读取SingBox日志文件失败:', result.error);
         setSingboxLogs([]);
       }
     } catch (error) {
-      console.error('读取SingBox日志文件失败:', error);
       setSingboxLogs([]);
     } finally {
       setLoading(false);
@@ -432,7 +434,11 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
   // 处理日志文件选择
   const handleLogFileSelect = (file) => {
     setSelectedLogFile(file);
-    loadSingboxLogContent(file.path);
+    if (file && file.path) {
+      loadSingboxLogContent(file.path);
+    } else {
+      setSingboxLogs([]);
+    }
   };
 
   // 当切换到SingBox标签页时加载日志文件列表并重置过滤
@@ -440,6 +446,10 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
     if (activeTab === 'singbox') {
       loadSingboxLogFiles();
       setFilter('all'); // 重置过滤器
+    } else if (activeTab !== 'singbox') {
+      // 切换离开SingBox标签页时清理状态
+      setSelectedLogFile(null);
+      setSingboxLogs([]);
     }
   }, [activeTab]);
 
@@ -489,8 +499,13 @@ const Activity = ({ isKernelRunning = false, isActivityView = false }) => {
               <select 
                 value={selectedLogFile?.path || ''} 
                 onChange={(e) => {
-                  const file = singboxLogFiles.find(f => f.path === e.target.value);
-                  if (file) handleLogFileSelect(file);
+                  const selectedPath = e.target.value;
+                  if (selectedPath) {
+                    const file = singboxLogFiles.find(f => f.path === selectedPath);
+                    if (file) handleLogFileSelect(file);
+                  } else {
+                    handleLogFileSelect(null);
+                  }
                 }}
               >
                 <option value="">请选择日志文件</option>

@@ -5,7 +5,6 @@
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const logger = require('../utils/logger');
 const { getAppDataDir, getConfigDir, getUserSettingsPath } = require('../utils/paths');
 const profileEngine = require('./engine/profiles-engine');
@@ -13,7 +12,6 @@ const mappingDefinition = require('./engine/mapping-definition');
 const LvorySyncProcessor = require('./adapters/lvory-sync-processor');
 
 let currentConfigPath = null;
-let configCopyPath = null;
 
 // 映射定义缓存
 let mappingDefinitionCache = null;
@@ -112,83 +110,6 @@ function applyConfigMapping(userConfig, targetConfig = {}) {
 }
 
 /**
- * 获取配置文件副本路径，用于启动内核
- * 如果不存在副本，从当前配置文件创建一个
- * @returns {String} 配置文件副本的路径
- */
-function getConfigCopyPath() {
-  if (configCopyPath && fs.existsSync(configCopyPath)) {
-    return configCopyPath;
-  }
-  
-  // 获取当前配置文件路径
-  const currentConfig = getConfigPath();
-  if (!currentConfig || !fs.existsSync(currentConfig)) {
-    logger.error('无法创建配置文件副本：当前配置文件不存在');
-    return null;
-  }
-  
-  // 创建临时目录中的副本
-  try {
-    const tempDir = path.join(os.tmpdir(), 'lvory');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    
-    const configFileName = path.basename(currentConfig);
-    configCopyPath = path.join(tempDir, configFileName);
-    
-    // 复制配置文件
-    fs.copyFileSync(currentConfig, configCopyPath);
-    logger.info(`已在临时目录创建配置文件副本: ${configCopyPath}`);
-    
-    return configCopyPath;
-  } catch (error) {
-    logger.error(`创建配置文件副本失败: ${error.message}`);
-    return null;
-  }
-}
-
-/**
- * 更新配置文件副本
- * 将当前配置内容写入临时目录的副本中
- * @param {Object} configData 配置数据 (可选，不提供时直接复制当前配置文件)
- * @returns {Boolean} 是否更新成功
- */
-function updateConfigCopy(configData = null) {
-  try {
-    const currentConfig = getConfigPath();
-    if (!currentConfig || !fs.existsSync(currentConfig)) {
-      logger.error('无法更新配置文件副本：当前配置文件不存在');
-      return false;
-    }
-    
-    // 确保临时目录存在
-    const tempDir = path.join(os.tmpdir(), 'lvory');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    
-    const configFileName = path.basename(currentConfig);
-    configCopyPath = path.join(tempDir, configFileName);
-    
-    // 如果提供了配置数据，直接写入副本
-    if (configData) {
-      fs.writeFileSync(configCopyPath, JSON.stringify(configData, null, 2), 'utf8');
-    } else {
-      // 否则复制当前配置文件
-      fs.copyFileSync(currentConfig, configCopyPath);
-    }
-    
-    logger.info(`已更新配置文件副本: ${configCopyPath}`);
-    return true;
-  } catch (error) {
-    logger.error(`更新配置文件副本失败: ${error.message}`);
-    return false;
-  }
-}
-
-/**
  * 保存用户配置并应用映射到sing-box配置
  * @param {Object} userConfig 用户配置
  * @returns {Boolean} 是否保存成功
@@ -204,18 +125,23 @@ function saveUserConfig(userConfig) {
     // 获取当前sing-box配置（如果存在）
     let targetConfig = {};
     const configPath = getConfigPath();
+    
+    // 只有当配置文件存在时才应用映射，避免自动创建默认配置
     if (fs.existsSync(configPath)) {
       const configContent = fs.readFileSync(configPath, 'utf8');
       targetConfig = JSON.parse(configContent);
+      
+      // 应用映射
+      const mappedConfig = applyConfigMapping(userConfig, targetConfig);
+      
+      // 保存映射后的sing-box配置
+      fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
+      
+      logger.info(`用户配置已保存，映射已应用到现有配置文件: ${configPath}`);
+    } else {
+      logger.info(`用户配置已保存，但未找到配置文件，跳过映射应用`);
     }
     
-    // 应用映射
-    const mappedConfig = applyConfigMapping(userConfig, targetConfig);
-    
-    // 保存映射后的sing-box配置
-    fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
-    
-    logger.info(`用户配置和映射后的sing-box配置已保存`);
     return true;
   } catch (error) {
     logger.error(`保存用户配置并应用映射失败: ${error.message}`);
@@ -240,7 +166,6 @@ function loadUserConfig() {
     // 返回默认用户配置
     return {
       settings: {
-        proxy_port: 12345,
         allow_lan: false
       },
       nodes: []
@@ -249,7 +174,6 @@ function loadUserConfig() {
     logger.error(`加载用户配置失败: ${error.message}`);
     return {
       settings: {
-        proxy_port: 12345,
         allow_lan: false
       },
       nodes: []
@@ -550,10 +474,7 @@ async function processLvorySyncConfig(syncConfigPath, forceRefresh = false) {
       logger.info(`已更新meta.cache映射关系: ${originalFileName} -> ${cacheFileName}`);
     }
     
-    // 设置当前使用的配置为缓存文件
-    await setConfigPath(cachePath);
-    
-    logger.info(`Lvory 同步配置处理完成，当前使用缓存: ${cacheFileName}`);
+    logger.info(`Lvory 同步配置处理完成，缓存文件: ${cacheFileName}`);
     return {
       config: mergedConfig,
       cachePath: cachePath,
@@ -588,13 +509,20 @@ async function setConfigPathSmart(configPath, forceRefresh = false) {
       return false;
     }
     
+    // 使用缓存配置文件作为当前配置路径
+    currentConfigPath = result.cachePath;
+    
+    // 预处理缓存配置文件，确保日志配置正确注入
+    await preprocessConfig(result.cachePath);
+    
     // 保存同步配置文件路径到用户设置
     const userSettings = loadUserSettings();
     userSettings.lastSyncConfigPath = configPath;
     userSettings.lastCacheConfigPath = result.cachePath; // 保存缓存路径
+    userSettings.lastConfigPath = result.cachePath; // 设置当前配置路径为缓存路径
     saveUserSettings(userSettings);
     
-    logger.info(`Lvory 同步配置已成功应用，使用缓存: ${result.cacheFileName}`);
+    logger.info(`Lvory 同步配置已成功应用，当前配置路径: ${result.cachePath}`);
     return true;
   } else {
     // 普通配置文件，使用原有逻辑
@@ -676,8 +604,7 @@ async function preprocessConfig(configPath) {
         apiAddress: '127.0.0.1:9090',
         tunMode: false,
         logLevel: 'info',
-        logDisabled: false,
-        logTimestamp: true
+        logDisabled: false
       };
       // 使用默认日志路径
       const { generateDefaultLogPath } = require('../utils/paths');
@@ -687,7 +614,6 @@ async function preprocessConfig(configPath) {
     // 构建用户配置对象
     const userConfig = {
       settings: {
-        proxy_port: parseInt(settings.proxyPort) || 7890,
         allow_lan: settings.allowLan || false,
         api_address: settings.apiAddress || '127.0.0.1:9090',
         tun_mode: settings.tunMode || false,
@@ -695,7 +621,7 @@ async function preprocessConfig(configPath) {
         log_level: settings.logLevel || 'info',
         log_output: logPath,
         log_disabled: settings.logDisabled || false,
-        log_timestamp: settings.logTimestamp !== false
+        log_timestamp: true
       }
     };
     
@@ -747,8 +673,6 @@ module.exports = {
   getConfigPath,
   setConfigPath,
   setConfigPathSmart,
-  getConfigCopyPath,
-  updateConfigCopy,
   loadUserSettings,
   saveUserSettings,
   getAppSettings,

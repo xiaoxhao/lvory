@@ -1,29 +1,92 @@
-/* 配置文件下载对话框样式 */
-.profile-modal-content {
-  max-width: 520px;
-  width: 100%;
+/* ProfileModal 专业样式 */
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --success-color: #059669;
+  --error-color: #dc2626;
+  --warning-color: #d97706;
+  --neutral-50: #f9fafb;
+  --neutral-100: #f3f4f6;
+  --neutral-200: #e5e7eb;
+  --neutral-300: #d1d5db;
+  --neutral-400: #9ca3af;
+  --neutral-500: #6b7280;
+  --neutral-600: #4b5563;
+  --neutral-700: #374151;
+  --neutral-800: #1f2937;
+  --neutral-900: #111827;
+  --border-radius: 8px;
+  --border-radius-sm: 6px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --transition: all 0.15s ease-in-out;
 }
 
-/* 协议选择区域 */
+.profile-modal-content {
+  max-width: 480px;
+  width: 100%;
+  padding: 0;
+}
+
+/* 模式选择 */
+.mode-selection {
+  margin-bottom: 24px;
+}
+
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background-color: var(--neutral-100);
+  border-radius: var(--border-radius);
+  padding: 4px;
+  gap: 4px;
+}
+
+.mode-tab {
+  padding: 12px 16px;
+  border: none;
+  background-color: transparent;
+  color: var(--neutral-600);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition);
+  text-align: center;
+}
+
+.mode-tab:hover {
+  color: var(--neutral-700);
+  background-color: var(--neutral-50);
+}
+
+.mode-tab.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 协议选择 */
 .protocol-selection {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .protocol-selection-label {
   display: block;
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: var(--neutral-900);
   margin-bottom: 12px;
 }
 
 .protocol-options {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
 .protocol-option {
-  flex: 1;
   position: relative;
 }
 
@@ -37,142 +100,188 @@
 .protocol-option-label {
   display: block;
   padding: 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: #fafafa;
+  transition: var(--transition);
+  background-color: white;
   text-align: center;
+  position: relative;
+}
+
+.protocol-option-label:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
 }
 
 .protocol-option input[type="radio"]:checked + .protocol-option-label {
-  border-color: #50b2d0;
-  background-color: #f0f8ff;
+  border-color: var(--primary-color);
+  background-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
 }
 
 .protocol-option-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
+  color: var(--neutral-900);
+  margin-bottom: 6px;
 }
 
 .protocol-option input[type="radio"]:checked + .protocol-option-label .protocol-option-title {
-  color: #50b2d0;
+  color: var(--primary-color);
 }
 
 .protocol-option-description {
   font-size: 12px;
-  color: #666;
+  color: var(--neutral-500);
   line-height: 1.4;
 }
 
-/* 输入容器 */
+/* 输入字段 */
 .url-input-container {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .url-input-container label {
   display: block;
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 6px;
+  font-weight: 600;
+  color: var(--neutral-900);
+  margin-bottom: 8px;
 }
 
 .url-input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--neutral-300);
+  border-radius: var(--border-radius);
   font-size: 14px;
-  transition: border-color 0.2s;
+  transition: var(--transition);
   box-sizing: border-box;
+  background-color: white;
+  color: var(--neutral-900);
+}
+
+.url-input::placeholder {
+  color: var(--neutral-400);
 }
 
 .url-input:focus {
   outline: none;
-  border-color: #50b2d0;
-  box-shadow: 0 0 0 2px rgba(80, 178, 208, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
 }
 
 .url-input:disabled {
-  background-color: #f5f5f5;
-  color: #999;
+  background-color: var(--neutral-50);
+  color: var(--neutral-500);
   cursor: not-allowed;
+  border-color: var(--neutral-200);
 }
 
-/* 更新间隔选择 */
-.update-interval {
-  margin-bottom: 16px;
-}
-
+/* 下拉选择 */
 .update-interval select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--neutral-300);
+  border-radius: var(--border-radius);
   font-size: 14px;
   background-color: white;
+  color: var(--neutral-900);
   cursor: pointer;
+  transition: var(--transition);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+  appearance: none;
 }
 
-/* 复选框容器 */
-.is-default-checkbox {
-  margin-bottom: 20px;
+.update-interval select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
 }
 
-.checkbox-label {
+/* 文件选择 */
+.file-input-wrapper {
+  position: relative;
+}
+
+.hidden-file-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.file-select-button {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px dashed var(--neutral-300);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  background-color: var(--neutral-50);
+  color: var(--neutral-600);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #333;
+  min-height: 48px;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+.file-select-button:hover {
+  border-color: var(--primary-color);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
-/* 下载进度和状态 */
+.file-select-button:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+}
+
+.file-select-button::before {
+  content: "⊞";
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* 加载状态 */
 .download-progress {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 32px 24px;
+  text-align: center;
 }
 
 .progress-bar {
   width: 100%;
-  height: 4px;
-  background-color: #e0e0e0;
-  border-radius: 2px;
-  margin-bottom: 12px;
+  height: 6px;
+  background-color: var(--neutral-200);
+  border-radius: 3px;
+  margin-bottom: 16px;
   overflow: hidden;
+  position: relative;
 }
 
 .progress-bar.loading::after {
   content: '';
-  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 30%;
   height: 100%;
-  background: linear-gradient(90deg, #50b2d0, #3498db);
-  border-radius: 2px;
-  animation: progress-loading 1.5s infinite;
-}
-
-.progress-bar.success {
-  background-color: #27ae60;
-}
-
-.progress-bar.error {
-  background-color: #e74c3c;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-hover));
+  border-radius: 3px;
+  animation: progress-loading 1.2s infinite ease-in-out;
 }
 
 @keyframes progress-loading {
@@ -181,33 +290,95 @@
 }
 
 .status-text {
-  margin: 8px 0;
   font-size: 14px;
-  text-align: center;
-  word-break: break-word;
-  color: #333;
-}
-
-.success-text {
-  color: #27ae60;
+  color: var(--neutral-600);
   font-weight: 500;
 }
 
-.update-schedule {
-  font-size: 12px;
-  color: #57a45d;
-  margin-top: 5px;
+/* 成功状态 */
+.download-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px;
+  text-align: center;
 }
 
-.auto-close {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #666;
+.success-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--success-color);
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* 下载成功状态 - 旧样式已移除，新样式在文件末尾 */
+.success-title::before {
+  content: "✓";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: var(--success-color);
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
 
-/* 错误详情 */
+.success-filename {
+  font-size: 14px;
+  color: var(--neutral-700);
+  background-color: var(--neutral-100);
+  padding: 12px 16px;
+  border-radius: var(--border-radius);
+  margin-bottom: 12px;
+  font-weight: 500;
+  font-family: 'Monaco', 'Consolas', monospace;
+  word-break: break-all;
+}
+
+.success-update {
+  font-size: 13px;
+  color: var(--neutral-500);
+  margin: 0;
+}
+
+/* 错误状态 */
+.download-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.error-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--error-color);
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-title::before {
+  content: "!";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: var(--error-color);
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .error-details-container {
   margin-top: 16px;
   width: 100%;
@@ -215,145 +386,136 @@
 
 .error-details-toggle {
   background: none;
-  border: 1px solid #ddd;
+  border: 1px solid var(--neutral-300);
   padding: 8px 16px;
-  border-radius: 4px;
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
   font-size: 13px;
-  color: #666;
-  transition: all 0.2s;
+  color: var(--neutral-600);
+  transition: var(--transition);
   width: 100%;
 }
 
 .error-details-toggle:hover {
-  background-color: #f5f5f5;
-  border-color: #ccc;
+  background-color: var(--neutral-50);
+  border-color: var(--neutral-400);
 }
 
 .error-details {
   margin-top: 12px;
-  padding: 12px;
-  background-color: #fff;
-  border: 1px solid #eee;
-  border-radius: 4px;
+  padding: 12px 16px;
+  background-color: var(--neutral-50);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--border-radius-sm);
   font-size: 13px;
-  color: #e74c3c;
+  color: var(--error-color);
+  font-family: 'Monaco', 'Consolas', monospace;
   word-break: break-word;
+  text-align: left;
 }
 
-/* 操作按钮 */
+/* 按钮样式 */
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--neutral-200);
 }
 
 .modal-actions.error-actions {
   justify-content: center;
-  margin-top: 16px;
+  border-top: none;
+  padding-top: 0;
 }
 
 .cancel-button,
 .download-button,
 .try-again-button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
 }
 
 .cancel-button {
-  background-color: #f5f5f5;
-  color: #666;
+  background-color: white;
+  color: var(--neutral-700);
+  border: 1px solid var(--neutral-300);
 }
 
 .cancel-button:hover {
-  background-color: #eeeeee;
+  background-color: var(--neutral-50);
+  border-color: var(--neutral-400);
 }
 
 .download-button {
-  background-color: #50b2d0;
+  background-color: var(--primary-color);
   color: white;
 }
 
-.download-button:hover {
-  background-color: #3a8ba8;
+.download-button:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.download-button:disabled {
+  background-color: var(--neutral-300);
+  color: var(--neutral-500);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .try-again-button {
-  background-color: #e74c3c;
+  background-color: var(--error-color);
   color: white;
 }
 
 .try-again-button:hover {
-  background-color: #c0392b;
+  background-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-/* 成功状态样式 */
-.download-success {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  text-align: center;
-}
-
-.success-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #27ae60;
-  margin-bottom: 16px;
-  margin-top: 0;
-}
-
-.success-filename {
-  font-size: 14px;
-  color: #333;
-  background-color: #f8f9fa;
-  padding: 8px 16px;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  font-weight: 500;
-}
-
-.success-update {
-  font-size: 13px;
-  color: #57a45d;
-  margin-bottom: 0;
-}
-
-/* 错误状态样式 */
-.download-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  text-align: center;
-}
-
-.error-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #e74c3c;
-  margin-bottom: 16px;
-  margin-top: 0;
-}
-
-/* 下载按钮禁用状态 */
-.download-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.download-button:disabled:hover {
-  background-color: #cccccc;
-}
-
-/* 成功状态的模态框 */
+/* 成功状态的模态框顶部装饰 */
 .modal.success-state .modal-content {
-  border-top: 4px solid #27ae60;
+  border-top: 4px solid var(--success-color);
+}
+
+/* 响应式优化 */
+@media (max-width: 640px) {
+  .profile-modal-content {
+    max-width: 100%;
+    margin: 0 16px;
+  }
+  
+  .protocol-options {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .mode-tabs {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .cancel-button,
+  .download-button,
+  .try-again-button {
+    width: 100%;
+  }
 } 

@@ -156,7 +156,7 @@ class Logger {
    * @param {Object} logEntry 日志条目
    */
   sendToRenderer(logEntry) {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+    if (this.mainWindow?.isDestroyed?.() === false) {
       this.mainWindow.webContents.send('activity-log', logEntry);
     }
   }

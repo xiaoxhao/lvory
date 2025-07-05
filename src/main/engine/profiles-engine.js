@@ -473,10 +473,16 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
           // 处理目标路径中的变量
           const processedTargetPath = replacePathVariables(mapping.target_path, userConfig);
           
-          // 应用默认值到目标配置
-          createOrUpdatePath(result, processedTargetPath, mapping.default, {
-            conflict_strategy: mapping.conflict_strategy
-          });
+          // 检查目标配置中是否已经存在该值
+          const existingValue = getValueByPath(result, processedTargetPath);
+          
+          // 只有当目标配置中也没有该值时，才应用默认值
+          if (existingValue === undefined) {
+            // 应用默认值到目标配置
+            createOrUpdatePath(result, processedTargetPath, mapping.default, {
+              conflict_strategy: mapping.conflict_strategy
+            });
+          }
         }
         return;
       }

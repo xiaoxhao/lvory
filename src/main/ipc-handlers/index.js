@@ -45,7 +45,7 @@ const HANDLERS_TO_REMOVE = [
   // 用户配置相关
   'get-user-config', 'save-user-config',
   // 规则集相关
-  'get-rule-sets', 'get-node-groups',
+  'get-rule-sets', 'get-node-groups', 'get-route-rules',
   // 映射引擎相关
   'get-mapping-definition', 'save-mapping-definition', 'apply-config-mapping',
   'get-mapping-definition-path', 'get-default-mapping-definition',
@@ -55,6 +55,7 @@ const HANDLERS_TO_REMOVE = [
   // 应用版本相关
   'get-app-version',
   'get-build-date',
+  'get-is-portable',
   // 版本更新相关
   'check-for-updates',
   'get-all-versions',
@@ -115,6 +116,11 @@ function setupHandlers() {
     utils.getNetworkInterfaces();
     utils.getAppVersion();
     utils.getBuildDate();
+    
+    // 设置便携模式检测处理程序
+    utils.getIsPortable();
+    
+    // 设置版本更新检查处理程序
     utils.checkForUpdates();
     utils.getAllVersions();
     utils.openExternal();

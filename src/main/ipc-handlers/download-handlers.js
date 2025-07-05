@@ -74,7 +74,7 @@ function setup() {
       customFileName = customFileName.replace(/[/\\?%*:|"<>]/g, '-');
       
       // 完整的保存路径
-      const filePath = path.join(configDir, customFileName);
+      let filePath = path.join(configDir, customFileName);
       logger.info('File will be saved to:', filePath);
       
       // 检查文件夹是否可写
@@ -164,7 +164,8 @@ function setup() {
               lastUpdated: new Date().toISOString(),
               updateCount: 0,
               failCount: 0,
-              status: 'active'
+              status: 'active',
+              protocol: data.protocolType || 'singbox'
             };
             
             try {

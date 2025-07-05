@@ -21,7 +21,6 @@ class SettingsManager {
       logLevel: 'info',
       logOutput: '',
       logDisabled: false,
-      logTimestamp: true,
       
       // Nodes 相关设置
       nodeAdvancedMonitoring: false,
@@ -29,17 +28,15 @@ class SettingsManager {
       nodeExitIPPurity: false,
       keepNodeTrafficHistory: false,
       
-      // 多云互联设置
-      cloudInterconnection: false,
-      backendAddress: '',
-      
       // 高级设置
       kernelWatchdog: true,
       logRotationPeriod: 7,
-      language: 'zh_CN'
+      language: 'zh_CN',
+      foregroundOnly: false
     };
     
     this.configParser = new ConfigParser();
+    this.cachedDefaultLogPath = null;
   }
 
   // 加载设置
@@ -166,9 +163,12 @@ class SettingsManager {
     let logPath;
     
     if (!this.settings.logOutput || this.settings.logOutput.trim() === '') {
-      // 如果用户没有指定日志路径，生成默认路径
-      logPath = generateDefaultLogPath();
-      logger.info(`生成默认日志路径: ${logPath}`);
+      // 如果用户没有指定日志路径，检查是否已有默认路径
+      if (!this.cachedDefaultLogPath) {
+        // 生成并缓存默认路径
+        this.cachedDefaultLogPath = generateDefaultLogPath();
+      }
+      logPath = this.cachedDefaultLogPath;
     } else {
       logPath = this.settings.logOutput;
     }
@@ -178,7 +178,6 @@ class SettingsManager {
       const logDir = path.dirname(logPath);
       if (!fs.existsSync(logDir)) {
         fs.mkdirSync(logDir, { recursive: true });
-        logger.info(`设置管理器创建日志目录: ${logDir}`);
       }
     } catch (dirError) {
       logger.error(`设置管理器创建日志目录失败: ${dirError.message}`);

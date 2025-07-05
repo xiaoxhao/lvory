@@ -10,6 +10,7 @@ const connectionLogger = require('../utils/connection-logger');
 const singbox = require('../utils/sing-box');
 const profileManager = require('./profile-manager');
 const ipcManager = require('./ipc-manager');
+const settingsManager = require('./settings-manager');
 
 // 判断是否是开发环境
 const isDev = process.env.NODE_ENV === 'development';
@@ -151,7 +152,7 @@ const createWindow = () => {
   loadAppContent();
 
   mainWindow.on('hide', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow?.isDestroyed?.() === false) {
       // 通知渲染进程窗口已隐藏，可以暂停不必要的渲染
       mainWindow.webContents.send('window-visibility-change', { isVisible: false });
       logger.info('窗口已隐藏到托盘，优化资源占用');
@@ -159,19 +160,38 @@ const createWindow = () => {
   });
 
   mainWindow.on('show', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow?.isDestroyed?.() === false) {
       // 通知渲染进程窗口已显示，恢复正常渲染
       mainWindow.webContents.send('window-visibility-change', { isVisible: true });
       logger.info('窗口已显示，恢复正常渲染');
     }
   });
 
-  // 添加窗口关闭事件处理，防止直接退出
-  mainWindow.on('close', (event) => {
+  // 添加窗口关闭事件处理，支持仅前台运行模式
+  mainWindow.on('close', async (event) => {
     if (!global.isQuitting) {
-      event.preventDefault();
-      mainWindow.hide();
-      return false;
+      // 获取当前设置
+      const settings = settingsManager.getSettings();
+      
+      if (settings.foregroundOnly) {
+        // 仅前台运行模式：直接退出程序
+        try {
+          logger.info('仅前台运行模式，准备退出程序');
+          await singbox.disableSystemProxy();
+          await singbox.stopCore();
+          global.isQuitting = true;
+          require('electron').app.quit();
+        } catch (error) {
+          logger.error('退出前清理失败:', error);
+          global.isQuitting = true;
+          require('electron').app.quit();
+        }
+      } else {
+        // 正常模式：隐藏到托盘
+        event.preventDefault();
+        mainWindow.hide();
+        return false;
+      }
     }
     return true;
   });

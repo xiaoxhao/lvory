@@ -68,7 +68,7 @@ const StatsOverview = ({ apiAddress }) => {
             console.warn(`${chartName} resize failed:`, error);
           }
         }
-      }, 100); // 100ms防抖
+      }, 100);
     };
   };
   
@@ -79,6 +79,7 @@ const StatsOverview = ({ apiAddress }) => {
   const fullscreenChartRef = useRef(null);
   const fullscreenChartInstance = useRef(null);
   const isInitialized = useRef(false);
+  const initRetryCount = useRef({ gauge: 0, fullscreen: 0 });
   
   // 使用一个计数器来记录成功和失败次数，计算丢包率
   const pingCounter = useRef({ total: 0, failed: 0 });
@@ -103,12 +104,12 @@ const StatsOverview = ({ apiAddress }) => {
           loss: totalTests ? (currentMinuteData.failures / totalTests) * 100 : 0
         };
         
-        // 生成时间戳标签 (HH:MM格式)
+        // 生成时间戳标签
         const timestamp = currentMinuteData.lastUpdate ? 
                           currentMinuteData.lastUpdate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : 
                           '';
         
-        // 更新聚合数据数组 (FIFO)
+        // 更新聚合数据数组
         aggregatedLatencyData.values.shift();
         aggregatedLatencyData.timestamps.shift();
         aggregatedLatencyData.details.shift();
@@ -128,14 +129,13 @@ const StatsOverview = ({ apiAddress }) => {
     currentMinuteData.lastUpdate = currentTime;
   };
   
-  // 前端简单的延迟测试函数
+  // 延迟测试函数
   const testLatency = async () => {
     // 检查内核是否运行
     if (window.electron && window.electron.singbox && window.electron.singbox.getStatus) {
       try {
         const status = await window.electron.singbox.getStatus();
         if (!status.isRunning) {
-          console.log('内核未运行，不执行延迟测试');
           return;
         }
       } catch (error) {
@@ -144,10 +144,8 @@ const StatsOverview = ({ apiAddress }) => {
       }
     }
     
-    // 更新全局计数器
+    // 更新计数器
     pingCounter.current.total++;
-    
-    // 更新当前分钟计数器
     currentMinuteData.total++;
     
     const currentTime = new Date();
@@ -157,7 +155,7 @@ const StatsOverview = ({ apiAddress }) => {
       
       // 使用fetch API发送请求到Google并测量响应时间
       const response = await fetch('https://www.google.com/generate_204', {
-        mode: 'no-cors',  // 使用no-cors模式
+        mode: 'no-cors',
         cache: 'no-cache',
         headers: {
           'Cache-Control': 'no-cache'
@@ -207,7 +205,7 @@ const StatsOverview = ({ apiAddress }) => {
     
     // 计算丢包率
     const lossRate = (pingCounter.current.failed / pingCounter.current.total) * 100;
-    setPacketLoss(Math.round(lossRate * 10) / 10); // 保留一位小数
+    setPacketLoss(Math.round(lossRate * 10) / 10);
   };
   
   // 获取流量数据
@@ -238,7 +236,7 @@ const StatsOverview = ({ apiAddress }) => {
               // 处理JSON数据
               const data = JSON.parse(chunk);
               
-              // 更新流量数据数组 (FIFO)
+              // 更新流量数据数组
               persistentData.trafficData.upload.shift();
               persistentData.trafficData.download.shift();
               persistentData.trafficData.timestamps.shift();
@@ -324,357 +322,355 @@ const StatsOverview = ({ apiAddress }) => {
   
   // 初始化流量图表
   const initTrafficChart = () => {
-    if (trafficChartRef.current) {
-      // 检查DOM元素是否有有效的宽高
-      const rect = trafficChartRef.current.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) {
-        console.warn('Traffic chart container has zero width or height, retrying in 100ms');
-        setTimeout(() => initTrafficChart(), 100);
-        return;
-      }
-      
-      // 如果已存在实例，则销毁
-      if (trafficChartInstance.current) {
-        if (trafficChartInstance.current._resizeHandler) {
-          window.removeEventListener('resize', trafficChartInstance.current._resizeHandler);
-        }
-        trafficChartInstance.current.dispose();
-      }
-      
-      // 创建新实例
-      const chart = echarts.init(trafficChartRef.current);
-      trafficChartInstance.current = chart;
-      
-      // 设置图表选项
-      const option = {
-        grid: {
-          top: 30,
-          bottom: 30,
-          left: 50,
-          right: 15
-        },
-        tooltip: {
-          trigger: 'axis',
-          formatter: function(params) {
-            const time = params[0].axisValue;
-            let result = `${time}<br>`;
-            params.forEach(param => {
-              result += `${param.seriesName}: ${param.value.toFixed(2)} KB/s<br>`;
-            });
-            return result;
-          }
-        },
-        legend: {
-          data: ['上传', '下载'],
-          right: 10,
-          top: 0
-        },
-        xAxis: {
-          type: 'category',
-          data: trafficData.timestamps,
-          axisLabel: {
-            fontSize: 10,
-            showMaxLabel: true
-          }
-        },
-        yAxis: {
-          type: 'value',
-          name: 'KB/s',
-          nameTextStyle: {
-            fontSize: 10
-          },
-          axisLabel: {
-            fontSize: 10
-          }
-        },
-        series: [
-          {
-            name: '上传',
-            type: 'line',
-            data: trafficData.upload,
-            smooth: true,
-            showSymbol: false,
-            lineStyle: {
-              width: 2,
-              color: '#6750A4' // MD3 主色
-            },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(103, 80, 164, 0.3)' }, // MD3 主色透明度
-                { offset: 1, color: 'rgba(103, 80, 164, 0.1)' }
-              ])
-            }
-          },
-          {
-            name: '下载',
-            type: 'line',
-            data: trafficData.download,
-            smooth: true,
-            showSymbol: false,
-            lineStyle: {
-              width: 2,
-              color: '#7D5260' // MD3 第三色
-            },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(125, 82, 96, 0.3)' }, // MD3 第三色透明度
-                { offset: 1, color: 'rgba(125, 82, 96, 0.1)' }
-              ])
-            }
-          }
-        ]
-      };
-      
-      // 应用选项
-      chart.setOption(option);
-      
-      // 确保图表正确渲染
-      setTimeout(() => {
-        if (chart && !chart.isDisposed()) {
-          chart.resize();
-        }
-      }, 50);
-      
-      // 响应窗口大小变化 - 使用防抖
-      const resizeHandler = createDebouncedResize(chart, 'Traffic chart');
-      window.addEventListener('resize', resizeHandler);
-      
-      // 保存resize处理器引用以便清理
-      chart._resizeHandler = resizeHandler;
+    if (!trafficChartRef.current) return;
+    
+    const rect = trafficChartRef.current.getBoundingClientRect();
+    const hasValidDimensions = rect.width > 0 && rect.height > 0;
+    
+    if (!hasValidDimensions) {
+      setTimeout(() => initTrafficChart(), 100);
+      return;
     }
+      
+    // 如果已存在实例，则销毁
+    if (trafficChartInstance.current) {
+      if (trafficChartInstance.current._resizeHandler) {
+        window.removeEventListener('resize', trafficChartInstance.current._resizeHandler);
+      }
+      trafficChartInstance.current.dispose();
+    }
+    
+    // 创建新实例
+    const chart = echarts.init(trafficChartRef.current);
+    trafficChartInstance.current = chart;
+    
+    // 设置图表选项
+    const option = {
+      grid: {
+        top: 30,
+        bottom: 30,
+        left: 50,
+        right: 15
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: function(params) {
+          const time = params[0].axisValue;
+          let result = `${time}<br>`;
+          params.forEach(param => {
+            result += `${param.seriesName}: ${param.value.toFixed(2)} KB/s<br>`;
+          });
+          return result;
+        }
+      },
+      legend: {
+        data: ['上传', '下载'],
+        right: 10,
+        top: 0
+      },
+      xAxis: {
+        type: 'category',
+        data: trafficData.timestamps,
+        axisLabel: {
+          fontSize: 10,
+          showMaxLabel: true
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: 'KB/s',
+        nameTextStyle: {
+          fontSize: 10
+        },
+        axisLabel: {
+          fontSize: 10
+        }
+      },
+      series: [
+        {
+          name: '上传',
+          type: 'line',
+          data: trafficData.upload,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: {
+            width: 2,
+            color: '#6750A4'
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(103, 80, 164, 0.3)' },
+              { offset: 1, color: 'rgba(103, 80, 164, 0.1)' }
+            ])
+          }
+        },
+        {
+          name: '下载',
+          type: 'line',
+          data: trafficData.download,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: {
+            width: 2,
+            color: '#7D5260'
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(125, 82, 96, 0.3)' },
+              { offset: 1, color: 'rgba(125, 82, 96, 0.1)' }
+            ])
+          }
+        }
+      ]
+    };
+    
+    // 应用选项
+    chart.setOption(option);
+    
+    // 确保图表正确渲染
+    setTimeout(() => {
+      if (chart && !chart.isDisposed()) {
+        chart.resize();
+      }
+    }, 50);
+    
+    // 响应窗口大小变化
+    const resizeHandler = createDebouncedResize(chart, 'Traffic chart');
+    window.addEventListener('resize', resizeHandler);
+    
+    // 保存resize处理器引用以便清理
+    chart._resizeHandler = resizeHandler;
   };
   
   // 初始化延迟散点图
   const initGaugeChart = () => {
-    if (gaugeChartRef.current) {
-      // 检查DOM元素是否有有效的宽高
-      const rect = gaugeChartRef.current.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) {
-        console.warn('ECharts container has zero width or height, retrying in 100ms');
-        setTimeout(() => initGaugeChart(), 100);
-        return;
+    if (!gaugeChartRef.current) return;
+    
+    const rect = gaugeChartRef.current.getBoundingClientRect();
+    const hasValidDimensions = rect.width > 0 && rect.height > 0;
+    
+    if (!hasValidDimensions) {
+      initRetryCount.current.gauge++;
+      if (initRetryCount.current.gauge <= 10) {
+        const delay = Math.min(100 * initRetryCount.current.gauge, 1000);
+        setTimeout(() => initGaugeChart(), delay);
       }
+      return;
+    }
+    
+    initRetryCount.current.gauge = 0;
       
-      // 如果已存在实例，则销毁
-      if (gaugeChartInstance.current) {
-        if (gaugeChartInstance.current._resizeHandler) {
-          window.removeEventListener('resize', gaugeChartInstance.current._resizeHandler);
-        }
-        if (gaugeChartInstance.current._resizeObserver) {
-          gaugeChartInstance.current._resizeObserver.disconnect();
-        }
-        gaugeChartInstance.current.dispose();
+    // 如果已存在实例，则销毁
+    if (gaugeChartInstance.current) {
+      if (gaugeChartInstance.current._resizeHandler) {
+        window.removeEventListener('resize', gaugeChartInstance.current._resizeHandler);
       }
-      
-      // 创建新实例
-      const chart = echarts.init(gaugeChartRef.current);
-      gaugeChartInstance.current = chart;
-      
-      // 准备数据
-      const data = aggregatedLatencyData.values.map((val, index) => {
-        const detail = aggregatedLatencyData.details[index];
-        return [index, val, detail]; // [x坐标(索引), y坐标(平均延迟), 详细信息]
-      });
-      
-      const option = {
-        grid: {
-          left: 30,    // 减小左边距
-          right: 15,   // 略微增加右边距
-          top: 20,     // 调整顶部边距
-          bottom: 15,  // 调整底部边距
-          containLabel: true
-        },
-        tooltip: {
-          trigger: 'item',
-          formatter: function(params) {
-            const detail = params.data[2];
-            if (!detail || detail.avg === null) return 'no data';
-            
-            return `<div style="font-weight:600;margin-bottom:3px;font-size:12px">Network Delay</div>` +
-                   `<div style="display:flex;justify-content:space-between"><span>Delay:</span><span style="font-weight:600">${detail.avg.toFixed(0)}ms</span></div>` +
-                   `<div style="display:flex;justify-content:space-between"><span>Loss:</span><span style="font-weight:600">${detail.loss.toFixed(1)}%</span></div>`;
-          },
-          textStyle: {
-            fontSize: 12,
-            lineHeight: 18
-          },
-          padding: [8, 10],
-          backgroundColor: 'rgba(28, 27, 31, 0.8)', // 更深的背景色增加对比度
-          borderColor: 'rgba(103, 80, 164, 0.3)',
-          borderWidth: 1,
-          borderRadius: 6,
-          extraCssText: 'box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);'
-        },
-        xAxis: {
-          type: 'category',
-          show: true, // 显示X轴
-          boundaryGap: false,
-          data: Array.from({length: 15}, (_, i) => i), // 确保X轴有固定的数据点
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.4)', // MD3 主色带透明度
-              width: 1
-            }
-          },
-          axisTick: {
-            show: false
-          },
-          axisLabel: {
-            show: false // 不显示X轴标签
-          },
-          splitLine: {
-            show: false
-          }
-        },
-        yAxis: {
-          type: 'value',
-          min: 0,
-          max: function(value) {
-            return value.max < 100 ? 100 : Math.ceil(value.max / 50) * 50;
-          },
-          axisLine: {
-            show: true,  // 显示Y轴线
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.4)', // MD3 主色带透明度
-              width: 1
-            }
-          },
-          axisTick: {
-            show: false
-          },
-          axisLabel: {
-            fontSize: 10,
-            fontFamily: 'Roboto, Arial, sans-serif',
-            color: '#49454F', // MD3 on-surface-variant 颜色
-            formatter: function(value, index) {
-              // 只显示部分标签
-              if (index === 0 || index === 2 || index === 4) {
-                return value + ' ms';
-              }
-              return '';
-            },
-            margin: 8
-          },
-          splitLine: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.15)', // 降低分割线的透明度使其更柔和
-              width: 0.5,
-              type: 'dashed'
-            }
-          },
-          nameTextStyle: {
-            fontSize: 10,
-            padding: [0, 0, 0, 0]
-          }
-        },
-        series: [
-          {
-            type: 'line',
-            smooth: true,
-            showSymbol: true,
-            symbol: 'circle',
-            symbolSize: function(value) {
-              const detail = value[2];
-              if (!detail || detail.avg === null) return 3;
-              // 调整点的大小，使其更美观
-              return 5 + Math.min(detail.loss, 40) / 8;
-            },
-            data: data,
-            lineStyle: {
-              width: 2.5, // 增加线宽
-              color: '#6750A4', // MD3 主色
-              shadowColor: 'rgba(103, 80, 164, 0.3)',
-              shadowBlur: 5,
-              shadowOffsetY: 2,
-              cap: 'round',
-              join: 'round'
-            },
-            itemStyle: {
-              color: function(params) {
-                const detail = params.data[2];
-                if (!detail || detail.avg === null) return '#CAC4D0'; // MD3 outline 颜色
-                
-                // 增强颜色渐变效果
-                if (detail.loss > 20) return '#B3261E'; // MD3 错误色
-                if (detail.avg < 30) return '#1E6E5A';  // 更饱和的绿色
-                if (detail.avg < 70) return '#9C6D00';  // 更饱和的黄色
-                if (detail.avg < 120) return '#BF4A30';  // 轻度错误橙色
-                return '#B3261E';                      // MD3 错误色
-              },
-              borderColor: '#FFF',
-              borderWidth: 1.5,
-              shadowColor: 'rgba(0, 0, 0, 0.2)',
-              shadowBlur: 3
-            },
-            // 美化波浪填充
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(103, 80, 164, 0.5)' }, // 更高透明度，增强视觉效果
-                { offset: 0.5, color: 'rgba(103, 80, 164, 0.2)' },
-                { offset: 1, color: 'rgba(103, 80, 164, 0.05)' }
-              ]),
-              // 加强波浪效果
-              shadowColor: 'rgba(103, 80, 164, 0.3)', // MD3 主色带透明度
-              shadowBlur: 15,
-              opacity: 0.8
-            },
-            z: 2 // 确保线在最上面
-          }
-        ]
-      };
-      
-      // 应用选项
-      chart.setOption(option);
-      
-      // 确保图表正确渲染
-      setTimeout(() => {
-        if (chart && !chart.isDisposed()) {
-          chart.resize();
-        }
-      }, 50);
-      
-      // 添加双击事件监听器
-      chart.getZr().on('dblclick', () => {
-        setIsFullscreenChart(true);
-      });
-      
-      // 响应窗口大小变化 - 使用防抖
-      const resizeHandler = createDebouncedResize(chart, 'Gauge chart');
-      window.addEventListener('resize', resizeHandler);
-      
-      // 保存resize处理器引用以便清理
-      chart._resizeHandler = resizeHandler;
-      
-      // 使用ResizeObserver监听容器尺寸变化
-      if (window.ResizeObserver) {
-        let resizeAnimationFrame;
-        const resizeObserver = new ResizeObserver((entries) => {
-          // 取消之前的动画帧请求
-          if (resizeAnimationFrame) {
-            cancelAnimationFrame(resizeAnimationFrame);
-          }
+      if (gaugeChartInstance.current._resizeObserver) {
+        gaugeChartInstance.current._resizeObserver.disconnect();
+      }
+      gaugeChartInstance.current.dispose();
+    }
+    
+    // 创建新实例
+    const chart = echarts.init(gaugeChartRef.current);
+    gaugeChartInstance.current = chart;
+    
+    // 准备数据
+    const data = aggregatedLatencyData.values.map((val, index) => {
+      const detail = aggregatedLatencyData.details[index];
+      return [index, val, detail];
+    });
+    
+    const option = {
+      grid: {
+        left: 30,
+        right: 15,
+        top: 20,
+        bottom: 15,
+        containLabel: true
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: function(params) {
+          const detail = params.data[2];
+          if (!detail || detail.avg === null) return 'no data';
           
-          // 使用requestAnimationFrame避免ResizeObserver循环
-          resizeAnimationFrame = requestAnimationFrame(() => {
-            // 检查entries是否有实际的尺寸变化
-            const entry = entries[0];
-            if (entry && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-              if (chart && !chart.isDisposed()) {
-                try {
-                  chart.resize();
-                } catch (error) {
-                  console.warn('Chart resize failed:', error);
-                }
+          return `<div style="font-weight:600;margin-bottom:3px;font-size:12px">Network Delay</div>` +
+                 `<div style="display:flex;justify-content:space-between"><span>Delay:</span><span style="font-weight:600">${detail.avg.toFixed(0)}ms</span></div>` +
+                 `<div style="display:flex;justify-content:space-between"><span>Loss:</span><span style="font-weight:600">${detail.loss.toFixed(1)}%</span></div>`;
+        },
+        textStyle: {
+          fontSize: 12,
+          lineHeight: 18
+        },
+        padding: [8, 10],
+        backgroundColor: 'rgba(28, 27, 31, 0.8)',
+        borderColor: 'rgba(103, 80, 164, 0.3)',
+        borderWidth: 1,
+        borderRadius: 6,
+        extraCssText: 'box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);'
+      },
+      xAxis: {
+        type: 'category',
+        show: true,
+        boundaryGap: false,
+        data: Array.from({length: 15}, (_, i) => i),
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.4)',
+            width: 1
+          }
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          show: false
+        },
+        splitLine: {
+          show: false
+        }
+      },
+      yAxis: {
+        type: 'value',
+        min: 0,
+        max: function(value) {
+          return value.max < 100 ? 100 : Math.ceil(value.max / 50) * 50;
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.4)',
+            width: 1
+          }
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          fontSize: 10,
+          fontFamily: 'Roboto, Arial, sans-serif',
+          color: '#49454F',
+          formatter: function(value, index) {
+            if (index === 0 || index === 2 || index === 4) {
+              return value + ' ms';
+            }
+            return '';
+          },
+          margin: 8
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.15)',
+            width: 0.5,
+            type: 'dashed'
+          }
+        },
+        nameTextStyle: {
+          fontSize: 10,
+          padding: [0, 0, 0, 0]
+        }
+      },
+      series: [
+        {
+          type: 'line',
+          smooth: true,
+          showSymbol: true,
+          symbol: 'circle',
+          symbolSize: function(value) {
+            const detail = value[2];
+            if (!detail || detail.avg === null) return 3;
+            return 5 + Math.min(detail.loss, 40) / 8;
+          },
+          data: data,
+          lineStyle: {
+            width: 2.5,
+            color: '#6750A4',
+            shadowColor: 'rgba(103, 80, 164, 0.3)',
+            shadowBlur: 5,
+            shadowOffsetY: 2,
+            cap: 'round',
+            join: 'round'
+          },
+          itemStyle: {
+            color: function(params) {
+              const detail = params.data[2];
+              if (!detail || detail.avg === null) return '#CAC4D0';
+              
+              if (detail.loss > 20) return '#B3261E';
+              if (detail.avg < 30) return '#1E6E5A';
+              if (detail.avg < 70) return '#9C6D00';
+              if (detail.avg < 120) return '#BF4A30';
+              return '#B3261E';
+            },
+            borderColor: '#FFF',
+            borderWidth: 1.5,
+            shadowColor: 'rgba(0, 0, 0, 0.2)',
+            shadowBlur: 3
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(103, 80, 164, 0.5)' },
+              { offset: 0.5, color: 'rgba(103, 80, 164, 0.2)' },
+              { offset: 1, color: 'rgba(103, 80, 164, 0.05)' }
+            ]),
+            shadowColor: 'rgba(103, 80, 164, 0.3)',
+            shadowBlur: 15,
+            opacity: 0.8
+          },
+          z: 2
+        }
+      ]
+    };
+    
+    // 应用选项
+    chart.setOption(option);
+    
+    // 确保图表正确渲染
+    setTimeout(() => {
+      if (chart && !chart.isDisposed()) {
+        chart.resize();
+      }
+    }, 50);
+    
+    // 添加双击事件监听器
+    chart.getZr().on('dblclick', () => {
+      setIsFullscreenChart(true);
+    });
+    
+    // 响应窗口大小变化
+    const resizeHandler = createDebouncedResize(chart, 'Gauge chart');
+    window.addEventListener('resize', resizeHandler);
+    
+    // 保存resize处理器引用以便清理
+    chart._resizeHandler = resizeHandler;
+    
+    // 使用ResizeObserver监听容器尺寸变化
+    if (window.ResizeObserver) {
+      let resizeAnimationFrame;
+      const resizeObserver = new ResizeObserver((entries) => {
+        if (resizeAnimationFrame) {
+          cancelAnimationFrame(resizeAnimationFrame);
+        }
+        
+        resizeAnimationFrame = requestAnimationFrame(() => {
+          const entry = entries[0];
+          if (entry && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+            if (chart && !chart.isDisposed()) {
+              try {
+                chart.resize();
+              } catch (error) {
+                console.warn('Chart resize failed:', error);
               }
             }
-          });
+          }
         });
-        
-        resizeObserver.observe(gaugeChartRef.current);
-        chart._resizeObserver = resizeObserver;
-      }
+      });
+      
+      resizeObserver.observe(gaugeChartRef.current);
+      chart._resizeObserver = resizeObserver;
     }
   };
   
@@ -825,222 +821,228 @@ const StatsOverview = ({ apiAddress }) => {
   
   // 初始化全屏延迟图表
   const initFullscreenChart = () => {
-    if (fullscreenChartRef.current) {
-      // 检查DOM元素是否有有效的宽高
-      const rect = fullscreenChartRef.current.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) {
-        console.warn('Fullscreen chart container has zero width or height, retrying in 100ms');
-        setTimeout(() => initFullscreenChart(), 100);
-        return;
+    if (!fullscreenChartRef.current) return;
+    
+    const rect = fullscreenChartRef.current.getBoundingClientRect();
+    const hasValidDimensions = rect.width > 0 && rect.height > 0;
+    
+    if (!hasValidDimensions) {
+      initRetryCount.current.fullscreen++;
+      if (initRetryCount.current.fullscreen <= 5) {
+        const delay = 100 * initRetryCount.current.fullscreen;
+        setTimeout(() => initFullscreenChart(), delay);
       }
-      
-      if (fullscreenChartInstance.current) {
-        if (fullscreenChartInstance.current._resizeHandler) {
-          window.removeEventListener('resize', fullscreenChartInstance.current._resizeHandler);
-        }
-        fullscreenChartInstance.current.dispose();
-      }
-      
-      const chart = echarts.init(fullscreenChartRef.current);
-      fullscreenChartInstance.current = chart;
-      
-      // 确保使用当前最新的数据
-      const data = aggregatedLatencyData.values.map((val, index) => {
-        const detail = aggregatedLatencyData.details[index];
-        return [aggregatedLatencyData.timestamps[index], val, detail];
-      });
-      
-      const option = {
-        grid: {
-          left: 80,
-          right: 50,
-          top: 60,
-          bottom: 60,
-          containLabel: true
-        },
-        title: {
-          text: 'Network Latency Detail',
-          left: 'center',
-          top: 20,
-          textStyle: {
-            fontSize: 24,
-            fontWeight: '600',
-            color: '#6750A4',
-            fontFamily: 'Roboto, Arial, sans-serif'
-          }
-        },
-        tooltip: {
-          trigger: 'item',
-          formatter: function(params) {
-            const detail = params.data[2];
-            if (!detail || detail.avg === null) return 'no data';
-            
-            return `<div style="font-weight:600;margin-bottom:8px;font-size:16px">Network Delay Detail</div>` +
-                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Time:</span><span style="font-weight:600">${params.data[0]}</span></div>` +
-                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Average:</span><span style="font-weight:600">${detail.avg.toFixed(1)}ms</span></div>` +
-                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Minimum:</span><span style="font-weight:600">${detail.min ? detail.min.toFixed(1) : 'N/A'}ms</span></div>` +
-                   `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Maximum:</span><span style="font-weight:600">${detail.max ? detail.max.toFixed(1) : 'N/A'}ms</span></div>` +
-                   `<div style="display:flex;justify-content:space-between"><span>Packet Loss:</span><span style="font-weight:600">${detail.loss.toFixed(1)}%</span></div>`;
-          },
-          textStyle: {
-            fontSize: 14,
-            lineHeight: 20
-          },
-          padding: [12, 16],
-          backgroundColor: 'rgba(28, 27, 31, 0.9)',
-          borderColor: 'rgba(103, 80, 164, 0.4)',
-          borderWidth: 1,
-          borderRadius: 8,
-          extraCssText: 'box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);'
-        },
-        xAxis: {
-          type: 'category',
-          data: aggregatedLatencyData.timestamps,
-          show: true,
-          boundaryGap: false,
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.6)',
-              width: 2
-            }
-          },
-          axisTick: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.4)',
-              width: 1
-            }
-          },
-          axisLabel: {
-            show: true,
-            fontSize: 12,
-            fontFamily: 'Roboto, Arial, sans-serif',
-            color: '#49454F',
-            margin: 12,
-            rotate: 45
-          },
-          splitLine: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.1)',
-              width: 1,
-              type: 'dashed'
-            }
-          }
-        },
-        yAxis: {
-          type: 'value',
-          name: 'Latency (ms)',
-          nameLocation: 'middle',
-          nameGap: 50,
-          nameTextStyle: {
-            fontSize: 14,
-            color: '#49454F',
-            fontFamily: 'Roboto, Arial, sans-serif'
-          },
-          min: 0,
-          max: function(value) {
-            return value.max < 100 ? 100 : Math.ceil(value.max / 50) * 50;
-          },
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.6)',
-              width: 2
-            }
-          },
-          axisTick: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.4)',
-              width: 1
-            }
-          },
-          axisLabel: {
-            fontSize: 12,
-            fontFamily: 'Roboto, Arial, sans-serif',
-            color: '#49454F',
-            formatter: '{value} ms',
-            margin: 12
-          },
-          splitLine: {
-            show: true,
-            lineStyle: {
-              color: 'rgba(103, 80, 164, 0.15)',
-              width: 1,
-              type: 'dashed'
-            }
-          }
-        },
-        series: [
-          {
-            type: 'line',
-            smooth: true,
-            showSymbol: true,
-            symbol: 'circle',
-            symbolSize: function(value) {
-              const detail = value[2];
-              if (!detail || detail.avg === null) return 6;
-              return 8 + Math.min(detail.loss, 40) / 6;
-            },
-            data: data,
-            lineStyle: {
-              width: 4,
-              color: '#6750A4',
-              shadowColor: 'rgba(103, 80, 164, 0.4)',
-              shadowBlur: 8,
-              shadowOffsetY: 3,
-              cap: 'round',
-              join: 'round'
-            },
-            itemStyle: {
-              color: function(params) {
-                const detail = params.data[2];
-                if (!detail || detail.avg === null) return '#CAC4D0';
-                
-                if (detail.loss > 20) return '#B3261E';
-                if (detail.avg < 30) return '#1E6E5A';
-                if (detail.avg < 70) return '#9C6D00';
-                if (detail.avg < 120) return '#BF4A30';
-                return '#B3261E';
-              },
-              borderColor: '#FFF',
-              borderWidth: 2,
-              shadowColor: 'rgba(0, 0, 0, 0.3)',
-              shadowBlur: 4
-            },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(103, 80, 164, 0.6)' },
-                { offset: 0.5, color: 'rgba(103, 80, 164, 0.3)' },
-                { offset: 1, color: 'rgba(103, 80, 164, 0.1)' }
-              ]),
-              shadowColor: 'rgba(103, 80, 164, 0.4)',
-              shadowBlur: 20,
-              opacity: 0.9
-            },
-            z: 2
-          }
-        ]
-      };
-      
-      chart.setOption(option);
-      
-      // 立即调整图表大小
-      setTimeout(() => {
-        if (chart && !chart.isDisposed()) {
-          chart.resize();
-        }
-      }, 50);
-      
-      // 响应窗口大小变化 - 使用防抖
-      const resizeHandler = createDebouncedResize(chart, 'Fullscreen chart');
-      window.addEventListener('resize', resizeHandler);
-      
-      // 保存resize处理器引用以便清理
-      chart._resizeHandler = resizeHandler;
+      return;
     }
+    
+    initRetryCount.current.fullscreen = 0;
+      
+    if (fullscreenChartInstance.current) {
+      if (fullscreenChartInstance.current._resizeHandler) {
+        window.removeEventListener('resize', fullscreenChartInstance.current._resizeHandler);
+      }
+      fullscreenChartInstance.current.dispose();
+    }
+    
+    const chart = echarts.init(fullscreenChartRef.current);
+    fullscreenChartInstance.current = chart;
+    
+    // 确保使用当前最新的数据
+    const data = aggregatedLatencyData.values.map((val, index) => {
+      const detail = aggregatedLatencyData.details[index];
+      return [aggregatedLatencyData.timestamps[index], val, detail];
+    });
+    
+    const option = {
+      grid: {
+        left: 80,
+        right: 50,
+        top: 60,
+        bottom: 60,
+        containLabel: true
+      },
+      title: {
+        text: 'Network Latency Detail',
+        left: 'center',
+        top: 20,
+        textStyle: {
+          fontSize: 24,
+          fontWeight: '600',
+          color: '#6750A4',
+          fontFamily: 'Roboto, Arial, sans-serif'
+        }
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: function(params) {
+          const detail = params.data[2];
+          if (!detail || detail.avg === null) return 'no data';
+          
+          return `<div style="font-weight:600;margin-bottom:8px;font-size:16px">Network Delay Detail</div>` +
+                 `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Time:</span><span style="font-weight:600">${params.data[0]}</span></div>` +
+                 `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Average:</span><span style="font-weight:600">${detail.avg.toFixed(1)}ms</span></div>` +
+                 `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Minimum:</span><span style="font-weight:600">${detail.min ? detail.min.toFixed(1) : 'N/A'}ms</span></div>` +
+                 `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Maximum:</span><span style="font-weight:600">${detail.max ? detail.max.toFixed(1) : 'N/A'}ms</span></div>` +
+                 `<div style="display:flex;justify-content:space-between"><span>Packet Loss:</span><span style="font-weight:600">${detail.loss.toFixed(1)}%</span></div>`;
+        },
+        textStyle: {
+          fontSize: 14,
+          lineHeight: 20
+        },
+        padding: [12, 16],
+        backgroundColor: 'rgba(28, 27, 31, 0.9)',
+        borderColor: 'rgba(103, 80, 164, 0.4)',
+        borderWidth: 1,
+        borderRadius: 8,
+        extraCssText: 'box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);'
+      },
+      xAxis: {
+        type: 'category',
+        data: aggregatedLatencyData.timestamps,
+        show: true,
+        boundaryGap: false,
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.6)',
+            width: 2
+          }
+        },
+        axisTick: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.4)',
+            width: 1
+          }
+        },
+        axisLabel: {
+          show: true,
+          fontSize: 12,
+          fontFamily: 'Roboto, Arial, sans-serif',
+          color: '#49454F',
+          margin: 12,
+          rotate: 45
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.1)',
+            width: 1,
+            type: 'dashed'
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Latency (ms)',
+        nameLocation: 'middle',
+        nameGap: 50,
+        nameTextStyle: {
+          fontSize: 14,
+          color: '#49454F',
+          fontFamily: 'Roboto, Arial, sans-serif'
+        },
+        min: 0,
+        max: function(value) {
+          return value.max < 100 ? 100 : Math.ceil(value.max / 50) * 50;
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.6)',
+            width: 2
+          }
+        },
+        axisTick: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.4)',
+            width: 1
+          }
+        },
+        axisLabel: {
+          fontSize: 12,
+          fontFamily: 'Roboto, Arial, sans-serif',
+          color: '#49454F',
+          formatter: '{value} ms',
+          margin: 12
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(103, 80, 164, 0.15)',
+            width: 1,
+            type: 'dashed'
+          }
+        }
+      },
+      series: [
+        {
+          type: 'line',
+          smooth: true,
+          showSymbol: true,
+          symbol: 'circle',
+          symbolSize: function(value) {
+            const detail = value[2];
+            if (!detail || detail.avg === null) return 6;
+            return 8 + Math.min(detail.loss, 40) / 6;
+          },
+          data: data,
+          lineStyle: {
+            width: 4,
+            color: '#6750A4',
+            shadowColor: 'rgba(103, 80, 164, 0.4)',
+            shadowBlur: 8,
+            shadowOffsetY: 3,
+            cap: 'round',
+            join: 'round'
+          },
+          itemStyle: {
+            color: function(params) {
+              const detail = params.data[2];
+              if (!detail || detail.avg === null) return '#CAC4D0';
+              
+              if (detail.loss > 20) return '#B3261E';
+              if (detail.avg < 30) return '#1E6E5A';
+              if (detail.avg < 70) return '#9C6D00';
+              if (detail.avg < 120) return '#BF4A30';
+              return '#B3261E';
+            },
+            borderColor: '#FFF',
+            borderWidth: 2,
+            shadowColor: 'rgba(0, 0, 0, 0.3)',
+            shadowBlur: 4
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(103, 80, 164, 0.6)' },
+              { offset: 0.5, color: 'rgba(103, 80, 164, 0.3)' },
+              { offset: 1, color: 'rgba(103, 80, 164, 0.1)' }
+            ]),
+            shadowColor: 'rgba(103, 80, 164, 0.4)',
+            shadowBlur: 20,
+            opacity: 0.9
+          },
+          z: 2
+        }
+      ]
+    };
+    
+    chart.setOption(option);
+    
+    // 立即调整图表大小
+    setTimeout(() => {
+      if (chart && !chart.isDisposed()) {
+        chart.resize();
+      }
+    }, 50);
+    
+    // 响应窗口大小变化 - 使用防抖
+    const resizeHandler = createDebouncedResize(chart, 'Fullscreen chart');
+    window.addEventListener('resize', resizeHandler);
+    
+    // 保存resize处理器引用以便清理
+    chart._resizeHandler = resizeHandler;
   };
   
   // 更新全屏延迟图表
@@ -1072,10 +1074,9 @@ const StatsOverview = ({ apiAddress }) => {
     }
     isInitialized.current = true;
 
-    // 添加全局错误处理
+    // 添加错误处理
     const handleResizeObserverError = (event) => {
       if (event.message && event.message.includes('ResizeObserver loop completed')) {
-        // 忽略ResizeObserver循环错误
         event.preventDefault();
         event.stopPropagation();
         console.warn('ResizeObserver loop detected and handled');
@@ -1086,10 +1087,10 @@ const StatsOverview = ({ apiAddress }) => {
 
     initTrafficChart();
     
-    // 延迟 gauge-container 的初始化，给系统更多时间准备
+    // 延迟gauge-container的初始化
     setTimeout(() => {
       initGaugeChart();
-    }, 500);  // 减少初始延迟，因为现在有重试机制
+    }, 500);
     
     const latencyTimer = setInterval(testLatency, 180000);
     
@@ -1133,7 +1134,6 @@ const StatsOverview = ({ apiAddress }) => {
   // 监听全屏图表状态变化
   useEffect(() => {
     if (isFullscreenChart) {
-      // 延迟初始化，确保DOM已渲染
       setTimeout(() => {
         initFullscreenChart();
         // 初始化后立即更新一次数据
@@ -1179,18 +1179,16 @@ const StatsOverview = ({ apiAddress }) => {
           if (!prevStatus && status.isRunning) {
             // 内核从停止到启动，获取IP信息
             setTimeout(fetchIpLocation, 3000);
-            // 确保图表能够正确显示 - 延迟更长时间确保DOM完全渲染
+            // 确保图表能够正确显示
             setTimeout(() => {
               if (gaugeChartInstance.current && !gaugeChartInstance.current.isDisposed()) {
                 gaugeChartInstance.current.resize();
-                // 如果图表实例不存在或无法正常工作，重新初始化
                 const rect = gaugeChartRef.current?.getBoundingClientRect();
                 if (!rect || rect.width === 0 || rect.height === 0) {
                   console.log('Reinitializing chart due to invalid dimensions');
                   initGaugeChart();
                 }
               } else if (gaugeChartRef.current) {
-                // 如果图表实例不存在，重新初始化
                 console.log('Reinitializing chart after kernel start');
                 initGaugeChart();
               }
@@ -1232,7 +1230,7 @@ const StatsOverview = ({ apiAddress }) => {
           // 如果图表实例不存在，重新初始化
           initGaugeChart();
         }
-      }, 1000); // 给内核更多时间完全启动
+      }, 1000);
     }
   }, [kernelRunning]);
   

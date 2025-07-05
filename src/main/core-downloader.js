@@ -118,7 +118,7 @@ const downloadCore = async (mainWindow) => {
     
     logger.info(`下载sing-box: ${downloadUrl} 到 ${archivePath}`);
     
-    if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow?.isDestroyed?.() === false) {
       mainWindow.webContents.send('core-download-progress', {
         progress: 0,
         message: `开始下载: ${downloadUrl}`

@@ -27,6 +27,8 @@ export default {
     configureAdvanced: 'Configure advanced settings and features',
     kernelWatchdog: 'Kernel Watchdog',
     kernelWatchdogDesc: 'Automatically restart the core if it crashes or stops responding',
+    foregroundOnly: 'Foreground Only',
+    foregroundOnlyDesc: 'When enabled, closing the window will exit the program instead of hiding to tray',
     logSettings: 'Log Settings',
     logRotation: 'Log Rotation Period (Days)',
     
@@ -36,9 +38,6 @@ export default {
     logOutputPlaceholder: 'Leave empty for console output (e.g. box.log)',
     logOutputDesc: 'Specify log file path, leave empty for console output',
     singboxLogDisabled: 'Disable SingBox Logs',
-    logDisabledDesc: 'When enabled, SingBox core will not output any logs',
-    singboxLogTimestamp: 'SingBox Log Timestamp',
-    logTimestampDesc: 'Add timestamp information to each log line',
     
     // Nodes settings
     nodesSettings: 'Nodes Settings',
@@ -66,6 +65,18 @@ export default {
     license: 'License',
     projectUrl: 'Project URL',
     aboutDisclaimer: 'lvory is a universal desktop GUI client based on the Sing-Box core, designed to provide high-performance, flexible and user-friendly network proxy services.',
+    
+    // Developer Tools
+    developerTools: 'Developer Tools',
+    developerToolsDesc: 'Development and debugging related tools and features',
+    versionManager: 'Version Manager',
+    versionManagerDesc: 'Manage application and core versions',
+    clearCache: 'Reset Cache',
+    clearCacheDesc: 'Clear all application cache data, log files and temporary files',
+    clearCacheConfirm: 'Are you sure you want to clear all cache data? This will delete log files, application data storage and configuration cache.',
+    clearCacheSuccess: 'Cache cleared successfully',
+    clearCacheFailed: 'Failed to clear cache',
+    clearing: 'Clearing...',
     
     // Buttons
     reset: 'Reset',
@@ -132,7 +143,11 @@ export default {
 
   // Profile download modal related
   profileModal: {
-    title: 'ADD PROFILE',
+    downloadTitle: 'Download Profile',
+    loadTitle: 'Load Local Profile',
+    // Mode selection
+    downloadMode: 'Download',
+    localMode: 'Local File',
     // Protocol selection
     protocolSelection: 'Protocol Type',
     singboxProtocol: 'SingBox Native',
@@ -144,6 +159,9 @@ export default {
     urlPlaceholder: 'https://example.com/profile.config',
     customFileName: 'Custom filename (optional):',
     fileNamePlaceholder: 'my_profile.config',
+    // Local file selection
+    selectFile: 'Select Local File:',
+    chooseFile: 'Choose File',
     // Update settings
     autoUpdateInterval: 'Auto Update Interval:',
     noAutoUpdate: 'No Auto Update',
@@ -156,18 +174,24 @@ export default {
     // Buttons
     cancel: 'Cancel',
     download: 'Download',
+    loadFile: 'Load File',
     tryAgain: 'Try Again',
     // Status messages
     downloading: 'Downloading profile...',
+    loadingFile: 'Loading file...',
     downloadSuccess: 'Profile successfully downloaded!',
-    successTitle: 'Download Complete',
+    loadSuccess: 'File successfully loaded!',
+    successTitle: 'Complete',
 
     autoUpdateSet: 'Auto update set to every {interval}',
     downloadFailed: 'Download failed. Please try again.',
+    loadFailed: 'Load failed. Please try again.',
     showErrorDetails: 'Show Error Details',
     hideErrorDetails: 'Hide Error Details',
     // Validation messages
     pleaseEnterUrl: 'Please enter a URL',
+    pleaseSelectFile: 'Please select a file',
+    invalidFileType: 'Unsupported file type. Please select .json, .yaml, or .yml files',
     invalidUrlFormat: 'Invalid URL format. Please enter a valid URL, including http:// or https://',
     // Time unit conversion
     hours: 'hours',

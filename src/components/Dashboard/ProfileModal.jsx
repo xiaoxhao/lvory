@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../Modal';
 import { showMessage } from '../../utils/messageBox';
@@ -6,31 +6,38 @@ import '../../assets/css/profile-modal.css';
 
 const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
   const { t } = useTranslation();
+  const [mode, setMode] = useState('download'); // 'download' 或 'local'
   const [url, setUrl] = useState('');
   const [fileName, setFileName] = useState('');
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadStatus, setDownloadStatus] = useState(''); // 'success', 'error', 或 ''
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processStatus, setProcessStatus] = useState(''); // 'success', 'error', 或 ''
   const [errorDetails, setErrorDetails] = useState('');
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   const [updateInterval, setUpdateInterval] = useState('0'); // '0'表示不自动更新
   const [protocolType, setProtocolType] = useState('singbox'); // 'singbox' 或 'lvory'
+  const fileInputRef = useRef(null);
 
   // 重置所有交互状态
   const resetState = () => {
+    setMode('download');
     setUrl('');
     setFileName('');
-    setIsDownloading(false);
-    setDownloadStatus('');
+    setSelectedFile(null);
+    setIsProcessing(false);
+    setProcessStatus('');
     setErrorDetails('');
     setShowErrorDetails(false);
     setUpdateInterval('0');
     setProtocolType('singbox');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // 处理关闭模态框
   const handleCloseModal = () => {
-    // 当下载状态为成功时也允许关闭窗口
-    if (!isDownloading || downloadStatus === 'success') {
+    if (!isProcessing || processStatus === 'success') {
       onClose();
       resetState();
     }
@@ -51,6 +58,71 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
     return interval;
   };
 
+  // 处理本地文件选择
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.json') && !fileName.endsWith('.yaml') && !fileName.endsWith('.yml')) {
+      showMessage(t('profileModal.invalidFileType'));
+      return;
+    }
+
+    setSelectedFile(file);
+    setFileName(file.name);
+  };
+
+  // 处理本地文件载入
+  const handleLoadLocalFile = async () => {
+    if (!selectedFile) {
+      showMessage(t('profileModal.pleaseSelectFile'));
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessStatus('');
+    setErrorDetails('');
+    setShowErrorDetails(false);
+
+    try {
+      const fileContent = await selectedFile.text();
+
+      if (window.electron && window.electron.invoke) {
+        const result = await window.electron.invoke('loadLocalProfile', {
+          fileName: selectedFile.name,
+          content: fileContent,
+          protocol: protocolType
+        });
+
+        if (result.success) {
+          setProcessStatus('success');
+          setIsProcessing(false);
+          
+          if (onDownloadSuccess) {
+            onDownloadSuccess('', selectedFile.name, '0', protocolType);
+          }
+          
+          setTimeout(() => {
+            onClose();
+            resetState();
+          }, 3000);
+        } else {
+          setProcessStatus('error');
+          setIsProcessing(false);
+          setErrorDetails(result.error || 'Unknown error occurred');
+        }
+      } else {
+        throw new Error('Electron API not available');
+      }
+    } catch (error) {
+      console.error('Load local file failed:', error);
+      setProcessStatus('error');
+      setIsProcessing(false);
+      setErrorDetails(error.message || 'Unknown error occurred');
+    }
+  };
+
   // 处理下载配置文件
   const handleDownloadProfiles = () => {
     if (!url) {
@@ -58,17 +130,16 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
       return;
     }
 
-    // 验证URL格式
     try {
-      new URL(url); // 简单验证URL格式
+      new URL(url);
     } catch (e) {
-      setDownloadStatus('error');
+      setProcessStatus('error');
       setErrorDetails(t('profileModal.invalidUrlFormat'));
       return;
     }
     
-    setIsDownloading(true);
-    setDownloadStatus('');
+    setIsProcessing(true);
+    setProcessStatus('');
     setErrorDetails('');
     setShowErrorDetails(false);
     
@@ -100,12 +171,11 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
         .then(result => {
           console.log('Download result:', result);
           if (result.success) {
-            setDownloadStatus('success');
-            setIsDownloading(false);
+            setProcessStatus('success');
+            setIsProcessing(false);
             
-            // 下载成功后回调
             if (onDownloadSuccess) {
-              onDownloadSuccess(url, customFileName, updateInterval);
+              onDownloadSuccess(url, customFileName, updateInterval, protocolType);
             }
             
             setTimeout(() => {
@@ -113,15 +183,15 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
               resetState();
             }, 3000);
           } else {
-            setDownloadStatus('error');
-            setIsDownloading(false);
+            setProcessStatus('error');
+            setIsProcessing(false);
             setErrorDetails(result.message || result.error || 'Unknown error occurred');
           }
         })
         .catch(error => {
           console.error('Download failed:', error);
-          setDownloadStatus('error');
-          setIsDownloading(false);
+          setProcessStatus('error');
+          setIsProcessing(false);
           setErrorDetails(error.message || 'Unknown error occurred');
         });
     } else {
@@ -142,15 +212,13 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
           a.click();
           document.body.removeChild(a);
           
-          setDownloadStatus('success');
-          setIsDownloading(false);
+          setProcessStatus('success');
+          setIsProcessing(false);
           
-          // 下载成功后回调
           if (onDownloadSuccess) {
-            onDownloadSuccess(url, customFileName, updateInterval);
+            onDownloadSuccess(url, customFileName, updateInterval, protocolType);
           }
           
-          // 3秒后关闭弹窗
           setTimeout(() => {
             onClose();
             resetState();
@@ -158,8 +226,8 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
         })
         .catch(error => {
           console.error('Download failed:', error);
-          setDownloadStatus('error');
-          setIsDownloading(false);
+          setProcessStatus('error');
+          setIsProcessing(false);
           setErrorDetails(error.message || 'Network request failed');
         });
     }
@@ -167,28 +235,30 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
 
   // 渲染模态框内容
   const renderModalContent = () => {
-    // 下载中状态
-    if (isDownloading && !downloadStatus) {
+    if (isProcessing && !processStatus) {
       return (
         <div className="profile-modal-content">
           <div className="download-progress">
             <div className="progress-bar loading"></div>
-            <p className="status-text">{t('profileModal.downloading')}</p>
+            <p className="status-text">
+              {mode === 'download' ? t('profileModal.downloading') : t('profileModal.loadingFile')}
+            </p>
           </div>
         </div>
       );
     }
     
-    // 下载成功状态
-    if (downloadStatus === 'success') {
+    if (processStatus === 'success') {
       return (
         <div className="profile-modal-content">
           <div className="download-success">
-            <h3 className="success-title">{t('profileModal.downloadSuccess')}</h3>
+            <h3 className="success-title">
+              {mode === 'download' ? t('profileModal.downloadSuccess') : t('profileModal.loadSuccess')}
+            </h3>
             <p className="success-filename">
-              {fileName || url.substring(url.lastIndexOf('/') + 1)}
+              {fileName || (mode === 'download' ? url.substring(url.lastIndexOf('/') + 1) : '')}
             </p>
-            {updateInterval !== '0' && (
+            {mode === 'download' && updateInterval !== '0' && (
               <p className="success-update">
                 {t('profileModal.autoUpdateSet', { interval: getIntervalDisplayText(updateInterval) })}
               </p>
@@ -198,12 +268,13 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
       );
     }
     
-    // 下载错误状态
-    if (downloadStatus === 'error') {
+    if (processStatus === 'error') {
       return (
         <div className="profile-modal-content">
           <div className="download-error">
-            <h3 className="error-title">{t('profileModal.downloadFailed')}</h3>
+            <h3 className="error-title">
+              {mode === 'download' ? t('profileModal.downloadFailed') : t('profileModal.loadFailed')}
+            </h3>
             <div className="error-details-container">
               <button 
                 className="error-details-toggle" 
@@ -236,9 +307,26 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
       );
     }
 
-    // 默认输入状态
     return (
       <div className="profile-modal-content">
+        {/* 模式选择 */}
+        <div className="mode-selection">
+          <div className="mode-tabs">
+            <button 
+              className={`mode-tab ${mode === 'download' ? 'active' : ''}`}
+              onClick={() => setMode('download')}
+            >
+              {t('profileModal.downloadMode')}
+            </button>
+            <button 
+              className={`mode-tab ${mode === 'local' ? 'active' : ''}`}
+              onClick={() => setMode('local')}
+            >
+              {t('profileModal.localMode')}
+            </button>
+          </div>
+        </div>
+
         {/* 协议类型选择 */}
         <div className="protocol-selection">
           <label className="protocol-selection-label">{t('profileModal.protocolSelection')}</label>
@@ -278,46 +366,75 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
           </div>
         </div>
 
-        <div className="url-input-container">
-          <label htmlFor="profile-url">{t('profileModal.enterUrl')}</label>
-          <input
-            id="profile-url"
-            type="text"
-            className="url-input"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder={t('profileModal.urlPlaceholder')}
-          />
-        </div>
+        {mode === 'download' ? (
+          <>
+            <div className="url-input-container">
+              <label htmlFor="profile-url">{t('profileModal.enterUrl')}</label>
+              <input
+                id="profile-url"
+                type="text"
+                className="url-input"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={t('profileModal.urlPlaceholder')}
+              />
+            </div>
+            
+            <div className="url-input-container">
+              <label htmlFor="profile-name">{t('profileModal.customFileName')}</label>
+              <input
+                id="profile-name"
+                type="text"
+                className="url-input"
+                value={fileName}
+                onChange={(e) => setFileName(e.target.value)}
+                placeholder={t('profileModal.fileNamePlaceholder')}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="url-input-container">
+              <label htmlFor="file-select">{t('profileModal.selectFile')}</label>
+              <div className="file-input-wrapper">
+                <input
+                  ref={fileInputRef}
+                  id="file-select"
+                  type="file"
+                  accept=".json,.yaml,.yml"
+                  onChange={handleFileSelect}
+                  className="hidden-file-input"
+                />
+                <button 
+                  type="button"
+                  className="file-select-button"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {selectedFile ? selectedFile.name : t('profileModal.chooseFile')}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
         
-        <div className="url-input-container">
-          <label htmlFor="profile-name">{t('profileModal.customFileName')}</label>
-          <input
-            id="profile-name"
-            type="text"
-            className="url-input"
-            value={fileName}
-            onChange={(e) => setFileName(e.target.value)}
-            placeholder={t('profileModal.fileNamePlaceholder')}
-          />
-        </div>
-        
-        <div className="url-input-container update-interval">
-          <label htmlFor="update-interval">{t('profileModal.autoUpdateInterval')}</label>
-          <select
-            id="update-interval"
-            className="url-input"
-            value={updateInterval}
-            onChange={(e) => setUpdateInterval(e.target.value)}
-          >
-            <option value="0">{t('profileModal.noAutoUpdate')}</option>
-            <option value="12h">{t('profileModal.interval12h')}</option>
-            <option value="24h">{t('profileModal.interval24h')}</option>
-            <option value="72h">{t('profileModal.interval72h')}</option>
-            <option value="7d">{t('profileModal.interval7d')}</option>
-            <option value="21d">{t('profileModal.interval21d')}</option>
-          </select>
-        </div>
+        {mode === 'download' && (
+          <div className="url-input-container update-interval">
+            <label htmlFor="update-interval">{t('profileModal.autoUpdateInterval')}</label>
+            <select
+              id="update-interval"
+              className="url-input"
+              value={updateInterval}
+              onChange={(e) => setUpdateInterval(e.target.value)}
+            >
+              <option value="0">{t('profileModal.noAutoUpdate')}</option>
+              <option value="12h">{t('profileModal.interval12h')}</option>
+              <option value="24h">{t('profileModal.interval24h')}</option>
+              <option value="72h">{t('profileModal.interval72h')}</option>
+              <option value="7d">{t('profileModal.interval7d')}</option>
+              <option value="21d">{t('profileModal.interval21d')}</option>
+            </select>
+          </div>
+        )}
 
         <div className="modal-actions">
           <button 
@@ -326,24 +443,41 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
           >
             {t('profileModal.cancel')}
           </button>
-          <button 
-            className="download-button" 
-            onClick={handleDownloadProfiles}
-            disabled={!url.trim()}
-          >
-            {t('profileModal.download')}
-          </button>
+          {mode === 'download' ? (
+            <button 
+              className="download-button" 
+              onClick={handleDownloadProfiles}
+              disabled={!url.trim()}
+            >
+              {t('profileModal.download')}
+            </button>
+          ) : (
+            <button 
+              className="download-button" 
+              onClick={handleLoadLocalFile}
+              disabled={!selectedFile}
+            >
+              {t('profileModal.loadFile')}
+            </button>
+          )}
         </div>
       </div>
     );
+  };
+
+  const getModalTitle = () => {
+    if (processStatus === 'success') {
+      return t('profileModal.successTitle');
+    }
+    return mode === 'download' ? t('profileModal.downloadTitle') : t('profileModal.loadTitle');
   };
 
   return (
     <Modal 
       isOpen={isOpen} 
       onClose={handleCloseModal} 
-      title={downloadStatus === 'success' ? t('profileModal.successTitle') : t('profileModal.title')}
-      className={`profile-modal ${downloadStatus === 'success' ? 'success-state' : ''}`}
+      title={getModalTitle()}
+      className={`profile-modal ${processStatus === 'success' ? 'success-state' : ''}`}
     >
       {renderModalContent()}
     </Modal>

@@ -85,12 +85,14 @@ contextBridge.exposeInMainWorld('electron', {
     getData: () => ipcRenderer.invoke('get-profile-data'),
     getFiles: () => ipcRenderer.invoke('getProfileFiles'),
     getMetadata: (fileName) => ipcRenderer.invoke('getProfileMetadata', fileName),
-    update: (fileName) => ipcRenderer.invoke('updateProfile', fileName),
-    updateAll: () => ipcRenderer.invoke('updateAllProfiles'),
+    update: (fileName) => ipcRenderer.invoke('update-profile', fileName),
+    updateAll: () => ipcRenderer.invoke('update-all-profiles'),
     delete: (fileName) => ipcRenderer.invoke('deleteProfile', fileName),
     openInEditor: (fileName) => ipcRenderer.invoke('openFileInEditor', fileName),
     openAddDialog: () => ipcRenderer.send('open-add-profile-dialog'),
     refreshLvorySync: () => ipcRenderer.invoke('refresh-lvory-sync'),
+    applyModeMapping: (mappingConfig) => ipcRenderer.invoke('apply-mode-mapping', mappingConfig),
+    applyMappings: (mappingConfig) => ipcRenderer.invoke('apply-mappings', mappingConfig),
     
     onData: (callback) => {
       ipcRenderer.on('profile-data', (event, data) => callback(data));
@@ -208,17 +210,18 @@ contextBridge.exposeInMainWorld('electron', {
     save: (settings) => ipcRenderer.invoke('save-settings', settings),
     get: () => ipcRenderer.invoke('get-settings'),
     setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
-    getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch')
+    getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+    clearCache: () => ipcRenderer.invoke('clear-app-cache')
   },
 
   // 获取规则集和节点组信息
   getRuleSets: () => ipcRenderer.invoke('get-rule-sets'),
   getNodeGroups: () => ipcRenderer.invoke('get-node-groups'),
+  getRouteRules: () => ipcRenderer.invoke('get-route-rules'),
 
   // 添加引擎到窗口对象，用于前端直接使用
   engine: {
     getValueByPath: (obj, path) => {
-      // 这里简单实现getValueByPath，如果需要更复杂的实现，可以考虑引入完整的引擎
       try {
         const keys = path.split('.');
         let current = obj;

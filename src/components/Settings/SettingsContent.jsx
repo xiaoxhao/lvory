@@ -364,6 +364,7 @@ const SettingsContent = ({ section }) => {
     apiAddress: { value: '', loading: true, error: null }
   });
   const [showVersionManager, setShowVersionManager] = useState(false);
+  const [isClearingCache, setIsClearingCache] = useState(false);
 
   // 从当前配置文件读取代理端口和API地址
   const loadConfigValues = async () => {
@@ -407,7 +408,6 @@ const SettingsContent = ({ section }) => {
               proxyPort: proxyPort,
               apiAddress: apiAddress
             }));
-            
           } catch (parseError) {
             console.error('解析配置值失败:', parseError);
             setConfigValues({
@@ -516,8 +516,8 @@ const SettingsContent = ({ section }) => {
 
     // 映射关系对象
     const mappings = {
-      proxyPort: 'proxy_port',
       allowLan: 'allow_lan',
+      proxyPort: 'proxy_port',
       apiAddress: 'api_address',
 
       checkUpdateOnBoot: 'check_update_on_boot',
@@ -680,8 +680,8 @@ const SettingsContent = ({ section }) => {
     const config = result.config.settings;
     return {
       ...prevSettings,
-      proxyPort: config.proxy_port || prevSettings.proxyPort,
       allowLan: config.allow_lan || false,
+      proxyPort: config.proxy_port || prevSettings.proxyPort,
       apiAddress: config.api_address || prevSettings.apiAddress,
 
       checkUpdateOnBoot: config.check_update_on_boot !== undefined ? config.check_update_on_boot : prevSettings.checkUpdateOnBoot,
@@ -717,6 +717,33 @@ const SettingsContent = ({ section }) => {
     setTimeout(() => {
       setNotification(null);
     }, 3000);
+  };
+
+  // 处理清理缓存
+  const handleClearCache = async () => {
+    const confirmed = window.confirm(t('settings.clearCacheConfirm'));
+    if (!confirmed) return;
+
+    try {
+      setIsClearingCache(true);
+      const result = await window.electron.settings.clearCache();
+      
+      if (result.success) {
+        showNotification(t('settings.clearCacheSuccess'));
+        console.log('缓存清理详情:', result.clearedItems);
+        if (result.errors?.length > 0) {
+          console.warn('清理过程中的错误:', result.errors);
+        }
+      } else {
+        console.error('缓存清理失败:', result.error);
+        showNotification(t('settings.clearCacheFailed'));
+      }
+    } catch (error) {
+      console.error('清理缓存时出错:', error);
+      showNotification(t('settings.clearCacheFailed'));
+    } finally {
+      setIsClearingCache(false);
+    }
   };
 
   const renderToggle = (label, key, value, onChange) => (
@@ -841,6 +868,10 @@ const SettingsContent = ({ section }) => {
               {renderToggle(t('settings.kernelWatchdog'), 'kernelWatchdog', settings.kernelWatchdog)}
               <DescriptionText>{t('settings.kernelWatchdogDesc')}</DescriptionText>
 
+              {/* 仅前台运行 */}
+              {renderToggle(t('settings.foregroundOnly'), 'foregroundOnly', settings.foregroundOnly)}
+              <DescriptionText>{t('settings.foregroundOnlyDesc')}</DescriptionText>
+
 
 
               {/* 日志设置 */}
@@ -877,11 +908,6 @@ const SettingsContent = ({ section }) => {
                 
                 {/* 禁用 SingBox 日志 */}
                 {renderToggle(t('settings.singboxLogDisabled'), 'logDisabled', settings.logDisabled)}
-                <DescriptionText>{t('settings.logDisabledDesc')}</DescriptionText>
-                
-                {/* SingBox 日志时间戳 */}
-                {renderToggle(t('settings.singboxLogTimestamp'), 'logTimestamp', settings.logTimestamp)}
-                <DescriptionText>{t('settings.logTimestampDesc')}</DescriptionText>
 
                 {/* 应用日志设置分隔线 */}
                 <div style={{ margin: '20px 0', borderTop: '1px solid #e5e7eb' }}></div>
@@ -961,49 +987,52 @@ const SettingsContent = ({ section }) => {
           <div style={{ 
             padding: '0',
             backgroundColor: 'transparent',
-            height: '100%'
+            height: '100%',
+            overflow: 'hidden'
           }}>
             {/* 主要内容区域 - 单页平面设计 */}
             <div style={{
               backgroundColor: 'transparent',
               border: 'none',
               borderRadius: '0',
-              padding: '32px',
+              padding: '24px',
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              overflow: 'auto'
             }}>
               {/* 头部标题区域 */}
               <div style={{
                 textAlign: 'center',
-                marginBottom: '48px'
+                marginBottom: '32px',
+                flexShrink: 0
               }}>
                 <div style={{
-                  width: '84px',
-                  height: '84px',
-                  backgroundColor: '#5a6c57',
-                  borderRadius: '20px',
+                  width: '64px',
+                  height: '64px',
+                  backgroundColor: '#64748b',
+                  borderRadius: '16px',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
                   color: 'white',
-                  fontSize: '36px',
+                  fontSize: '28px',
                   fontWeight: '600',
-                  margin: '0 auto 20px auto',
-                  boxShadow: '0 4px 20px rgba(90, 108, 87, 0.15)'
+                  margin: '0 auto 16px auto',
+                  boxShadow: '0 4px 20px rgba(100, 116, 139, 0.15)'
                 }}>L</div>
                 <h1 style={{
-                  fontSize: '32px',
+                  fontSize: '28px',
                   fontWeight: '600',
-                  margin: '0 0 8px 0',
-                  color: '#1e293b',
+                  margin: '0 0 6px 0',
+                  color: '#1f2937',
                   fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
                 }}>{aboutInfo.APP_NAME}</h1>
                 <p style={{
                   margin: '0',
-                  color: '#64748b',
-                  fontSize: '16px',
+                  color: '#6b7280',
+                  fontSize: '14px',
                   fontWeight: '400'
                 }}>{aboutInfo.APP_DESCRIPTION}</p>
               </div>
@@ -1013,76 +1042,54 @@ const SettingsContent = ({ section }) => {
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '24px'
+                gap: '24px',
+                minHeight: 0
               }}>
                 {/* 版本信息卡片组 */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '20px'
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                  gap: '16px'
                 }}>
                   {/* 应用版本卡片 */}
                   <div style={{
-                    backgroundColor: '#f8faf9',
+                    backgroundColor: '#f8fafc',
                     borderRadius: '12px',
-                    padding: '20px',
-                    border: '1px solid rgba(90, 108, 87, 0.1)',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                    padding: '16px'
                   }}>
                     <div style={{
-                      color: '#5a6c57',
-                      fontSize: '13px',
+                      color: '#64748b',
+                      fontSize: '12px',
                       fontWeight: '600',
-                      marginBottom: '8px',
+                      marginBottom: '6px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px'
                     }}>{t('settings.appVersion')}</div>
                     <div style={{
-                      fontSize: '20px',
+                      fontSize: '18px',
                       fontWeight: '600',
-                      color: '#1e293b',
-                      marginBottom: '12px'
+                      color: '#1f2937'
                     }}>{aboutInfo.APP_VERSION}</div>
-                    <button
-                      onClick={() => setShowVersionManager(true)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#5a6c57',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#4a5c4f'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = '#5a6c57'}
-                    >
-                      版本管理
-                    </button>
                   </div>
                   
                   {/* 内核版本卡片 */}
                   <div style={{
-                    backgroundColor: '#f8faf9',
+                    backgroundColor: '#f8fafc',
                     borderRadius: '12px',
-                    padding: '20px',
-                    border: '1px solid rgba(90, 108, 87, 0.1)',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                    padding: '16px'
                   }}>
                     <div style={{
-                      color: '#5a6c57',
-                      fontSize: '13px',
+                      color: '#64748b',
+                      fontSize: '12px',
                       fontWeight: '600',
-                      marginBottom: '8px',
+                      marginBottom: '6px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px'
                     }}>{t('settings.coreVersion')}</div>
                     <div style={{
-                      fontSize: '20px',
+                      fontSize: '18px',
                       fontWeight: '600',
-                      color: '#1e293b'
+                      color: '#1f2937'
                     }}>{aboutInfo.CORE_VERSION}</div>
                   </div>
                 </div>
@@ -1090,45 +1097,41 @@ const SettingsContent = ({ section }) => {
                 {/* 项目信息卡片组 */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '20px'
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                  gap: '16px'
                 }}>
                   {/* 许可证卡片 */}
                   <div style={{
-                    backgroundColor: '#f8faf9',
+                    backgroundColor: '#f8fafc',
                     borderRadius: '12px',
-                    padding: '20px',
-                    border: '1px solid rgba(90, 108, 87, 0.1)',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                    padding: '16px'
                   }}>
                     <div style={{
-                      color: '#5a6c57',
-                      fontSize: '13px',
+                      color: '#64748b',
+                      fontSize: '12px',
                       fontWeight: '600',
-                      marginBottom: '8px',
+                      marginBottom: '6px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px'
                     }}>{t('settings.license')}</div>
                     <div style={{
-                      fontSize: '16px',
+                      fontSize: '15px',
                       fontWeight: '500',
-                      color: '#1e293b'
+                      color: '#1f2937'
                     }}>{aboutInfo.LICENSE}</div>
                   </div>
                   
                   {/* 项目链接卡片 */}
                   <div style={{
-                    backgroundColor: '#f8faf9',
+                    backgroundColor: '#f8fafc',
                     borderRadius: '12px',
-                    padding: '20px',
-                    border: '1px solid rgba(90, 108, 87, 0.1)',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                    padding: '16px'
                   }}>
                     <div style={{
-                      color: '#5a6c57',
-                      fontSize: '13px',
+                      color: '#64748b',
+                      fontSize: '12px',
                       fontWeight: '600',
-                      marginBottom: '8px',
+                      marginBottom: '6px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px'
                     }}>{t('settings.projectUrl')}</div>
@@ -1141,32 +1144,122 @@ const SettingsContent = ({ section }) => {
                         }
                       }}
                       style={{
-                        color: '#5a6c57',
+                        color: '#64748b',
                         textDecoration: 'none',
-                        fontSize: '16px',
+                        fontSize: '15px',
                         fontWeight: '500',
                         transition: 'color 0.2s ease'
                       }}
-                      onMouseEnter={(e) => e.target.style.color = '#4a5c4f'}
-                      onMouseLeave={(e) => e.target.style.color = '#5a6c57'}
+                      onMouseEnter={(e) => e.target.style.color = '#475569'}
+                      onMouseLeave={(e) => e.target.style.color = '#64748b'}
                     >
                       {aboutInfo.WEBSITE} →
                     </a>
                   </div>
                 </div>
+
+                {/* 开发者工具区域 */}
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '12px',
+                  padding: '20px'
+                }}>
+                  <h3 style={{
+                    color: '#1f2937',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    margin: '0 0 6px 0',
+                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                  }}>{t('settings.developerTools')}</h3>
+                  <p style={{
+                    color: '#6b7280',
+                    fontSize: '13px',
+                    margin: '0 0 16px 0',
+                    fontWeight: '400'
+                  }}>{t('settings.developerToolsDesc')}</p>
+                  
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '12px'
+                  }}>
+                    {/* 版本管理工具 */}
+                    <div style={{
+                      backgroundColor: 'white',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}>
+                      <button
+                        onClick={() => setShowVersionManager(true)}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#64748b',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          width: '100%'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#475569'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#64748b'}
+                      >
+                        {t('settings.versionManager')}
+                      </button>
+                    </div>
+
+                    {/* 重置缓存工具 */}
+                    <div style={{
+                      backgroundColor: 'white',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}>
+                      <button
+                        onClick={handleClearCache}
+                        disabled={isClearingCache}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: isClearingCache ? '#9ca3af' : '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: isClearingCache ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease',
+                          width: '100%'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isClearingCache) {
+                            e.target.style.backgroundColor = '#b91c1c'
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isClearingCache) {
+                            e.target.style.backgroundColor = '#dc2626'
+                          }
+                        }}
+                      >
+                        {isClearingCache ? t('settings.clearing') : t('settings.clearCache')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* 免责声明区域 */}
                 <div style={{
-                  padding: '24px',
-                  backgroundColor: '#f6f7ed',
+                  padding: '18px',
+                  backgroundColor: '#f1f5f9',
                   borderRadius: '12px',
-                  border: '1px solid rgba(90, 108, 87, 0.15)'
+                  marginBottom: '20px'
                 }}>
                   <p style={{
                     margin: '0',
-                    color: '#5a6c57',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
+                    color: '#475569',
+                    fontSize: '13px',
+                    lineHeight: '1.5',
                     fontWeight: '400'
                   }}>
                     {t('settings.aboutDisclaimer')}

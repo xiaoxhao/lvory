@@ -1,5 +1,221 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import NodeDetailModal from './NodeDetailModal';
+
+// 路由规则组卡片组件
+const RouteRuleGroupCard = ({ group, index }) => {
+  const getRouteTypeColor = (type) => {
+    switch (type) {
+      case 'ip_is_private': return '#5a6c57';
+      case 'domain': return '#4a6b6b';
+      case 'domain_keyword': return '#8b7a4a';
+      case 'rule_set': return '#8b5a4a';
+      case 'domain_suffix': return '#6b5a8b';
+      case 'geoip': return '#8b6b5a';
+      case 'geosite': return '#5a8b6b';
+      case 'ip_cidr': return '#7a5a6c';
+      case 'port': return '#6c7a5a';
+      case 'port_range': return '#5a7a6c';
+      case 'process_name': return '#6c5a7a';
+      default: return '#666666';
+    }
+  };
+
+  const getOutboundColor = (outbound) => {
+    if (outbound === 'DIRECT') return '#81a684'; // 降低饱和度的绿色
+    if (outbound === 'REJECT') return '#c97171'; // 降低饱和度的红色
+    return '#7ba3d3'; // 降低饱和度的蓝色
+  };
+
+  const getOutboundBackgroundColor = (outbound) => {
+    if (outbound === 'DIRECT') return 'rgba(46, 125, 50, 0.08)';
+    if (outbound === 'REJECT') return 'rgba(211, 47, 47, 0.08)';
+    return 'rgba(25, 118, 210, 0.08)';
+  };
+
+  return (
+    <div 
+      className="route-rule-group-card" 
+      style={{ 
+        backgroundColor: getOutboundBackgroundColor(group.proxy), 
+        borderRadius: '8px', 
+        padding: '16px', 
+        width: '100%',
+        margin: '8px 0',
+        height: 'auto',
+        minHeight: 'auto',
+        display: 'flex', 
+        flexDirection: 'column',
+        transition: 'all 0.15s ease',
+        position: 'relative',
+        overflow: 'visible',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        boxShadow: 'none',
+        border: 'none'
+      }}
+    >      
+      {/* 卡片标题：出站规则 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        marginBottom: '12px',
+        gap: '12px'
+      }}>
+        <div style={{
+          padding: '6px 12px',
+          backgroundColor: getOutboundColor(group.proxy),
+          borderRadius: '6px',
+          fontSize: '14px',
+          fontWeight: '700',
+          color: '#ffffff',
+          whiteSpace: 'nowrap',
+          flexShrink: 0
+        }}>
+          {group.proxy}
+        </div>
+        <div style={{
+          fontSize: '12px',
+          fontWeight: '500',
+          color: '#999999',
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          borderRadius: '4px',
+          padding: '3px 8px',
+          marginLeft: 'auto'
+        }}>
+          {group.rules.length} rule{group.rules.length > 1 ? 's' : ''}
+        </div>
+      </div>
+      
+      {/* 规则列表 */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}>
+        {group.rules.map((rule, ruleIndex) => (
+          <div key={ruleIndex} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 12px',
+            backgroundColor: 'rgba(255, 255, 255, 0.4)',
+            borderRadius: '6px',
+            border: 'none'
+          }}>
+            {/* 规则类型标签 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexShrink: 0
+            }}>
+              <div style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: getRouteTypeColor(rule.type),
+                flexShrink: 0
+              }}></div>
+                             <div style={{
+                 padding: '3px 8px',
+                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                 borderRadius: '4px',
+                 fontSize: '11px',
+                 fontWeight: '600',
+                 color: getRouteTypeColor(rule.type),
+                 textTransform: 'uppercase',
+                 letterSpacing: '0.3px',
+                 minWidth: '120px',
+                 width: '120px',
+                 textAlign: 'center',
+                 overflow: 'hidden',
+                 textOverflow: 'ellipsis',
+                 whiteSpace: 'nowrap'
+               }}>
+                 {rule.type.replace('_', ' ')}
+               </div>
+            </div>
+            
+            {/* 分隔符 */}
+            <div style={{
+              fontSize: '12px',
+              fontWeight: '500',
+              color: '#cccccc'
+            }}>
+              :
+            </div>
+            
+            {/* 规则值 */}
+            <div style={{
+              flex: 1,
+              minWidth: 0
+            }}>
+              {rule.values && rule.values.length > 0 ? (
+                <div style={{
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: '#333333',
+                  lineHeight: '18px',
+                  wordWrap: 'break-word',
+                  overflow: 'visible',
+                  whiteSpace: 'normal'
+                }}>
+                  {rule.values.slice(0, 8).map((value, idx) => (
+                    <span key={idx}>
+                      {value}
+                      {idx < Math.min(rule.values.length - 1, 7) && (
+                        <span style={{ 
+                          color: '#cccccc', 
+                          margin: '0 6px',
+                          fontSize: '11px',
+                          fontWeight: '400'
+                        }}>
+                          /
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                  {rule.values.length > 8 && (
+                    <span style={{ 
+                      color: '#999999', 
+                      fontStyle: 'italic',
+                      fontSize: '11px',
+                      fontWeight: '400'
+                    }}>
+                      {' '}... +{rule.values.length - 8} more
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  fontSize: '13px',
+                  fontWeight: '400',
+                  color: '#999999',
+                  fontStyle: 'italic'
+                }}>
+                  No specific values
+                </div>
+              )}
+            </div>
+            
+            {/* 规则序号 */}
+            <div style={{
+              fontSize: '10px',
+              fontWeight: '500',
+              color: '#999999',
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              borderRadius: '3px',
+              padding: '2px 6px',
+              flexShrink: 0
+            }}>
+              #{rule.originalIndex + 1}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 // Material 3 风格的节点卡片组件
 const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
@@ -170,8 +386,7 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
 };
 
 const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onToggleExpandedView }) => {
-  const [ruleSets, setRuleSets] = useState([]);
-  const [selectedTab, setSelectedTab] = useState('nodes'); // 'nodes' 或 'rules'
+  const { t } = useTranslation();
   const [nodeGroups, setNodeGroups] = useState([]); // 节点组数据
   const [nodes, setNodes] = useState([]); // 包含组信息的节点数据
   const [selectedGroup, setSelectedGroup] = useState('all'); // 当前选中的节点组，'all'表示全部
@@ -187,20 +402,76 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
   const [isAutoTesting, setIsAutoTesting] = useState(false);
   const testInterval = 3600000; // 默认1小时 (3600000毫秒)
 
-  useEffect(() => {
-    const loadRuleSets = async () => {
-      if (window.electron && window.electron.getRuleSets) {
-        try {
-          const ruleSetResult = await window.electron.getRuleSets();
-          if (ruleSetResult.success && Array.isArray(ruleSetResult.ruleSets)) {
-            setRuleSets(ruleSetResult.ruleSets);
-          }
-        } catch (error) {
-          console.error('获取规则集失败:', error);
+  // 添加视图切换状态
+  const [showRouteRules, setShowRouteRules] = useState(false);
+  const [routeRules, setRouteRules] = useState([]);
+
+  // 解析规则内容，提取具体的值
+  const parseRuleContent = (rule) => {
+    let values = [];
+    
+    // 从payload中提取具体值
+    if (rule.payload) {
+      const match = rule.payload.match(/=(.+)$/);
+      if (match) {
+        let content = match[1];
+        
+        // 处理数组格式 [item1 item2 item3]
+        if (content.startsWith('[') && content.endsWith(']')) {
+          content = content.slice(1, -1);
+          values = content.split(/\s+/).filter(v => v.trim());
+        } else if (content === 'true') {
+          // 处理布尔值
+          values = ['Private IP addresses'];
+        } else {
+          values = [content];
         }
       }
-    };
+    }
+    
+    return values;
+  };
 
+  // 将路由规则按出站规则分组
+  const groupRouteRules = (rules) => {
+    const groups = {};
+    
+    rules.forEach((rule, index) => {
+      const proxy = rule.proxy;
+      if (!groups[proxy]) {
+        groups[proxy] = {
+          proxy: proxy,
+          rules: []
+        };
+      }
+      
+      groups[proxy].rules.push({
+        ...rule,
+        values: parseRuleContent(rule),
+        originalIndex: index
+      });
+    });
+    
+    return Object.values(groups);
+  };
+
+  // 加载路由规则
+  const loadRouteRules = async () => {
+    if (window.electron && window.electron.getRouteRules) {
+      try {
+        const result = await window.electron.getRouteRules();
+        if (result.success) {
+          const groupedRules = groupRouteRules(result.rules || []);
+          setRouteRules(groupedRules);
+        }
+      } catch (error) {
+        console.error('获取路由规则失败:', error);
+        setRouteRules([]);
+      }
+    }
+  };
+
+  useEffect(() => {
     const loadNodeGroups = async () => {
       if (window.electron && window.electron.getNodeGroups) {
         try {
@@ -216,8 +487,8 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     };
 
     const refreshData = () => {
-      loadRuleSets();
       loadNodeGroups();
+      loadRouteRules();
       // 重置选中的组为"all"
       setSelectedGroup('all');
     };
@@ -387,38 +658,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     }
   };
 
-  // 获取规则集类型的颜色
-  const getRuleSetTypeColor = (type) => {
-    switch (type) {
-      case 'remote':
-        return '#666666'; // 使用指定色调
-      case 'local':
-        return '#666666'; // 使用指定色调
-      case 'source':
-        return '#ad0c3a'; // 使用指定色调
-      case 'binary':
-        return '#ad0c3a'; // 使用指定色调
-      default:
-        return '#333333'; // 使用指定色调
-    }
-  };
-
-  // 获取节点组类型的颜色
-  const getNodeGroupTypeColor = (type) => {
-    switch (type) {
-      case 'urltest':
-        return '#666666'; // 使用指定色调
-      case 'selector':
-        return '#ad0c3a'; // 使用指定色调
-      case 'direct':
-        return '#666666'; // 使用指定色调
-      case 'reject':
-        return '#ad0c3a'; // 使用指定色调
-      default:
-        return '#333333'; // 使用指定色调
-    }
-  };
-
   // 打开节点详情弹窗
   const openNodeDetail = (node) => {
     setSelectedNode(node);
@@ -428,6 +667,55 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
   // 关闭节点详情弹窗
   const closeNodeDetail = () => {
     setShowNodeDetail(false);
+  };
+
+  // 渲染路由规则列表函数
+  const renderRouteRules = () => {
+    return (
+      <div className="customer-cards" style={{ 
+        height: '100%',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {routeRules && routeRules.length > 0 ? (
+          <div className="profile-tags-container" style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '8px', 
+            width: '100%',
+            overflow: 'auto',
+            scrollBehavior: 'smooth'
+          }}>
+            {routeRules.map((group, index) => (
+              <RouteRuleGroupCard
+                key={index}
+                group={group}
+                index={index}
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={{ 
+            padding: '40px 20px', 
+            textAlign: 'center', 
+            color: '#666666', 
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px',
+            height: '100%'
+          }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15 13H17V16H15V13Z" fill="#666666"/>
+            </svg>
+            No route rules found. Please check your configuration.
+          </div>
+        )}
+      </div>
+    );
   };
 
   // 渲染节点列表函数
@@ -483,146 +771,6 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       </div>
     );
   };
-
-  // 渲染规则集卡片
-  const renderRuleSets = () => (
-    <div className="customer-cards" style={{ 
-      height: '100%',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      {ruleSets.length > 0 ? (
-        <div className="profile-tags-container" style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '12px', 
-          padding: '10px 0',
-          width: '100%',
-          overflow: 'auto', // 只有这个容器可以滚动
-          scrollBehavior: 'smooth'
-        }}>
-          {ruleSets.map((ruleSet, index) => (
-            <div key={index} className="material-rule-card" style={{ 
-              backgroundColor: '#f8f8f8',
-              borderRadius: '12px',
-              padding: '10px', 
-              width: 'calc(25% - 12px)',
-              margin: '0 0 12px 0',
-              height: '64%',
-              display: 'flex', 
-              flexDirection: 'column', 
-              transition: 'all 0.15s ease',
-              cursor: 'pointer',
-              position: 'relative',
-              overflow: 'hidden',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0, 0, 0, 0.06)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
-            }}
-            >
-              <div style={{ 
-                fontWeight: '500', 
-                fontSize: '13px', 
-                marginBottom: '8px', 
-                color: '#333333',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                <span style={{ 
-                  display: 'inline-block',
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: getRuleSetTypeColor(ruleSet.format || ruleSet.type),
-                  flexShrink: 0
-                }}></span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {ruleSet.tag}
-                </span>
-              </div>
-              <div style={{ 
-                fontSize: '11px', 
-                color: '#666666',
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '6px'
-              }}>
-                <span style={{
-                  display: 'inline-block',
-                  padding: '3px 6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.65)',
-                  borderRadius: '3px',
-                  fontSize: '11px',
-                  color: getRuleSetTypeColor(ruleSet.format || ruleSet.type),
-                  border: `1px solid ${getRuleSetTypeColor(ruleSet.format || ruleSet.type)}20`
-                }}>
-                  {ruleSet.format || ruleSet.type}
-                </span>
-              </div>
-              {ruleSet.url && (
-                <div style={{
-                  fontSize: '11px',
-                  color: '#444444',
-                  marginTop: '6px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }} title={ruleSet.url}>
-                  {ruleSet.url.length > 40 ? ruleSet.url.substring(0, 37) + '...' : ruleSet.url}
-                </div>
-              )}
-              {ruleSet.update_interval && (
-                <div style={{
-                  fontSize: '11px',
-                  color: '#444444',
-                  marginTop: '3px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px'
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.2 16.2L17 14.9L12.5 12.2V7Z" fill="#666666"/>
-                  </svg>
-                  更新间隔: {ruleSet.update_interval}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ 
-          padding: '40px 20px', 
-          textAlign: 'center', 
-          color: '#666666', 
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '16px',
-          height: '100%'
-        }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15 13H17V16H15V13Z" fill="#666666"/>
-          </svg>
-          No rule sets found.
-        </div>
-      )}
-    </div>
-  );
 
   // 渲染节点组选择条
   const renderGroupTabs = () => (
@@ -752,7 +900,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     </div>
   );
 
-  {/* 如果展开了更多选项，渲染二级选项卡 */}
+  // 如果展开了更多选项，渲染二级选项卡
   const renderSecondaryTabs = () => {
     if (!showMore || !isOverflow) return null;
     
@@ -851,52 +999,26 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         alignItems: 'center',
         marginBottom: '15px'
       }}>
-        <div className="material-tabs" style={{
-          display: 'flex',
-          border: '1px solid rgba(90, 108, 87, 0.3)',
-          borderRadius: '20px',
-          padding: '2px',
-          backgroundColor: 'transparent',
-          width: 'fit-content'
-        }}>
-          <div 
-            className={`material-tab ${selectedTab === 'nodes' ? 'active-tab' : ''}`}
-            onClick={() => setSelectedTab('nodes')}
-            style={{
-              cursor: 'pointer',
-              padding: '6px 20px',
-              position: 'relative',
-              color: selectedTab === 'nodes' ? '#5a6c57' : '#666666',
-              fontWeight: selectedTab === 'nodes' ? '500' : '400',
-              fontSize: '12px',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              transition: 'all 0.2s ease',
-              borderRadius: '18px',
-              backgroundColor: selectedTab === 'nodes' ? 'rgba(90, 108, 87, 0.1)' : 'transparent',
-              border: 'none'
-            }}
-          >
-            Nodes
-          </div>
-          <div 
-            className={`material-tab ${selectedTab === 'rules' ? 'active-tab' : ''}`}
-            onClick={() => setSelectedTab('rules')}
-            style={{
-              cursor: 'pointer',
-              padding: '6px 20px',
-              position: 'relative',
-              color: selectedTab === 'rules' ? '#5a6c57' : '#666666',
-              fontWeight: selectedTab === 'rules' ? '500' : '400',
-              fontSize: '12px',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              transition: 'all 0.2s ease',
-              borderRadius: '18px',
-              backgroundColor: selectedTab === 'rules' ? 'rgba(90, 108, 87, 0.1)' : 'transparent',
-              border: 'none'
-            }}
-          >
-            Rules
-          </div>
+        <div 
+          style={{
+            fontSize: '18px',
+            fontWeight: '400',
+            color: '#333333',
+            padding: '0 0 0 5px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => setShowRouteRules(!showRouteRules)}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#1976d2';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#333333';
+          }}
+        >
+          {t('nodeList.title')}
         </div>
         <button 
           className="material-button" 
@@ -925,9 +1047,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             e.currentTarget.style.backgroundColor = 'rgba(246, 247, 237, 0.5)';
           }}
         >
-          <span>{selectedTab === 'nodes' 
-            ? (profileData && profileData.length || 0) 
-            : (ruleSets && ruleSets.length || 0)}</span>
+          <span>{profileData && profileData.length || 0}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             {isExpandedView ? (
               <path d="M12 20V4M12 20L6 14M12 20L18 14" stroke="#666666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -938,8 +1058,8 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         </button>
       </div>
       
-      {selectedTab === 'nodes' && renderGroupTabs()}
-      {selectedTab === 'nodes' && renderSecondaryTabs()}
+      {!showRouteRules && renderGroupTabs()}
+      {!showRouteRules && renderSecondaryTabs()}
 
       <div style={{ 
         overflow: 'hidden', // 外层容器不滚动
@@ -948,7 +1068,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         borderRadius: '8px',
         minHeight: 0 // 确保flex子元素可以正确收缩
       }}>
-        {selectedTab === 'nodes' ? renderNodes() : renderRuleSets()}
+        {showRouteRules ? renderRouteRules() : renderNodes()}
       </div>
       
       {/* 节点详情弹窗 */}

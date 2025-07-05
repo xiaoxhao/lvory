@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../assets/css/profiles.css';
 import { showMessage } from '../utils/messageBox';
@@ -10,55 +10,7 @@ const Profiles = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeProfile, setActiveProfile] = useState('');
   const [isUpdatingAll, setIsUpdatingAll] = useState(false);
-  const [isLoadingLocal, setIsLoadingLocal] = useState(false);
-  const fileInputRef = useRef(null);
 
-  // 检测文件协议类型
-  const detectFileProtocol = (fileName, fileContent = null) => {
-    // 1. 如果有文件内容，通过内容检测（优先级最高）
-    if (fileContent) {
-      try {
-        // 检测Lvory同步协议标识
-        if (fileContent.includes('lvory_sync:')) {
-          return 'lvory';
-        }
-        
-        // 尝试解析JSON格式
-        const parsed = JSON.parse(fileContent);
-        if (parsed.lvory_sync) {
-          return 'lvory';
-        }
-        
-        // 检测SingBox配置特征
-        if (parsed.inbounds || parsed.outbounds || parsed.route) {
-          return 'singbox';
-        }
-      } catch (e) {
-        // 不是JSON格式，可能是YAML
-        if (fileContent.includes('lvory_sync:') || fileContent.includes('sync_mode:')) {
-          return 'lvory';
-        }
-        
-        // 检测其他YAML配置特征
-        if (fileContent.includes('proxies:') || fileContent.includes('proxy-groups:')) {
-          return 'lvory'; // Clash格式的也归类为lvory处理
-        }
-      }
-    }
-    
-    // 2. 通过文件扩展名检测
-    if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) {
-      return 'lvory';
-    }
-    
-    // 3. 通过文件名模式检测
-    if (fileName.includes('lvory') || fileName.includes('sync')) {
-      return 'lvory';
-    }
-    
-    // 默认为 SingBox 协议
-    return 'singbox';
-  };
 
   // 获取当前活跃的配置文件
   const getCurrentActiveProfile = async () => {
@@ -66,14 +18,11 @@ const Profiles = () => {
       if (window.electron && window.electron.config && window.electron.config.getPath) {
         const configPath = await window.electron.config.getPath();
         if (configPath) {
-          // 从路径中提取文件名
           const fileName = configPath.split(/[/\\]/).pop();
           console.log('当前配置文件名:', fileName);
           
-          // 检查是否是UUID缓存文件，如果是则需要找到对应的原始文件
           if (fileName && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/i.test(fileName)) {
             console.log('检测到UUID缓存文件:', fileName);
-            // 这是一个UUID文件，需要找到对应的原始lvory文件
             const filesResult = await window.electron.profiles.getFiles();
             if (filesResult && filesResult.success && Array.isArray(filesResult.files)) {
               const originalFile = filesResult.files.find(file => 
@@ -89,7 +38,6 @@ const Profiles = () => {
             }
           }
           
-          // 如果不是UUID文件或找不到对应的原始文件，直接使用文件名
           console.log('使用直接文件名作为活跃配置:', fileName);
           setActiveProfile(fileName || '');
         }
@@ -104,7 +52,6 @@ const Profiles = () => {
     loadProfileFiles();
     getCurrentActiveProfile();
     
-    // 监听配置文件更新事件
     if (window.electron && window.electron.profiles && window.electron.profiles.onUpdated) {
       window.electron.profiles.onUpdated((data) => {
         if (data.success) {
@@ -115,7 +62,6 @@ const Profiles = () => {
       });
     }
     
-    // 监听配置文件变更事件
     if (window.electron && window.electron.profiles && window.electron.profiles.onChanged) {
       window.electron.profiles.onChanged(() => {
         loadProfileFiles();
@@ -129,14 +75,8 @@ const Profiles = () => {
       try {
         const result = await window.electron.profiles.getFiles();
         if (result && result.success && Array.isArray(result.files)) {
-          // 为每个文件添加协议类型检测
-          const filesWithProtocol = result.files.map(file => ({
-            ...file,
-            protocol: detectFileProtocol(file.name, file.content)
-          }));
-          setProfileFiles(filesWithProtocol);
+          setProfileFiles(result.files);
           
-          // 在文件列表更新后重新获取当前活跃配置
           await getCurrentActiveProfile();
         } else {
           console.error('获取配置文件格式不正确:', result);
@@ -154,93 +94,23 @@ const Profiles = () => {
     }
   };
 
-  // 处理本地文件载入
-  const handleLoadLocalFile = () => {
-    if (isLoadingLocal) return;
-    fileInputRef.current?.click();
-  };
 
-  // 处理文件选择
-  const handleFileSelect = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // 验证文件类型
-    const fileName = file.name.toLowerCase();
-    if (!fileName.endsWith('.json') && !fileName.endsWith('.yaml') && !fileName.endsWith('.yml')) {
-      showMessage(t('profiles.invalidFileType'));
-      return;
-    }
-
-    setIsLoadingLocal(true);
-
-    try {
-      // 读取文件内容
-      const fileContent = await file.text();
-      const protocol = detectFileProtocol(file.name, fileContent);
-
-      // 调用后端API载入文件
-      if (window.electron && window.electron.invoke) {
-        const result = await window.electron.invoke('loadLocalProfile', {
-          fileName: file.name,
-          content: fileContent,
-          protocol: protocol
-        });
-
-        if (result.success) {
-          showMessage(`${t('profiles.loadSuccess')}${file.name}`);
-          loadProfileFiles(); // 刷新列表
-        } else {
-          showMessage(`${t('profiles.loadFailed')} ${result.error || 'Unknown error'}`);
-        }
-      } else {
-        // 如果没有专门的API，尝试使用通用方法
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        // 这里可以根据实际情况调整实现
-        showMessage(`${t('profiles.loadSuccess')}${file.name}`);
-        loadProfileFiles();
-      }
-    } catch (error) {
-      console.error('载入本地文件失败:', error);
-      showMessage(`${t('profiles.loadFailed')} ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsLoadingLocal(false);
-      // 清空文件输入，允许重复选择同一文件
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
 
   // 激活配置文件
   const activateProfile = async (fileName) => {
     try {
-      // 从文件列表中查找完整路径
       const result = await window.electron.profiles.getFiles();
       if (result && result.success && Array.isArray(result.files)) {
         const fileInfo = result.files.find(f => f.name === fileName);
         if (fileInfo && fileInfo.path) {
-          // 检测配置文件协议类型
-          const protocol = detectFileProtocol(fileName, fileInfo.content);
+          const targetFilePath = fileInfo.path;
           
-          let targetFilePath = fileInfo.path;
+          console.log(`激活配置文件: ${fileName} (${fileInfo.protocol || 'singbox'}), 路径: ${targetFilePath}`);
           
-          // 如果是Lvory协议，使用缓存文件
-          if (protocol === 'lvory' && fileInfo.hasCache && fileInfo.cacheInfo) {
-            // 直接使用缓存文件名，setConfigPath会处理完整路径
-            targetFilePath = fileInfo.cacheInfo.fileName;
-            console.log(`Lvory协议文件 ${fileName} 使用缓存文件: ${fileInfo.cacheInfo.fileName}`);
-          }
-          
-          // 使用setConfigPath设置为当前活跃配置
           const setResult = await window.electron.config.setPath(targetFilePath);
           if (setResult && setResult.success) {
             setActiveProfile(fileName);
-            
-            // 如果是Lvory协议，显示处理成功信息
-            if (protocol === 'lvory') {
+            if (fileInfo.protocol === 'lvory') {
               showMessage(`${t('profiles.lvoryConfigActivated')}${fileName}`);
             } else {
               showMessage(`${t('profiles.configActivated')}${fileName}`);
@@ -399,7 +269,7 @@ const Profiles = () => {
   // 处理删除文件
   const handleDelete = (fileName) => {
     closeDropdown();
-    if (confirm(t('profiles.confirmDelete', { fileName }))) {
+    if (confirm(t('profiles.confirmDelete').replace('{fileName}', fileName))) {
       if (window.electron && window.electron.profiles && window.electron.profiles.delete) {
         window.electron.profiles.delete(fileName)
           .then(result => {
@@ -440,33 +310,6 @@ const Profiles = () => {
       <div className="profiles-header">
         <h2>{t('profiles.allFiles')}</h2>
         <div style={{ flexGrow: 1 }}></div>
-        
-        {/* 本地载入按钮 */}
-        <button 
-          className="load-local-button" 
-          onClick={handleLoadLocalFile}
-          disabled={isLoadingLocal}
-        >
-          {isLoadingLocal ? (
-            <>
-              <span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '50%', border: '2px solid #ffffff', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', marginRight: '6px' }}></span>
-              {t('profiles.updating')}
-            </>
-          ) : (
-            <>
-              {t('profiles.loadLocalFile')}
-            </>
-          )}
-        </button>
-        
-        {/* 隐藏的文件输入 */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,.yaml,.yml"
-          onChange={handleFileSelect}
-          className="hidden-file-input"
-        />
         
         <button 
           className="update-all-button" 

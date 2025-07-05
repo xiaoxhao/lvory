@@ -193,22 +193,43 @@ const ControlPanel = ({
     const proxyConfigSections = [
       {
         id: 'powershell',
-        title: 'PowerShell',
+        title: 'PowerShell & Command Prompt',
         sections: [
           {
-            title: 'Set HTTP Proxy',
+            title: 'Set HTTP Proxy (Current Session)',
             code: `$env:http_proxy="http://${proxyAddress}"
-$env:https_proxy="http://${proxyAddress}"`
+$env:https_proxy="http://${proxyAddress}"
+$env:no_proxy="localhost,127.0.0.1,::1"`
+          },
+          {
+            title: 'Set HTTP Proxy (System-wide)',
+            code: `# For Current User
+[Environment]::SetEnvironmentVariable("http_proxy", "http://${proxyAddress}", "User")
+[Environment]::SetEnvironmentVariable("https_proxy", "http://${proxyAddress}", "User")
+[Environment]::SetEnvironmentVariable("no_proxy", "localhost,127.0.0.1,::1", "User")
+
+# For All Users (Run as Administrator)
+[Environment]::SetEnvironmentVariable("http_proxy", "http://${proxyAddress}", "Machine")
+[Environment]::SetEnvironmentVariable("https_proxy", "http://${proxyAddress}", "Machine")
+[Environment]::SetEnvironmentVariable("no_proxy", "localhost,127.0.0.1,::1", "Machine")`
           },
           {
             title: 'View Current Proxy Settings',
-            code: `$env:http_proxy
-$env:https_proxy`
+            code: `echo "HTTP Proxy: $env:http_proxy"
+echo "HTTPS Proxy: $env:https_proxy"
+echo "No Proxy: $env:no_proxy"`
           },
           {
             title: 'Remove Proxy Settings',
-            code: `$env:http_proxy=""
-$env:https_proxy=""`
+            code: `# Remove from current session
+$env:http_proxy=""
+$env:https_proxy=""
+$env:no_proxy=""
+
+# Remove from user environment
+[Environment]::SetEnvironmentVariable("http_proxy", $null, "User")
+[Environment]::SetEnvironmentVariable("https_proxy", $null, "User")
+[Environment]::SetEnvironmentVariable("no_proxy", $null, "User")`
           }
         ]
       },
@@ -220,6 +241,11 @@ $env:https_proxy=""`
             title: 'Set HTTP Proxy',
             code: `git config --global http.proxy http://${proxyAddress}
 git config --global https.proxy http://${proxyAddress}`
+          },
+          {
+            title: 'Set SOCKS5 Proxy',
+            code: `git config --global http.proxy socks5://${proxyAddress}
+git config --global https.proxy socks5://${proxyAddress}`
           },
           {
             title: 'View Current Proxy Settings',
@@ -235,32 +261,93 @@ git config --global --unset https.proxy`
       },
       {
         id: 'npm',
-        title: 'npm',
+        title: 'npm & Node.js',
         sections: [
           {
             title: 'Set HTTP Proxy',
             code: `npm config set proxy http://${proxyAddress}
-npm config set https-proxy http://${proxyAddress}`
+npm config set https-proxy http://${proxyAddress}
+npm config set registry https://registry.npmjs.org/`
+          },
+          {
+            title: 'Alternative: Use .npmrc file',
+            code: `# Create or edit ~/.npmrc file with:
+proxy=http://${proxyAddress}
+https-proxy=http://${proxyAddress}
+registry=https://registry.npmjs.org/
+strict-ssl=false`
+          },
+          {
+            title: 'Yarn Package Manager',
+            code: `yarn config set proxy http://${proxyAddress}
+yarn config set https-proxy http://${proxyAddress}`
           },
           {
             title: 'View Current Proxy Settings',
             code: `npm config get proxy
-npm config get https-proxy`
+npm config get https-proxy
+npm config get registry`
           },
           {
             title: 'Remove Proxy Settings',
             code: `npm config delete proxy
-npm config delete https-proxy`
+npm config delete https-proxy
+yarn config delete proxy
+yarn config delete https-proxy`
+          }
+        ]
+      },
+      {
+        id: 'python',
+        title: 'Python & pip',
+        sections: [
+          {
+            title: 'pip with Proxy',
+            code: `pip install package_name --proxy http://${proxyAddress}
+pip install --upgrade pip --proxy http://${proxyAddress}`
+          },
+          {
+            title: 'Global pip Configuration',
+            code: `# Create pip.conf (Linux/macOS) or pip.ini (Windows)
+# Location: ~/.pip/pip.conf or %APPDATA%\\pip\\pip.ini
+[global]
+proxy = http://${proxyAddress}
+trusted-host = pypi.org
+               pypi.python.org
+               files.pythonhosted.org`
+          },
+          {
+            title: 'Python requests library',
+            code: `import requests
+
+proxies = {
+    'http': 'http://${proxyAddress}',
+    'https': 'http://${proxyAddress}'
+}
+
+response = requests.get('https://httpbin.org/ip', proxies=proxies)`
           }
         ]
       },
       {
         id: 'curl',
-        title: 'curl',
+        title: 'curl & wget',
         sections: [
           {
-            title: 'Use Proxy',
-            code: `curl -x http://${proxyAddress} https://www.google.com`
+            title: 'curl with Proxy',
+            code: `curl -x http://${proxyAddress} https://httpbin.org/ip
+curl --proxy http://${proxyAddress} -L https://github.com`
+          },
+          {
+            title: 'wget with Proxy',
+            code: `wget -e use_proxy=yes -e http_proxy=http://${proxyAddress} https://httpbin.org/ip
+wget --proxy=on --proxy-url=http://${proxyAddress} https://example.com`
+          },
+          {
+            title: 'curl Config File (~/.curlrc)',
+            code: `# Add to ~/.curlrc
+proxy = http://${proxyAddress}
+noproxy = localhost,127.0.0.1,::1`
           }
         ]
       },
@@ -269,30 +356,108 @@ npm config delete https-proxy`
         title: 'Docker',
         sections: [
           {
-            title: 'Edit ~/.docker/config.json on Windows',
-            code: `{
+            title: 'Docker Client Configuration',
+            code: `# Create or edit ~/.docker/config.json
+{
   "proxies": {
     "default": {
       "httpProxy": "http://${proxyAddress}",
       "httpsProxy": "http://${proxyAddress}",
-      "noProxy": "localhost,127.0.0.1"
+      "noProxy": "localhost,127.0.0.1,::1,*.local"
     }
   }
 }`
+          },
+          {
+            title: 'Docker Daemon Configuration',
+            code: `# Create or edit /etc/docker/daemon.json (Linux) or Docker Desktop settings
+{
+  "proxies": {
+    "http-proxy": "http://${proxyAddress}",
+    "https-proxy": "http://${proxyAddress}",
+    "no-proxy": "localhost,127.0.0.1,::1,*.local"
+  }
+}`
+          },
+          {
+            title: 'Docker Build with Proxy',
+            code: `docker build --build-arg http_proxy=http://${proxyAddress} \\
+             --build-arg https_proxy=http://${proxyAddress} \\
+             --build-arg no_proxy=localhost,127.0.0.1,::1 \\
+             -t myimage .`
+          }
+        ]
+      },
+      {
+        id: 'browsers',
+        title: 'Web Browsers',
+        sections: [
+          {
+            title: 'Chrome/Chromium with Proxy',
+            code: `# Windows
+chrome.exe --proxy-server=http://${proxyAddress}
+
+# macOS
+/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --proxy-server=http://${proxyAddress}
+
+# Linux
+google-chrome --proxy-server=http://${proxyAddress}`
+          },
+          {
+            title: 'Firefox with Proxy',
+            code: `# Windows
+firefox.exe -no-remote -profile temp_profile
+
+# Then manually configure in Settings > Network Settings:
+# Manual proxy configuration
+# HTTP Proxy: ${proxyAddress.split(':')[0]}
+# Port: ${proxyAddress.split(':')[1]}
+# Use this proxy server for all protocols: checked`
+          },
+          {
+            title: 'Edge with Proxy',
+            code: `# Windows
+msedge.exe --proxy-server=http://${proxyAddress}
+
+# macOS
+/Applications/Microsoft\\ Edge.app/Contents/MacOS/Microsoft\\ Edge --proxy-server=http://${proxyAddress}`
           }
         ]
       },
       {
         id: 'linux',
-        title: 'Linux Environment',
+        title: 'Linux System & Desktop',
         sections: [
           {
-            title: 'GNOME/Ubuntu (gsettings)',
+            title: 'Environment Variables (Global)',
+            code: `# Add to /etc/environment (system-wide)
+http_proxy=http://${proxyAddress}
+https_proxy=http://${proxyAddress}
+HTTP_PROXY=http://${proxyAddress}
+HTTPS_PROXY=http://${proxyAddress}
+no_proxy=localhost,127.0.0.1,::1,*.local
+NO_PROXY=localhost,127.0.0.1,::1,*.local
+
+# Then reload: source /etc/environment`
+          },
+          {
+            title: 'User Profile Configuration',
+            code: `# Add to ~/.bashrc, ~/.zshrc, or ~/.profile
+export http_proxy=http://${proxyAddress}
+export https_proxy=http://${proxyAddress}
+export HTTP_PROXY=http://${proxyAddress}
+export HTTPS_PROXY=http://${proxyAddress}
+export no_proxy=localhost,127.0.0.1,::1,*.local
+export NO_PROXY=localhost,127.0.0.1,::1,*.local
+
+# Reload shell configuration
+source ~/.bashrc`
+          },
+          {
+            title: 'GNOME/Ubuntu Desktop (gsettings)',
             code: `# Set HTTP Proxy
 gsettings set org.gnome.system.proxy.http host "${proxyAddress.split(':')[0]}"
 gsettings set org.gnome.system.proxy.http port ${proxyAddress.split(':')[1]}
-
-# Set HTTPS Proxy
 gsettings set org.gnome.system.proxy.https host "${proxyAddress.split(':')[0]}"
 gsettings set org.gnome.system.proxy.https port ${proxyAddress.split(':')[1]}
 
@@ -306,7 +471,7 @@ gsettings get org.gnome.system.proxy mode
 gsettings set org.gnome.system.proxy mode 'none'`
           },
           {
-            title: 'KDE (kwriteconfig5)',
+            title: 'KDE Plasma Desktop',
             code: `# Set HTTP Proxy
 kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key ProxyType 1
 kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpProxy "http://${proxyAddress}"
@@ -319,36 +484,95 @@ dbus-send --type=signal /KIO/Scheduler org.kde.KIO.Scheduler.reparseSlaveConfigu
 kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key ProxyType 0`
           },
           {
-            title: 'Environment Variables',
-            code: `# Set for current session
-export http_proxy=http://${proxyAddress}
-export https_proxy=http://${proxyAddress}
-export HTTP_PROXY=http://${proxyAddress}
-export HTTPS_PROXY=http://${proxyAddress}
-export no_proxy=localhost,127.0.0.1,::1
-
-# Add to ~/.bashrc or ~/.zshrc for persistence
-echo 'export http_proxy=http://${proxyAddress}' >> ~/.bashrc
-echo 'export https_proxy=http://${proxyAddress}' >> ~/.bashrc
-echo 'export no_proxy=localhost,127.0.0.1,::1' >> ~/.bashrc
-
-# Unset proxy
-unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy`
-          },
-          {
             title: 'APT Package Manager',
-            code: `# Create proxy config file
+            code: `# System-wide proxy (requires sudo)
 sudo bash -c 'cat > /etc/apt/apt.conf.d/95proxies << EOF
 Acquire::http::proxy "http://${proxyAddress}";
 Acquire::https::proxy "http://${proxyAddress}";
 EOF'
 
-# Or add to ~/.aptrc for user-specific
+# User-specific proxy
 echo 'Acquire::http::proxy "http://${proxyAddress}";' >> ~/.aptrc
 echo 'Acquire::https::proxy "http://${proxyAddress}";' >> ~/.aptrc
 
 # Remove proxy settings
-sudo rm /etc/apt/apt.conf.d/95proxies`
+sudo rm -f /etc/apt/apt.conf.d/95proxies
+rm -f ~/.aptrc`
+          },
+          {
+            title: 'YUM/DNF Package Manager',
+            code: `# Add to /etc/yum.conf or /etc/dnf/dnf.conf
+proxy=http://${proxyAddress}
+
+# Or set temporarily
+sudo yum --setopt=proxy=http://${proxyAddress} update
+sudo dnf --setopt=proxy=http://${proxyAddress} update`
+          }
+        ]
+      },
+      {
+        id: 'development',
+        title: 'Development Tools',
+        sections: [
+          {
+            title: 'VS Code Extensions',
+            code: `# Add to VS Code settings.json
+{
+  "http.proxy": "http://${proxyAddress}",
+  "http.proxyStrictSSL": false,
+  "http.proxySupport": "on"
+}`
+          },
+          {
+            title: 'IntelliJ IDEA / JetBrains',
+            code: `# File > Settings > Appearance & Behavior > System Settings > HTTP Proxy
+# Manual proxy configuration:
+# Host: ${proxyAddress.split(':')[0]}
+# Port: ${proxyAddress.split(':')[1]}
+
+# Or add to idea.properties:
+-Dhttp.proxyHost=${proxyAddress.split(':')[0]}
+-Dhttp.proxyPort=${proxyAddress.split(':')[1]}
+-Dhttps.proxyHost=${proxyAddress.split(':')[0]}
+-Dhttps.proxyPort=${proxyAddress.split(':')[1]}`
+          },
+          {
+            title: 'Maven',
+            code: `# Add to ~/.m2/settings.xml
+<settings>
+  <proxies>
+    <proxy>
+      <id>http-proxy</id>
+      <active>true</active>
+      <protocol>http</protocol>
+      <host>${proxyAddress.split(':')[0]}</host>
+      <port>${proxyAddress.split(':')[1]}</port>
+    </proxy>
+  </proxies>
+</settings>`
+          },
+          {
+            title: 'Gradle',
+            code: `# Add to ~/.gradle/gradle.properties
+systemProp.http.proxyHost=${proxyAddress.split(':')[0]}
+systemProp.http.proxyPort=${proxyAddress.split(':')[1]}
+systemProp.https.proxyHost=${proxyAddress.split(':')[0]}
+systemProp.https.proxyPort=${proxyAddress.split(':')[1]}
+systemProp.http.nonProxyHosts=localhost|127.*|[::1]`
+          },
+          {
+            title: 'Go Modules',
+            code: `# Set proxy for Go modules
+go env -w GOPROXY=https://proxy.golang.org,direct
+go env -w GOSUMDB=sum.golang.org
+
+# With HTTP proxy
+export GOPROXY=http://${proxyAddress}
+export GOSUMDB=off
+
+# Or use direct proxy
+go env -w GOPROXY=direct
+go env -w GOSUMDB=off`
           }
         ]
       }
