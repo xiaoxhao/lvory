@@ -79,13 +79,36 @@ function parseCondition(condition) {
  * 替换路径中的变量引用
  * @param {String} path 包含变量的路径
  * @param {Object} data 用于替换变量的数据
+ * @param {Object} targetConfig 目标配置（可选，用于查找已存在的值）
  * @returns {String} 替换后的路径
  */
-function replacePathVariables(path, data) {
+function replacePathVariables(path, data, targetConfig = null) {
   if (!path || !data) return path;
   
   return path.replace(/\{([^{}]+)\}/g, (match, variable) => {
-    const value = getValueByPath(data, variable);
+    let value = getValueByPath(data, variable);
+    
+    // 如果在用户配置中找不到值，尝试从目标配置中查找
+    if (value === undefined && targetConfig) {
+      // 特殊处理：如果是settings.proxy_port，尝试从目标配置的mixed inbound中获取
+      if (variable === 'settings.proxy_port') {
+        value = getValueByPath(targetConfig, 'inbounds.[type=mixed].listen_port');
+      }
+    }
+    
+    // 如果仍然找不到值，使用一些默认值
+    if (value === undefined) {
+      if (variable === 'settings.proxy_port') {
+        value = 7890; // 默认代理端口
+      } else if (variable === 'settings.log_level') {
+        value = 'info';
+      } else if (variable === 'settings.log_disabled') {
+        value = false;
+      } else if (variable === 'settings.log_timestamp') {
+        value = true;
+      }
+    }
+    
     return value !== undefined ? value : match;
   });
 }
@@ -471,7 +494,7 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
       if (userValue === undefined) {
         if (mapping.default !== undefined) {
           // 处理目标路径中的变量
-          const processedTargetPath = replacePathVariables(mapping.target_path, userConfig);
+          const processedTargetPath = replacePathVariables(mapping.target_path, userConfig, result);
           
           // 检查目标配置中是否已经存在该值
           const existingValue = getValueByPath(result, processedTargetPath);
@@ -513,7 +536,7 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
       
       // 处理条件映射
       if (mapping.transform === 'conditional') {
-        const targetPath = replacePathVariables(mapping.target_path, userConfig);
+        const targetPath = replacePathVariables(mapping.target_path, userConfig, result);
         
         // 评估条件
         const conditionMet = evaluateCondition(mapping.condition, userValue);
@@ -525,7 +548,7 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
           // 处理true_value中的变量替换
           if (typeof valueToInject === 'object') {
             valueToInject = JSON.parse(JSON.stringify(valueToInject));
-            valueToInject = replaceObjectVariables(valueToInject, userConfig);
+            valueToInject = replaceObjectVariables(valueToInject, userConfig, result);
           }
           
           createOrUpdatePath(result, targetPath, valueToInject, {
@@ -541,7 +564,7 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
           // 处理false_value中的变量替换
           if (typeof valueToInject === 'object') {
             valueToInject = JSON.parse(JSON.stringify(valueToInject));
-            valueToInject = replaceObjectVariables(valueToInject, userConfig);
+            valueToInject = replaceObjectVariables(valueToInject, userConfig, result);
           }
           
           createOrUpdatePath(result, targetPath, valueToInject, {
@@ -560,7 +583,7 @@ function applyMappings(userConfig, targetConfig = {}, mappings = []) {
       }
       
       // 直接映射，无需转换
-      const targetPath = replacePathVariables(mapping.target_path, userConfig);
+      const targetPath = replacePathVariables(mapping.target_path, userConfig, result);
       createOrUpdatePath(result, targetPath, userValue, {
         conflict_strategy: mapping.conflict_strategy
       });
@@ -613,21 +636,22 @@ function evaluateCondition(condition, value) {
  * 在对象中递归替换变量
  * @param {Object} obj 要处理的对象
  * @param {Object} data 变量数据源
+ * @param {Object} targetConfig 目标配置（可选，用于查找已存在的值）
  * @returns {Object} 处理后的对象
  */
-function replaceObjectVariables(obj, data) {
+function replaceObjectVariables(obj, data, targetConfig = null) {
   if (typeof obj !== 'object' || obj === null) {
     return obj;
   }
   
   if (Array.isArray(obj)) {
-    return obj.map(item => replaceObjectVariables(item, data));
+    return obj.map(item => replaceObjectVariables(item, data, targetConfig));
   }
   
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string' && value.includes('{') && value.includes('}')) {
-      const replacedValue = replacePathVariables(value, data);
+      const replacedValue = replacePathVariables(value, data, targetConfig);
       
       if (key === 'server_port' || key === 'listen_port' || key === 'port') {
         const numValue = Number(replacedValue);
@@ -662,7 +686,7 @@ function replaceObjectVariables(obj, data) {
       }
     } else if (typeof value === 'object') {
       // 递归处理嵌套对象
-      result[key] = replaceObjectVariables(value, data);
+      result[key] = replaceObjectVariables(value, data, targetConfig);
     } else {
       result[key] = value;
     }
