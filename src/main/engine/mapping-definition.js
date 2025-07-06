@@ -3,6 +3,34 @@
  * 定义用户配置到目标配置的映射规则
  */
 
+// 常量定义
+const NETWORK_CONSTANTS = {
+  LOCALHOST: "127.0.0.1",
+  ALL_INTERFACES: "0.0.0.0",
+  DEFAULT_PROXY_PORT: 7890,
+  DEFAULT_API_PORT: 9090,
+  TUN_IPV4_ADDRESS: "172.18.0.1/30",
+  TUN_IPV6_ADDRESS: "fdfe:dcba:9876::1/126"
+};
+
+const CONFIG_PATHS = {
+  MIXED_INBOUND_LISTEN: "inbounds.[type=mixed].listen",
+  MIXED_INBOUND_PORT: "inbounds.[type=mixed].listen_port",
+  API_CONTROLLER: "experimental.clash_api.external_controller",
+  LOG_CONFIG: "log",
+  TUN_INBOUND: "inbounds.[type=tun]",
+  OUTBOUNDS_BY_TAG: "outbounds.[tag={nodes[*].name}]"
+};
+
+const DEFAULT_VALUES = {
+  PROXY_PORT: NETWORK_CONSTANTS.DEFAULT_PROXY_PORT,
+  API_ADDRESS: `${NETWORK_CONSTANTS.LOCALHOST}:${NETWORK_CONSTANTS.DEFAULT_API_PORT}`,
+  LOG_ENABLED: true,
+  LOG_LEVEL: "info",
+  LOG_TIMESTAMP: true,
+  LOG_DISABLED: false
+};
+
 /**
  * 获取默认的映射定义
  * @returns {Object} 默认映射定义对象
@@ -12,33 +40,33 @@ function getDefaultMappingDefinition() {
     "mappings": [
       {
         "user_path": "settings.allow_lan",
-        "target_path": "inbounds.[type=mixed].listen",
+        "target_path": CONFIG_PATHS.MIXED_INBOUND_LISTEN,
         "type": "boolean",
         "transform": "conditional",
         "condition": "value === true",
-        "true_value": "0.0.0.0",
-        "false_value": "127.0.0.1",
+        "true_value": NETWORK_CONSTANTS.ALL_INTERFACES,
+        "false_value": NETWORK_CONSTANTS.LOCALHOST,
         "description": "是否允许局域网连接"
       },
       {
         "user_path": "settings.proxy_port",
-        "target_path": "inbounds.[type=mixed].listen_port",
+        "target_path": CONFIG_PATHS.MIXED_INBOUND_PORT,
         "type": "number",
-        "default": 7890,
+        "default": DEFAULT_VALUES.PROXY_PORT,
         "description": "代理端口设置"
       },
       {
         "user_path": "settings.api_address",
-        "target_path": "experimental.clash_api.external_controller",
+        "target_path": CONFIG_PATHS.API_CONTROLLER,
         "type": "string",
-        "default": "127.0.0.1:9090",
+        "default": DEFAULT_VALUES.API_ADDRESS,
         "description": "API地址设置"
       },
       {
         "user_path": "settings.log_enabled",
-        "target_path": "log",
+        "target_path": CONFIG_PATHS.LOG_CONFIG,
         "type": "boolean",
-        "default": true,
+        "default": DEFAULT_VALUES.LOG_ENABLED,
         "transform": "conditional",
         "condition": "value === true",
         "true_value": {
@@ -53,7 +81,7 @@ function getDefaultMappingDefinition() {
       },
       {
         "user_path": "settings.tun_mode",
-        "target_path": "inbounds.[type=tun]",
+        "target_path": CONFIG_PATHS.TUN_INBOUND,
         "type": "boolean",
         "transform": "conditional",
         "condition": "value === true",
@@ -61,8 +89,8 @@ function getDefaultMappingDefinition() {
           "tag": "tun-in",
           "type": "tun",
           "address": [
-            "172.18.0.1/30",
-            "fdfe:dcba:9876::1/126"
+            NETWORK_CONSTANTS.TUN_IPV4_ADDRESS,
+            NETWORK_CONSTANTS.TUN_IPV6_ADDRESS
           ],
           "auto_route": true,
           "strict_route": true,
@@ -70,7 +98,7 @@ function getDefaultMappingDefinition() {
           "platform": {
             "http_proxy": {
               "enabled": true,
-              "server": "127.0.0.1",
+              "server": NETWORK_CONSTANTS.LOCALHOST,
               "server_port": "{settings.proxy_port}"
             }
           }
@@ -81,7 +109,7 @@ function getDefaultMappingDefinition() {
 
       {
         "user_path": "nodes[*]",
-        "target_path": "outbounds.[tag={nodes[*].name}]",
+        "target_path": CONFIG_PATHS.OUTBOUNDS_BY_TAG,
         "transform": "template",
         "template": {
           "type": "{nodes[*].protocol}",
@@ -103,8 +131,8 @@ function getTunConfigTemplate() {
     "tag": "tun-in",
     "type": "tun",
     "address": [
-      "172.18.0.1/30",
-      "fdfe:dcba:9876::1/126"
+      NETWORK_CONSTANTS.TUN_IPV4_ADDRESS,
+      NETWORK_CONSTANTS.TUN_IPV6_ADDRESS
     ],
     "auto_route": true,
     "strict_route": true,
@@ -112,12 +140,19 @@ function getTunConfigTemplate() {
     "platform": {
       "http_proxy": {
         "enabled": true,
-        "server": "127.0.0.1",
+        "server": NETWORK_CONSTANTS.LOCALHOST,
         "server_port": "{settings.proxy_port}"
       }
     }
   };
 }
+
+// 协议模板的公共字段
+const COMMON_NODE_FIELDS = {
+  "tag": "{nodes[*].name}",
+  "server": "{nodes[*].server}",
+  "server_port": "{nodes[*].port}"
+};
 
 /**
  * 获取特定协议的映射模板
@@ -125,35 +160,29 @@ function getTunConfigTemplate() {
  * @returns {Object} 特定协议的映射模板
  */
 function getProtocolTemplate(protocol) {
-  // 根据不同协议类型返回不同的模板
-  const templates = {
+  // 协议特定字段定义
+  const protocolSpecificFields = {
     "shadowsocks": {
-      "type": "shadowsocks",
-      "tag": "{nodes[*].name}",
-      "server": "{nodes[*].server}",
-      "server_port": "{nodes[*].port}",
       "method": "{nodes[*].method}",
       "password": "{nodes[*].password}"
     },
     "vmess": {
-      "type": "vmess",
-      "tag": "{nodes[*].name}",
-      "server": "{nodes[*].server}",
-      "server_port": "{nodes[*].port}",
       "uuid": "{nodes[*].uuid}",
       "alter_id": "{nodes[*].alter_id}",
       "security": "{nodes[*].security}"
     },
     "trojan": {
-      "type": "trojan",
-      "tag": "{nodes[*].name}",
-      "server": "{nodes[*].server}",
-      "server_port": "{nodes[*].port}",
       "password": "{nodes[*].password}"
     }
   };
-  
-  return templates[protocol] || {};
+
+  const specificFields = protocolSpecificFields[protocol] || {};
+
+  return {
+    "type": protocol,
+    ...COMMON_NODE_FIELDS,
+    ...specificFields
+  };
 }
 
 /**
@@ -177,16 +206,66 @@ function createProtocolMapping(protocol) {
  */
 function getDefaultLogConfig() {
   return {
-    "disabled": false,
-    "level": "info",
-    "timestamp": true
+    "disabled": DEFAULT_VALUES.LOG_DISABLED,
+    "level": DEFAULT_VALUES.LOG_LEVEL,
+    "timestamp": DEFAULT_VALUES.LOG_TIMESTAMP
+  };
+}
+
+/**
+ * 创建条件映射配置
+ * @param {String} userPath 用户配置路径
+ * @param {String} targetPath 目标配置路径
+ * @param {String} trueValue 条件为真时的值
+ * @param {String} falseValue 条件为假时的值
+ * @param {String} description 描述
+ * @returns {Object} 条件映射配置
+ */
+function createConditionalMapping(userPath, targetPath, trueValue, falseValue, description) {
+  return {
+    "user_path": userPath,
+    "target_path": targetPath,
+    "type": "boolean",
+    "transform": "conditional",
+    "condition": "value === true",
+    "true_value": trueValue,
+    "false_value": falseValue,
+    "description": description
+  };
+}
+
+/**
+ * 创建简单映射配置
+ * @param {String} userPath 用户配置路径
+ * @param {String} targetPath 目标配置路径
+ * @param {String} type 数据类型
+ * @param {*} defaultValue 默认值
+ * @param {String} description 描述
+ * @returns {Object} 简单映射配置
+ */
+function createSimpleMapping(userPath, targetPath, type, defaultValue, description) {
+  return {
+    "user_path": userPath,
+    "target_path": targetPath,
+    "type": type,
+    "default": defaultValue,
+    "description": description
   };
 }
 
 module.exports = {
+  // 常量导出
+  NETWORK_CONSTANTS,
+  CONFIG_PATHS,
+  DEFAULT_VALUES,
+  COMMON_NODE_FIELDS,
+
+  // 函数导出
   getDefaultMappingDefinition,
   getTunConfigTemplate,
   getProtocolTemplate,
   createProtocolMapping,
-  getDefaultLogConfig
-}; 
+  getDefaultLogConfig,
+  createConditionalMapping,
+  createSimpleMapping
+};

@@ -9,37 +9,29 @@ const logger = require('../utils/logger');
 const { getAppDataDir, getConfigDir, getUserSettingsPath } = require('../utils/paths');
 const profileEngine = require('./engine/profiles-engine');
 const mappingDefinition = require('./engine/mapping-definition');
+const ConfigManager = require('./engine/config-manager');
 const LvorySyncProcessor = require('./adapters/lvory-sync-processor');
+const { DEFAULT_VALUES } = require('./engine/mapping-definition');
 
 let currentConfigPath = null;
 
 // 映射定义缓存
 let mappingDefinitionCache = null;
 
+// 配置管理器实例
+const configManager = new ConfigManager();
+
 // 加载用户设置
 const loadUserSettings = () => {
-  try {
-    const settingsPath = getUserSettingsPath();
-    if (fs.existsSync(settingsPath)) {
-      const settingsData = fs.readFileSync(settingsPath, 'utf8');
-      return JSON.parse(settingsData);
-    }
-  } catch (error) {
-    logger.error(`加载用户设置失败: ${error.message}`);
-  }
-  return {};
+  const settingsPath = getUserSettingsPath();
+  const defaultSettings = configManager.defaultConfigs.appSettings;
+  return configManager.safeReadJsonFile(settingsPath, defaultSettings);
 };
 
 // 保存用户设置
 const saveUserSettings = (settings) => {
-  try {
-    const settingsPath = getUserSettingsPath();
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
-    return true;
-  } catch (error) {
-    logger.error(`保存用户设置失败: ${error.message}`);
-    return false;
-  }
+  const settingsPath = getUserSettingsPath();
+  return configManager.safeWriteJsonFile(settingsPath, settings);
 };
 
 /**
@@ -118,30 +110,33 @@ function saveUserConfig(userConfig) {
   try {
     const appDataDir = getAppDataDir();
     const userConfigPath = path.join(appDataDir, 'user-config.json');
-    
-    // 保存用户配置
-    fs.writeFileSync(userConfigPath, JSON.stringify(userConfig, null, 2), 'utf8');
-    
+
+    // 使用 ConfigManager 保存用户配置
+    if (!configManager.safeWriteJsonFile(userConfigPath, userConfig)) {
+      return false;
+    }
+
     // 获取当前sing-box配置（如果存在）
-    let targetConfig = {};
     const configPath = getConfigPath();
-    
+
     // 只有当配置文件存在时才应用映射，避免自动创建默认配置
     if (fs.existsSync(configPath)) {
-      const configContent = fs.readFileSync(configPath, 'utf8');
-      targetConfig = JSON.parse(configContent);
-      
+      const targetConfig = configManager.safeReadJsonFile(configPath, {});
+
       // 应用映射
       const mappedConfig = applyConfigMapping(userConfig, targetConfig);
-      
+
       // 保存映射后的sing-box配置
-      fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
-      
-      logger.info(`用户配置已保存，映射已应用到现有配置文件: ${configPath}`);
+      if (configManager.safeWriteJsonFile(configPath, mappedConfig)) {
+        logger.info(`用户配置已保存，映射已应用到现有配置文件: ${configPath}`);
+      } else {
+        logger.error('保存映射后的配置失败');
+        return false;
+      }
     } else {
       logger.info(`用户配置已保存，但未找到配置文件，跳过映射应用`);
     }
-    
+
     return true;
   } catch (error) {
     logger.error(`保存用户配置并应用映射失败: ${error.message}`);
@@ -154,31 +149,11 @@ function saveUserConfig(userConfig) {
  * @returns {Object} 用户配置
  */
 function loadUserConfig() {
-  try {
-    const appDataDir = getAppDataDir();
-    const userConfigPath = path.join(appDataDir, 'user-config.json');
-    
-    if (fs.existsSync(userConfigPath)) {
-      const content = fs.readFileSync(userConfigPath, 'utf8');
-      return JSON.parse(content);
-    }
-    
-    // 返回默认用户配置
-    return {
-      settings: {
-        allow_lan: false
-      },
-      nodes: []
-    };
-  } catch (error) {
-    logger.error(`加载用户配置失败: ${error.message}`);
-    return {
-      settings: {
-        allow_lan: false
-      },
-      nodes: []
-    };
-  }
+  const appDataDir = getAppDataDir();
+  const userConfigPath = path.join(appDataDir, 'user-config.json');
+  const defaultUserConfig = configManager.defaultConfigs.userConfig;
+
+  return configManager.safeReadJsonFile(userConfigPath, defaultUserConfig);
 }
 
 /**
@@ -285,27 +260,72 @@ const setConfigPath = async (configPath) => {
   return true;
 };
 
-// 获取应用设置
+/**
+ * 获取应用设置
+ * @returns {Object} 应用设置对象
+ */
 const getAppSettings = () => {
-  const userSettings = loadUserSettings();
-  return userSettings.appSettings || {};
-};
-
-// 保存应用设置
-const saveAppSettings = (appSettings) => {
-  const userSettings = loadUserSettings();
-  userSettings.appSettings = appSettings;
-  return saveUserSettings(userSettings);
-};
-
-// 更新单个应用设置项
-const updateAppSetting = (key, value) => {
-  const userSettings = loadUserSettings();
-  if (!userSettings.appSettings) {
-    userSettings.appSettings = {};
+  try {
+    const userSettings = loadUserSettings();
+    const defaultAppSettings = configManager.defaultConfigs.appSettings;
+    return configManager.mergeConfigs(defaultAppSettings, userSettings.appSettings || {});
+  } catch (error) {
+    logger.error(`获取应用设置失败: ${error.message}`);
+    return configManager.defaultConfigs.appSettings;
   }
-  userSettings.appSettings[key] = value;
-  return saveUserSettings(userSettings);
+};
+
+/**
+ * 保存应用设置
+ * @param {Object} appSettings 应用设置对象
+ * @returns {Boolean} 是否保存成功
+ */
+const saveAppSettings = (appSettings) => {
+  try {
+    const userSettings = loadUserSettings();
+    userSettings.appSettings = appSettings;
+    const success = saveUserSettings(userSettings);
+
+    if (success) {
+      logger.info('应用设置保存成功');
+    } else {
+      logger.error('应用设置保存失败');
+    }
+
+    return success;
+  } catch (error) {
+    logger.error(`保存应用设置失败: ${error.message}`);
+    return false;
+  }
+};
+
+/**
+ * 更新单个应用设置项
+ * @param {String} key 设置键
+ * @param {*} value 设置值
+ * @returns {Boolean} 是否更新成功
+ */
+const updateAppSetting = (key, value) => {
+  try {
+    const userSettings = loadUserSettings();
+    if (!userSettings.appSettings) {
+      userSettings.appSettings = {};
+    }
+
+    userSettings.appSettings[key] = value;
+    const success = saveUserSettings(userSettings);
+
+    if (success) {
+      logger.info(`应用设置项 ${key} 更新成功: ${value}`);
+    } else {
+      logger.error(`应用设置项 ${key} 更新失败`);
+    }
+
+    return success;
+  } catch (error) {
+    logger.error(`更新应用设置项 ${key} 失败: ${error.message}`);
+    return false;
+  }
 };
 
 /**
@@ -337,10 +357,9 @@ function isLvorySyncConfig(configPath) {
 
 /**
  * 生成Lvory配置的缓存文件名
- * @param {String} lvorySyncPath Lvory同步配置文件路径
  * @returns {String} 缓存文件名
  */
-function generateLvoryCacheFileName(lvorySyncPath) {
+function generateLvoryCacheFileName() {
   const crypto = require('crypto');
   // 生成随机UUID作为文件名
   const uuid = crypto.randomUUID();
@@ -421,7 +440,7 @@ async function processLvorySyncConfig(syncConfigPath, forceRefresh = false) {
       
       // 生成缓存文件
       const configDir = getConfigDir();
-      cacheFileName = generateLvoryCacheFileName(syncConfigPath);
+      cacheFileName = generateLvoryCacheFileName();
       cachePath = path.join(configDir, cacheFileName);
       
       // 保存缓存文件
@@ -526,7 +545,7 @@ async function setConfigPathSmart(configPath, forceRefresh = false) {
     return true;
   } else {
     // 普通配置文件，使用原有逻辑
-    return await setConfigPath(configPath);
+    return setConfigPath(configPath);
   }
 }
 
@@ -582,89 +601,111 @@ async function preprocessConfig(configPath) {
       return false;
     }
 
-    // 读取配置文件
-    const configContent = fs.readFileSync(configPath, 'utf8');
-    let targetConfig = JSON.parse(configContent);
-    
-    // 获取设置管理器并确保设置已加载
-    const settingsManager = require('./settings-manager');
-    let settings;
-    let logPath;
-    
-    try {
-      await settingsManager.loadSettings(); // 确保设置已加载
-      settings = settingsManager.getSettings();
-      logPath = settingsManager.getLogPath();
-    } catch (settingsError) {
-      logger.warn(`设置管理器初始化失败，使用默认值: ${settingsError.message}`);
-      // 使用默认设置
-      settings = {
-        proxyPort: '7890',
-        allowLan: false,
-        apiAddress: '127.0.0.1:9090',
-        tunMode: false,
-        logLevel: 'info',
-        logDisabled: false
-      };
-      // 使用默认日志路径
-      const { generateDefaultLogPath } = require('../utils/paths');
-      logPath = generateDefaultLogPath();
-    }
-    
-    // 构建用户配置对象
-    const userConfig = {
-      settings: {
-        allow_lan: settings.allowLan || false,
-        api_address: settings.apiAddress || '127.0.0.1:9090',
-        tun_mode: settings.tunMode || false,
-        log_enabled: true, // 强制启用日志配置注入
-        log_level: settings.logLevel || 'info',
-        log_output: logPath,
-        log_disabled: settings.logDisabled || false,
-        log_timestamp: true
-      }
-    };
-    
+    // 使用 ConfigManager 读取配置文件
+    const targetConfig = configManager.safeReadJsonFile(configPath, {});
+
+    // 获取设置和日志路径
+    const { settings, logPath } = await getSettingsAndLogPath();
+
+    // 使用 ConfigManager 创建用户配置对象
+    const userConfig = configManager.createUserConfig(settings, logPath);
+
     logger.info(`预处理配置文件: ${configPath}`);
     logger.info(`强制注入日志配置: ${userConfig.settings.log_output}`);
-    
+
     // 应用配置映射
     const mappedConfig = applyConfigMapping(userConfig, targetConfig);
-    
-    // 验证日志配置是否正确注入
-    if (!mappedConfig.log || !mappedConfig.log.output) {
-      logger.warn('映射引擎注入失败，手动强制设置日志配置');
-      mappedConfig.log = {
-        level: userConfig.settings.log_level,
-        output: userConfig.settings.log_output,
-        disabled: userConfig.settings.log_disabled,
-        timestamp: userConfig.settings.log_timestamp
-      };
+
+    // 验证并确保日志配置正确
+    ensureLogConfig(mappedConfig, userConfig.settings);
+
+    // 确保日志目录存在
+    ensureLogDirectory(mappedConfig.log?.output);
+
+    // 使用 ConfigManager 写回配置文件
+    if (configManager.safeWriteJsonFile(configPath, mappedConfig)) {
+      logger.info(`配置文件预处理完成，日志配置已强制注入: ${mappedConfig.log?.output}`);
+      return true;
+    } else {
+      logger.error('写回配置文件失败');
+      return false;
     }
-    
-    // 确保日志文件的父目录存在
-    try {
-      const logOutputPath = mappedConfig.log.output;
-      if (logOutputPath) {
-        const logDir = path.dirname(logOutputPath);
-        if (!fs.existsSync(logDir)) {
-          fs.mkdirSync(logDir, { recursive: true });
-          logger.info(`创建日志目录: ${logDir}`);
-        }
-      }
-    } catch (dirError) {
-      logger.error(`创建日志目录失败: ${dirError.message}`);
-    }
-    
-    // 将处理后的配置写回文件
-    fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
-    
-    logger.info(`配置文件预处理完成，日志配置已强制注入: ${mappedConfig.log.output}`);
-    return true;
-    
+
   } catch (error) {
     logger.error(`预处理配置文件失败: ${error.message}`);
     return false;
+  }
+}
+
+/**
+ * 获取设置和日志路径
+ * @returns {Promise<Object>} 包含设置和日志路径的对象
+ */
+async function getSettingsAndLogPath() {
+  try {
+    const settingsManager = require('./settings-manager');
+    await settingsManager.loadSettings();
+
+    return {
+      settings: settingsManager.getSettings(),
+      logPath: settingsManager.getLogPath()
+    };
+  } catch (settingsError) {
+    logger.warn(`设置管理器初始化失败，使用默认值: ${settingsError.message}`);
+
+    // 使用默认设置
+    const defaultSettings = {
+      proxyPort: DEFAULT_VALUES.PROXY_PORT,
+      allowLan: false,
+      apiAddress: DEFAULT_VALUES.API_ADDRESS,
+      tunMode: false,
+      logLevel: DEFAULT_VALUES.LOG_LEVEL,
+      logDisabled: DEFAULT_VALUES.LOG_DISABLED
+    };
+
+    // 使用默认日志路径
+    const { generateDefaultLogPath } = require('../utils/paths');
+    const defaultLogPath = generateDefaultLogPath();
+
+    return {
+      settings: defaultSettings,
+      logPath: defaultLogPath
+    };
+  }
+}
+
+/**
+ * 确保日志配置正确
+ * @param {Object} mappedConfig 映射后的配置
+ * @param {Object} userSettings 用户设置
+ */
+function ensureLogConfig(mappedConfig, userSettings) {
+  if (!mappedConfig.log || !mappedConfig.log.output) {
+    logger.warn('映射引擎注入失败，手动强制设置日志配置');
+    mappedConfig.log = {
+      level: userSettings.log_level,
+      output: userSettings.log_output,
+      disabled: userSettings.log_disabled,
+      timestamp: userSettings.log_timestamp
+    };
+  }
+}
+
+/**
+ * 确保日志目录存在
+ * @param {String} logOutputPath 日志输出路径
+ */
+function ensureLogDirectory(logOutputPath) {
+  if (!logOutputPath) return;
+
+  try {
+    const logDir = path.dirname(logOutputPath);
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+      logger.info(`创建日志目录: ${logDir}`);
+    }
+  } catch (dirError) {
+    logger.error(`创建日志目录失败: ${dirError.message}`);
   }
 }
 
