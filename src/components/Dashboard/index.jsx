@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import '../../assets/css/dashboard.css';
 import Activity from '../Activity';
 
@@ -12,6 +12,7 @@ import useCoreManagement from './CoreManagement';
 import useSingBoxControl from './SingBoxControl';
 import useStatusMonitor from './StatusMonitor';
 import useProfileUpdate from './hooks/useProfileUpdate';
+import { debouncedCall } from '../../utils/ipcOptimizer';
 
 const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
   
@@ -75,94 +76,82 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
     }
   }, []);
 
-  // 添加数据更新的事件监听器
-  useEffect(() => {
-    // 定义更新数据的函数
-    const updateProfileData = () => {
-      if (window.electron) {
-        window.electron.profiles.getData().then((data) => {
-          if (data && data.success && Array.isArray(data.profiles)) {
-            setProfileData(data.profiles);
-            
-            // 计算各类型节点数量
-            if (data.profiles.length > 0) {
-              const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
-              
-              data.profiles.forEach(node => {
-                const type = node.type ? node.type.toLowerCase() : '';
-                
-                if (type.includes('shadowsocks')) {
-                  stats.ss++;
-                } else if (type.includes('vmess')) {
-                  stats.vm++;
-                } else if (type.includes('trojan')) {
-                  stats.tr++;
-                } else if (type.includes('direct')) {
-                  stats.dir++;
-                } else {
-                  stats.other++;
-                }
-              });
-              
-              setNodeTypeStats(stats);
-            }
-          }
-        }).catch(err => {
-          console.error('更新配置文件数据失败:', err);
-        });
-      }
-    };
+  const calculateNodeStats = useCallback((profiles) => {
+    if (!profiles || profiles.length === 0) {
+      return { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
+    }
 
-    // 当activeView切换到dashboard时更新数据
+    const stats = { ss: 0, vm: 0, tr: 0, dir: 0, other: 0 };
+
+    profiles.forEach(node => {
+      const type = node.type ? node.type.toLowerCase() : '';
+
+      if (type.includes('shadowsocks')) {
+        stats.ss++;
+      } else if (type.includes('vmess')) {
+        stats.vm++;
+      } else if (type.includes('trojan')) {
+        stats.tr++;
+      } else if (type.includes('direct')) {
+        stats.dir++;
+      } else {
+        stats.other++;
+      }
+    });
+
+    return stats;
+  }, []);
+
+  const updateProfileData = useCallback(async () => {
+    if (!window.electron) return;
+
+    debouncedCall('updateProfileData', async () => {
+      try {
+        const data = await window.electron.profiles.getData();
+        if (data && data.success && Array.isArray(data.profiles)) {
+          setProfileData(data.profiles);
+          setNodeTypeStats(calculateNodeStats(data.profiles));
+        }
+      } catch (err) {
+        console.error('更新配置文件数据失败:', err);
+      }
+    }, 200);
+  }, [calculateNodeStats]);
+
+  useEffect(() => {
     if (activeView === 'dashboard') {
       updateProfileData();
     }
 
-    // 监听配置变更事件 - 立即刷新数据
-    let unsubscribeConfig, unsubscribeDashboard, unsubscribeProfiles;
-    
-    if (window.electron && window.electron.onConfigChanged) {
-      unsubscribeConfig = window.electron.onConfigChanged(() => {
-        console.log('Dashboard: 配置已切换，刷新profile数据');
-        updateProfileData();
-      });
-    }
-    
-    if (window.electron && window.electron.onDashboardRefresh) {
-      unsubscribeDashboard = window.electron.onDashboardRefresh(() => {
-        console.log('Dashboard: 收到刷新事件');
-        updateProfileData();
-      });
-    }
-    
-    if (window.electron && window.electron.onProfilesChanged) {
-      unsubscribeProfiles = window.electron.onProfilesChanged(() => {
-        console.log('Dashboard: 配置文件已变更');
-        updateProfileData();
-      });
+    const unsubscribers = [];
+
+    if (window.electron) {
+      if (window.electron.onConfigChanged) {
+        unsubscribers.push(window.electron.onConfigChanged(updateProfileData));
+      }
+      if (window.electron.onDashboardRefresh) {
+        unsubscribers.push(window.electron.onDashboardRefresh(updateProfileData));
+      }
+      if (window.electron.profiles && window.electron.profiles.onChanged) {
+        unsubscribers.push(window.electron.profiles.onChanged(updateProfileData));
+      }
     }
 
-    // 设置定期更新
     const updateInterval = setInterval(() => {
       if (activeView === 'dashboard') {
         updateProfileData();
       }
-    }, 30000); // 每30秒更新一次数据，可以根据需要调整
+    }, 30000);
 
     return () => {
       clearInterval(updateInterval);
-      // 清理事件监听
-      if (unsubscribeConfig && typeof unsubscribeConfig === 'function') {
-        unsubscribeConfig();
-      }
-      if (unsubscribeDashboard && typeof unsubscribeDashboard === 'function') {
-        unsubscribeDashboard();
-      }
-      if (unsubscribeProfiles && typeof unsubscribeProfiles === 'function') {
-        unsubscribeProfiles();
-      }
+      unsubscribers.forEach(unsubscribe => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      });
     };
-  }, [activeView]); // 当activeView变化时重新设置
+  }, [activeView, updateProfileData]);
 
   const togglePrivateMode = () => {
     setPrivateMode(!privateMode);
