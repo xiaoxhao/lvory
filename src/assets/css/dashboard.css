@@ -2,9 +2,12 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden; /* 确保Dashboard不滚动 */
+  overflow: hidden;
   background-color: #fff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  will-change: transform;
+  transform: translateZ(0);
+  contain: layout style paint;
 }
 
 .header {

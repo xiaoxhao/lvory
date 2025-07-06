@@ -63,8 +63,10 @@
   font-size: 10px;
   color: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: filter 0.15s ease, transform 0.1s ease;
   -webkit-app-region: no-drag;
+  will-change: filter, transform;
+  transform: translateZ(0);
 }
 
 .minimize {
@@ -93,15 +95,26 @@
   display: flex;
   flex: 1;
   overflow: hidden;
-  transition: margin-left 0.3s ease;
+  transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: margin-left;
 }
 
 .main-content {
   flex: 1;
   overflow: hidden;
   background-color: #fff;
-  position: relative; /* 确保内部绝对定位的组件正常工作 */
-  transition: padding 0.3s ease; /* 添加过渡效果 */
+  position: relative;
+  transition: padding 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: padding;
+  contain: layout style paint;
+}
+
+.view-container {
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  transform: translateZ(0);
+  contain: layout style paint;
 }
 
 /* Dashboard 视图特定样式 - 强制高度不能超出视窗 */

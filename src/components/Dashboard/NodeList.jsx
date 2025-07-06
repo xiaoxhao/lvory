@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import NodeDetailModal from './NodeDetailModal';
 
@@ -498,9 +498,9 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
 
     // 监听配置文件变更事件
     let unsubscribeProfiles, unsubscribeConfig, unsubscribeDashboard;
-    
-    if (window.electron && window.electron.onProfilesChanged) {
-      unsubscribeProfiles = window.electron.onProfilesChanged(() => {
+
+    if (window.electron && window.electron.profiles && window.electron.profiles.onChanged) {
+      unsubscribeProfiles = window.electron.profiles.onChanged(() => {
         console.log('配置文件已变更，刷新节点组数据');
         refreshData();
       });
@@ -628,46 +628,37 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     };
   }, []);
 
-  // 根据当前选中的组筛选节点
-  const getFilteredNodes = () => {
+  const filteredNodes = useMemo(() => {
     if (selectedGroup === 'all') {
-      // 显示所有普通节点，但不包括节点组
       return profileData.filter(node => {
-        // 检查该节点是否为节点组的outbound
         const isNodeGroup = nodeGroups.some(group => group.tag === node.tag);
         return !isNodeGroup;
       });
     } else if (selectedGroup === 'uncategorized') {
-      // 筛选未归属于任何组的节点
       return nodes.filter(node => !node.groups || node.groups.length === 0)
                  .map(node => {
-                   // 从profileData中找到对应的节点数据
                    return profileData.find(p => p.tag === node.tag) || node;
                  });
     } else {
-      // 筛选属于指定组的节点
       const group = nodeGroups.find(g => g.tag === selectedGroup);
       if (group && group.outbounds) {
         return group.outbounds.map(outboundTag => {
-          // 从profileData中找到对应的节点数据
-          return profileData.find(node => node.tag === outboundTag) || 
+          return profileData.find(node => node.tag === outboundTag) ||
                  { tag: outboundTag, type: 'unknown', server: 'unknown' };
         });
       }
       return [];
     }
-  };
+  }, [selectedGroup, profileData, nodeGroups, nodes]);
 
-  // 打开节点详情弹窗
-  const openNodeDetail = (node) => {
+  const openNodeDetail = useCallback((node) => {
     setSelectedNode(node);
     setShowNodeDetail(true);
-  };
+  }, []);
 
-  // 关闭节点详情弹窗
-  const closeNodeDetail = () => {
+  const closeNodeDetail = useCallback(() => {
     setShowNodeDetail(false);
-  };
+  }, []);
 
   // 渲染路由规则列表函数
   const renderRouteRules = () => {
@@ -718,9 +709,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
     );
   };
 
-  // 渲染节点列表函数
-  const renderNodes = () => {
-    const filteredNodes = getFilteredNodes();
+  const renderNodes = useCallback(() => {
     
     return (
       <div className="customer-cards" style={{ 
@@ -770,7 +759,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         )}
       </div>
     );
-  };
+  }, [filteredNodes, testResults, privateMode]);
 
   // 渲染节点组选择条
   const renderGroupTabs = () => (

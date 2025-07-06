@@ -23,7 +23,8 @@ body {
 }
 
 .window-hidden {
-  opacity: 0.98; /* 降低透明度来减少绘制 */
+  opacity: 0.98;
+  will-change: auto;
 }
 
 /* 后台节流时暂停所有CSS动画和过渡 */
@@ -33,7 +34,6 @@ body {
   animation-play-state: paused !important;
   transition: none !important;
 }
-
 ul {
   list-style: none;
 }

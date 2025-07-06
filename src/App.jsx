@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Profiles from './components/Profiles';
 import Tools from './components/Tools';
+import Activity from './components/Activity';
 import Settings from './components/Settings/Settings';
 import UpdateNotification from './components/UpdateNotification';
 import { AppProvider, useAppContext } from './context/AppContext';
@@ -291,37 +292,26 @@ const App = () => {
                   isMinimized={isSettingsActive}
                 />
                 <div className="main-content" style={{ position: 'relative' }}>
-                  <Dashboard activeView={activeItem} onSwitchToActivity={handleSwitchToActivity} />
+                  {activeItem === 'dashboard' && (
+                    <Dashboard activeView={activeItem} onSwitchToActivity={handleSwitchToActivity} />
+                  )}
                   {activeItem === 'profiles' && (
-                    <div style={{ 
-                      width: '100%', 
-                      height: '100%',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0
-                    }}>
+                    <div className="view-container">
                       <Profiles />
                     </div>
                   )}
                   {activeItem === 'tools' && (
-                    <div style={{ 
-                      width: '100%', 
-                      height: '100%',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0
-                    }}>
+                    <div className="view-container">
                       <Tools />
                     </div>
                   )}
+                  {activeItem === 'activity' && (
+                    <div className="view-container">
+                      <Activity isActivityView={true} />
+                    </div>
+                  )}
                   {activeItem === 'settings' && (
-                    <div style={{ 
-                      width: '100%', 
-                      height: '100%',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0
-                    }}>
+                    <div className="view-container">
                       <Settings />
                     </div>
                   )}

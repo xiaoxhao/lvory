@@ -120,12 +120,15 @@ const createWindow = () => {
     }
   });
   
-  // 监听窗口调整大小结束事件，确保最终尺寸不小于最小尺寸
+  let resizeTimeout;
   mainWindow.on('resize', () => {
-    const [width, height] = mainWindow.getSize();
-    if (width < 800 || height < 600) {
-      mainWindow.setSize(Math.max(width, 800), Math.max(height, 600));
-    }
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      const [width, height] = mainWindow.getSize();
+      if (width < 800 || height < 600) {
+        mainWindow.setSize(Math.max(width, 800), Math.max(height, 600));
+      }
+    }, 200);
   });
 
   // 添加错误处理
@@ -151,17 +154,21 @@ const createWindow = () => {
 
   loadAppContent();
 
+  let visibilityTimeout;
+
   mainWindow.on('hide', () => {
     if (mainWindow?.isDestroyed?.() === false) {
-      // 通知渲染进程窗口已隐藏，可以暂停不必要的渲染
-      mainWindow.webContents.send('window-visibility-change', { isVisible: false });
-      logger.info('窗口已隐藏到托盘，优化资源占用');
+      clearTimeout(visibilityTimeout);
+      visibilityTimeout = setTimeout(() => {
+        mainWindow.webContents.send('window-visibility-change', { isVisible: false });
+        logger.info('窗口已隐藏到托盘，优化资源占用');
+      }, 50);
     }
   });
 
   mainWindow.on('show', () => {
     if (mainWindow?.isDestroyed?.() === false) {
-      // 通知渲染进程窗口已显示，恢复正常渲染
+      clearTimeout(visibilityTimeout);
       mainWindow.webContents.send('window-visibility-change', { isVisible: true });
       logger.info('窗口已显示，恢复正常渲染');
     }
