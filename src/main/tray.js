@@ -20,14 +20,14 @@ let updateTrayMenuCallback = null;
 const getTrayIcon = (isActive = false) => {
   try {
     let iconPath;
-    
+
     // 根据是否为 macOS 和是否打包来确定正确的图标路径
     if (process.platform === 'darwin' && process.env.NODE_ENV !== 'development') {
       // macOS 打包后的路径处理
       const resourcesPath = process.resourcesPath || path.join(process.cwd(), 'resources');
       const asarPath = path.join(resourcesPath, 'app.asar', 'resource', 'icon', 'tray.png');
       const unpackedPath = path.join(resourcesPath, 'icon', 'tray.png');
-      
+
       // 优先使用 extraResources 中的图标
       if (fs.existsSync(unpackedPath)) {
         iconPath = unpackedPath;
@@ -49,17 +49,34 @@ const getTrayIcon = (isActive = false) => {
       // 开发环境或其他平台的路径
       iconPath = path.join(__dirname, '../../resource', 'icon', 'tray.png');
     }
-    
+
     // 验证文件是否存在
     if (!fs.existsSync(iconPath)) {
       throw new Error(`托盘图标文件不存在: ${iconPath}`);
     }
-    
-    return iconPath;
+
+    let trayImage = nativeImage.createFromPath(iconPath);
+
+    // 针对 macOS 优化托盘图标大小
+    if (process.platform === 'darwin') {
+      trayImage.setTemplateImage(true);
+
+      // 如果图标过大，调整到合适的尺寸
+      const size = trayImage.getSize();
+      if (size.width > 32 || size.height > 32) {
+        trayImage = trayImage.resize({ width: 16, height: 16 });
+      }
+    }
+
+    return trayImage;
   } catch (error) {
     logger.error(`获取托盘图标失败: ${error.message}`);
     // 创建一个空白图像作为备用
-    return nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABBJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC');
+    const fallbackImage = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABBJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC');
+    if (process.platform === 'darwin') {
+      fallbackImage.setTemplateImage(true);
+    }
+    return fallbackImage;
   }
 };
 
@@ -70,11 +87,14 @@ const createTray = () => {
   if (tray) return { tray, updateTrayMenu: updateTrayMenuCallback };
 
   try {
-    const iconPath = getTrayIcon();
-    tray = new Tray(iconPath);
+    const trayIcon = getTrayIcon();
+    tray = new Tray(trayIcon);
   } catch (error) {
     logger.error(`创建托盘失败: ${error.message}`);
     const emptyImage = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABNJREFUOE9jYBgFo2AUjIJRQG8AAAUAAAFq0PP0AAAAAElFTkSuQmCC');
+    if (process.platform === 'darwin') {
+      emptyImage.setTemplateImage(true);
+    }
     tray = new Tray(emptyImage);
   }
   
@@ -84,8 +104,8 @@ const createTray = () => {
   updateTrayMenuCallback = (isRunning = false) => {
     // 根据运行状态更新图标
     try {
-      const iconPath = getTrayIcon(isRunning);
-      tray.setImage(iconPath);
+      const trayIcon = getTrayIcon(isRunning);
+      tray.setImage(trayIcon);
     } catch (error) {
       logger.error(`设置托盘图标失败: ${error.message}`);
     }
