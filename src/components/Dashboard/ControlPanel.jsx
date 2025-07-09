@@ -13,14 +13,14 @@ const customStyles = {
   }
 };
 
-const ControlPanel = ({ 
-  isRunning, 
-  onTogglePrivate, 
-  onSpeedTest, 
+const ControlPanel = ({
+  isRunning,
+  onTogglePrivate,
+  onSpeedTest,
   onToggleSingBox,
-  privateMode, 
+  privateMode,
   isTesting,
-  isStarting, 
+  isStarting,
   isStopping,
   onOpenProfileModal,
   coreExists,

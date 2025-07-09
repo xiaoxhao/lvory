@@ -951,6 +951,32 @@ class SingBox {
   async loadState() {
     return await this.stateManager.loadState();
   }
+
+  /**
+   * 下载内核
+   * @returns {Promise<Object>} 下载结果
+   */
+  async downloadCore() {
+    try {
+      const coreDownloader = require('../main/core-downloader');
+      const utils = require('../main/ipc-handlers/utils');
+      const mainWindow = utils.getMainWindow();
+
+      logger.info('[SingBox] 开始下载内核');
+      const result = await coreDownloader.downloadCore(mainWindow);
+
+      if (result.success) {
+        logger.info('[SingBox] 内核下载成功');
+      } else {
+        logger.error('[SingBox] 内核下载失败:', result.error);
+      }
+
+      return result;
+    } catch (error) {
+      logger.error('[SingBox] 下载内核时发生异常:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = new SingBox(); 

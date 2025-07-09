@@ -6,7 +6,7 @@ const useSingBoxControl = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
-  const [coreExists, setCoreExists] = useState(true);
+  const [coreExists, setCoreExists] = useState(false);
   const [isDownloadingCore, setIsDownloadingCore] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadMessage, setDownloadMessage] = useState('');
@@ -15,8 +15,12 @@ const useSingBoxControl = () => {
     if (window.electron && window.electron.singbox && window.electron.singbox.checkInstalled) {
       try {
         const result = await window.electron.singbox.checkInstalled();
-        setCoreExists(result);
-        return result;
+
+        // 处理返回的数据结构 { success: true, installed: boolean }
+        const isInstalled = result && result.success ? result.installed : false;
+
+        setCoreExists(isInstalled);
+        return isInstalled;
       } catch (err) {
         console.error('检查内核是否存在失败:', err);
         setCoreExists(false);
@@ -55,8 +59,18 @@ const useSingBoxControl = () => {
     };
   }, []);
 
+  // 组件挂载时检查内核状态
   useEffect(() => {
-    checkCoreExists();
+    const initializeCore = async () => {
+      try {
+        await checkCoreExists();
+      } catch (error) {
+        console.error('初始化内核检查失败:', error);
+        setCoreExists(false);
+      }
+    };
+
+    initializeCore();
   }, []);
 
   // 监听代理状态恢复的事件
@@ -104,9 +118,9 @@ const useSingBoxControl = () => {
     }
   };
 
-  const toggleSingBox = () => {
+  const toggleSingBox = async () => {
     if (!coreExists) {
-      downloadCore();
+      await downloadCore();
       return;
     }
     
