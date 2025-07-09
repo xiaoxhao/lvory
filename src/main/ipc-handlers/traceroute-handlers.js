@@ -3,6 +3,69 @@ const Traceroute = require('nodejs-traceroute');
 const http = require('http');
 const logger = require('../../utils/logger');
 
+// 扩展 Traceroute 类以支持 kill 功能
+class ExtendedTraceroute extends Traceroute {
+  constructor(ipVersion = '', sendwait = 0) {
+    super(ipVersion, sendwait);
+    this.childProcess = null;
+    this.pid = null;
+  }
+
+  trace(domainName) {
+    // 调用父类的 trace 方法，然后尝试获取子进程引用
+    try {
+      super.trace(domainName);
+
+      // 尝试通过反射获取子进程引用
+      // 由于 nodejs-traceroute 没有暴露子进程，我们需要另一种方法
+      setTimeout(() => {
+        // 通过 PID 事件获取进程 ID 后，我们可以使用系统命令来终止进程
+        this.emit('extended-ready');
+      }, 100);
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  kill(signal = 'SIGTERM') {
+    if (this.pid) {
+      try {
+        const platform = require('os').platform();
+
+        if (platform === 'win32') {
+          // Windows 使用 taskkill
+          const { execSync } = require('child_process');
+          execSync(`taskkill /pid ${this.pid} /f`, { timeout: 5000 });
+        } else {
+          // Unix 系统使用 kill
+          process.kill(this.pid, signal);
+        }
+
+        logger.info(`Successfully killed traceroute process with PID: ${this.pid}`);
+        return true;
+      } catch (error) {
+        logger.error('Failed to kill traceroute process:', error);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  // 重写 on 方法来捕获 PID
+  on(event, listener) {
+    if (event === 'pid') {
+      const originalListener = listener;
+      const wrappedListener = (pid) => {
+        this.pid = pid;
+        originalListener(pid);
+      };
+      return super.on(event, wrappedListener);
+    }
+    return super.on(event, listener);
+  }
+}
+
 class TracerouteHandlers {
   static currentTracer = null;
   static isValidTarget(target) {
@@ -242,9 +305,9 @@ class TracerouteHandlers {
 
   static async executeTracerouteRealtime(event, target) {
     return new Promise((resolve, reject) => {
-      logger.info(`Starting realtime traceroute to ${target} using nodejs-traceroute`);
+      logger.info(`Starting realtime traceroute to ${target} using extended traceroute`);
 
-      const tracer = new Traceroute();
+      const tracer = new ExtendedTraceroute();
       TracerouteHandlers.currentTracer = tracer;
       let sourceAdded = false;
       let hopTimeouts = new Map(); // 存储每个hop的超时计时器
@@ -421,8 +484,20 @@ class TracerouteHandlers {
     if (TracerouteHandlers.currentTracer) {
       try {
         logger.info('Stopping current traceroute process');
-        TracerouteHandlers.currentTracer.kill();
+
+        // 使用扩展的 kill 方法
+        if (TracerouteHandlers.currentTracer && typeof TracerouteHandlers.currentTracer.kill === 'function') {
+          const killed = TracerouteHandlers.currentTracer.kill('SIGTERM');
+          if (killed) {
+            logger.info('Traceroute stopped using extended kill method');
+          } else {
+            logger.warn('Failed to kill traceroute using extended method');
+          }
+        }
+
+        // 清理状态
         TracerouteHandlers.currentTracer = null;
+
         return { success: true, message: 'Traceroute stopped' };
       } catch (error) {
         logger.error('Failed to stop traceroute:', error);
@@ -473,5 +548,6 @@ function registerTracerouteHandlers() {
 }
 
 module.exports = {
-  registerTracerouteHandlers
-}; 
+  registerTracerouteHandlers,
+  TracerouteHandlers
+};
