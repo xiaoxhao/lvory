@@ -19,15 +19,6 @@ const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => 
     }
   };
 
-  // 获取延迟状态颜色
-  const getLatencyColor = (latency) => {
-    if (latency === 'timeout') return '#e74c3c';
-    if (latency < 100) return '#2ecc71';
-    if (latency < 200) return '#f39c12';
-    if (latency < 300) return '#e67e22';
-    return '#e74c3c';
-  };
-
   return (
     <div className="node-detail-modal-overlay" style={{
       position: 'fixed',

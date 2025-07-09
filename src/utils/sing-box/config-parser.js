@@ -21,55 +21,14 @@ class ConfigParser {
    */
   parseConfigFile(configPath) {
     try {
-      if (!fs.existsSync(configPath)) {
-        logger.error(`[ConfigParser] 配置文件不存在: ${configPath}`);
-        return null;
-      }
+      const config = this._loadAndParseConfig(configPath);
+      if (!config) return null;
 
-      const configContent = fs.readFileSync(configPath, 'utf8');
-      let config;
-      
-      try {
-        config = JSON.parse(configContent);
-      } catch (e) {
-        logger.error(`[ConfigParser] 解析配置文件失败: ${e.message}`);
-        return null;
-      }
+      const result = { port: this.defaultProxyConfig.port };
+      const proxyPort = this._extractProxyPort(config.inbounds);
 
-      const result = {
-        port: this.defaultProxyConfig.port
-      };
-
-      if (config.inbounds && Array.isArray(config.inbounds)) {
-        logger.info(`[ConfigParser] 配置文件包含 ${config.inbounds.length} 个入站配置`);
-        
-        // 优先查找 HTTP 或 mixed 代理
-        for (const inbound of config.inbounds) {
-          logger.info(`[ConfigParser] 检查入站: 类型=${inbound.type}, 端口=${inbound.listen_port}`);
-          
-          if (inbound.type === 'http' || inbound.type === 'mixed') {
-            if (inbound.listen_port) {
-              result.port = inbound.listen_port;
-              logger.info(`[ConfigParser] 从配置文件解析到HTTP代理端口: ${result.port}`);
-              break;
-            }
-          }
-        }
-
-        // 如果没有找到 HTTP 代理，查找 SOCKS 代理
-        if (result.port === this.defaultProxyConfig.port) {
-          for (const inbound of config.inbounds) {
-            if (inbound.type === 'socks' || inbound.type === 'mixed') {
-              if (inbound.listen_port) {
-                result.port = inbound.listen_port;
-                logger.info(`[ConfigParser] 从配置文件解析到SOCKS代理端口: ${result.port}`);
-                break;
-              }
-            }
-          }
-        }
-      } else {
-        logger.warn(`[ConfigParser] 配置文件中没有找到入站配置`);
+      if (proxyPort) {
+        result.port = proxyPort;
       }
 
       return result;
@@ -77,6 +36,70 @@ class ConfigParser {
       logger.error(`[ConfigParser] 解析配置文件出错: ${error.message}`);
       return null;
     }
+  }
+
+  /**
+   * 加载并解析配置文件
+   * @param {String} configPath 配置文件路径
+   * @returns {Object|null} 解析后的配置对象
+   * @private
+   */
+  _loadAndParseConfig(configPath) {
+    if (!fs.existsSync(configPath)) {
+      logger.error(`[ConfigParser] 配置文件不存在: ${configPath}`);
+      return null;
+    }
+
+    try {
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      return JSON.parse(configContent);
+    } catch (e) {
+      logger.error(`[ConfigParser] 解析配置文件失败: ${e.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * 从入站配置中提取代理端口
+   * @param {Array} inbounds 入站配置数组
+   * @returns {Number|null} 代理端口
+   * @private
+   */
+  _extractProxyPort(inbounds) {
+    if (!inbounds || !Array.isArray(inbounds)) {
+      logger.warn(`[ConfigParser] 配置文件中没有找到入站配置`);
+      return null;
+    }
+
+    logger.info(`[ConfigParser] 配置文件包含 ${inbounds.length} 个入站配置`);
+
+    // 优先查找 HTTP 或 mixed 代理
+    const httpPort = this._findPortByTypes(inbounds, ['http', 'mixed'], 'HTTP');
+    if (httpPort) return httpPort;
+
+    // 如果没有找到 HTTP 代理，查找 SOCKS 代理
+    const socksPort = this._findPortByTypes(inbounds, ['socks', 'mixed'], 'SOCKS');
+    return socksPort;
+  }
+
+  /**
+   * 根据指定类型查找端口
+   * @param {Array} inbounds 入站配置数组
+   * @param {Array} types 要查找的类型数组
+   * @param {String} logType 日志中显示的类型名称
+   * @returns {Number|null} 找到的端口
+   * @private
+   */
+  _findPortByTypes(inbounds, types, logType) {
+    for (const inbound of inbounds) {
+      logger.info(`[ConfigParser] 检查入站: 类型=${inbound.type}, 端口=${inbound.listen_port}`);
+
+      if (types.includes(inbound.type) && inbound.listen_port) {
+        logger.info(`[ConfigParser] 从配置文件解析到${logType}代理端口: ${inbound.listen_port}`);
+        return inbound.listen_port;
+      }
+    }
+    return null;
   }
 
   /**

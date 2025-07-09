@@ -39,63 +39,53 @@ const Sidebar = ({ activeItem, onItemClick, profilesCount, isMinimized }) => {
       
       <div className="main-menu">
         <ul>
-          <li 
+          <button
             className={`menu-item ${activeItem === 'dashboard' ? 'active' : ''}`}
             onClick={(e) => handleItemClick('dashboard', e)}
             title={isMinimized ? 'Dashboard' : ''}
-            role="button"
-            tabIndex={0}
           >
             <span className="icon home-icon"></span>
             {!isMinimized && <span>Dashboard</span>}
             <span className="ripple" style={activeItem === 'dashboard' ? rippleStyle : { display: 'none' }}></span>
-          </li>
-          <li 
+          </button>
+          <button
             className={`menu-item ${activeItem === 'activity' ? 'active' : ''}`}
             onClick={(e) => handleItemClick('activity', e)}
             title={isMinimized ? 'Activity' : ''}
-            role="button"
-            tabIndex={0}
           >
             <span className="icon activity-icon"></span>
             {!isMinimized && <span>Activity</span>}
             <span className="ripple" style={activeItem === 'activity' ? rippleStyle : { display: 'none' }}></span>
-          </li>
-          <li 
+          </button>
+          <button
             className={`menu-item ${activeItem === 'profiles' ? 'active' : ''}`}
             onClick={(e) => handleItemClick('profiles', e)}
             title={isMinimized ? `Profiles (${profilesCount || 0})` : ''}
-            role="button"
-            tabIndex={0}
           >
             <span className="icon profiles-icon"></span>
             {!isMinimized && <span>Profiles</span>}
             {!isMinimized && profilesCount > 0 && <span className="badge">{profilesCount}</span>}
             {isMinimized && profilesCount > 0 && <span className="badge minimized-badge">{profilesCount}</span>}
             <span className="ripple" style={activeItem === 'profiles' ? rippleStyle : { display: 'none' }}></span>
-          </li>
-          <li 
+          </button>
+          <button
             className={`menu-item ${activeItem === 'tools' ? 'active' : ''}`}
             onClick={(e) => handleItemClick('tools', e)}
             title={isMinimized ? 'Tools' : ''}
-            role="button"
-            tabIndex={0}
           >
             <span className="icon tools-icon"></span>
             {!isMinimized && <span>Tools</span>}
             <span className="ripple" style={activeItem === 'tools' ? rippleStyle : { display: 'none' }}></span>
-          </li>
-          <li 
+          </button>
+          <button
             className={`menu-item ${activeItem === 'settings' ? 'active' : ''}`}
             onClick={(e) => handleItemClick('settings', e)}
             title={isMinimized ? 'Settings' : ''}
-            role="button"
-            tabIndex={0}
           >
             <span className="icon settings-icon"></span>
             {!isMinimized && <span>Settings</span>}
             <span className="ripple" style={activeItem === 'settings' ? rippleStyle : { display: 'none' }}></span>
-          </li>
+          </button>
         </ul>
       </div>
 

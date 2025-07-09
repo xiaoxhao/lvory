@@ -18,16 +18,15 @@ const logIcons = {
 
 const formatTimestamp = (timestamp) => {
   if (!timestamp) return '--:--:--';
-  try {
-    const date = new Date(timestamp);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
-    return `${hours}:${minutes}:${seconds}.${milliseconds}`;
-  } catch (e) {
-    return timestamp.toString();
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) {
+    return '--:--:--'; // 或者 'Invalid Date'
   }
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
 };
 
 const safeString = (value) => {

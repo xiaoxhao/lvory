@@ -257,27 +257,8 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
   const typeBackgroundColor = getNodeTypeBackgroundColor(profile.type);
 
   return (
-    <div 
-      className="node-list-card" 
-      style={{ 
-        backgroundColor: typeBackgroundColor, 
-        borderRadius: '8px', 
-        padding: '12px', 
-        width: 'calc(25% - 12px)',
-        margin: '5px 0 8px 0',
-        height: 'auto',
-        minHeight: '92px',
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'space-between',
-        transition: 'all 0.15s ease',
-        cursor: 'pointer',
-        position: 'relative',
-        overflow: 'hidden',
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        boxShadow: 'none',
-        border: 'none'
-      }}
+    <button
+      className="node-list-card"
       onClick={onClick}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-1px)';
@@ -287,7 +268,27 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow = 'none';
       }}
-    >      
+      style={{
+        backgroundColor: typeBackgroundColor,
+        borderRadius: '8px',
+        padding: '12px',
+        width: 'calc(25% - 12px)',
+        margin: '5px 0 8px 0',
+        height: 'auto',
+        minHeight: '92px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        transition: 'all 0.15s ease',
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        boxShadow: 'none',
+        border: 'none', /* 移除默认按钮边框 */
+        outline: 'none' /* 移除聚焦时的轮廓 */
+      }}
+    >
       {/* 卡片顶部：标题和延迟 */}
       <div style={{
         display: 'flex',
@@ -381,7 +382,7 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
           {privateMode ? '****' : (profile.server || 'N/A')}
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 
@@ -782,7 +783,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           whiteSpace: 'nowrap',
           position: 'relative'
         }}>
-        <div 
+        <button
           className={`material-chip ${selectedGroup === 'all' ? 'selected' : ''}`}
           onClick={() => setSelectedGroup('all')}
           style={{
@@ -796,14 +797,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             borderRadius: '6px',
             transition: 'all 0.2s ease',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            border: 'none'
+            border: 'none',
+            outline: 'none'
           }}
         >
           All
-        </div>
+        </button>
         
         {nodeGroups.slice(0, isOverflow ? 6 : nodeGroups.length).map((group, index) => (
-          <div 
+          <button
             key={index}
             className={`material-chip ${selectedGroup === group.tag ? 'selected' : ''}`}
             onClick={() => setSelectedGroup(group.tag)}
@@ -818,14 +820,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               borderRadius: '6px',
               transition: 'all 0.2s ease',
               fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              border: 'none'
+              border: 'none',
+              outline: 'none'
             }}
           >
             {group.tag}
-          </div>
+          </button>
         ))}
         
-        <div 
+        <button
           className={`material-chip ${selectedGroup === 'uncategorized' ? 'selected' : ''}`}
           onClick={() => setSelectedGroup('uncategorized')}
           style={{
@@ -839,14 +842,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             borderRadius: '6px',
             transition: 'all 0.2s ease',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            border: 'none'
+            border: 'none',
+            outline: 'none'
           }}
         >
           Uncategorized
-        </div>
+        </button>
         
         {isOverflow && !showMore && (
-          <div 
+          <button
             className="material-chip more"
             onClick={() => setShowMore(true)}
             style={{
@@ -862,14 +866,15 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              border: 'none'
+              border: 'none',
+              outline: 'none'
             }}
           >
             More
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M7 10L12 15L17 10" stroke="#5a6c57" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </div>
+          </button>
         )}
       </div>
       
@@ -915,8 +920,8 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           border: '1px solid rgba(90, 108, 87, 0.15)'
         }}>
           {nodeGroups.slice(6).map((group, index) => (
-            <div 
-              key={index}
+            <button
+              key={group.tag}
               className="material-chip-secondary"
               onClick={() => setSelectedGroup(group.tag)}
               style={{
@@ -929,11 +934,12 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
                 borderRadius: '6px',
                 transition: 'all 0.2s ease',
                 fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                border: 'none'
+                border: 'none', /* 移除默认按钮边框 */
+                outline: 'none' /* 移除聚焦时的轮廓 */
               }}
             >
               {group.tag}
-            </div>
+            </button>
           ))}
           
           {/* Less按钮 */}
@@ -988,7 +994,7 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
         alignItems: 'center',
         marginBottom: '15px'
       }}>
-        <div 
+        <button
           style={{
             fontSize: '18px',
             fontWeight: '400',
@@ -997,7 +1003,11 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
             cursor: 'pointer',
             textDecoration: 'none',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            background: 'none', /* 移除背景 */
+            border: 'none', /* 移除边框 */
+            outline: 'none', /* 移除聚焦时的轮廓 */
+            textAlign: 'left' /* 保持文本左对齐 */
           }}
           onClick={() => setShowRouteRules(!showRouteRules)}
           onMouseEnter={(e) => {
@@ -1008,9 +1018,9 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
           }}
         >
           {t('nodeList.title')}
-        </div>
-        <button 
-          className="material-button" 
+        </button>
+        <button
+          className="material-button"
           style={{
             backgroundColor: 'rgba(246, 247, 237, 0.5)',
             color: '#666666',

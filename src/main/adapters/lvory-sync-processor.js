@@ -19,7 +19,7 @@ class LvorySyncProcessor {
    * @param {String} configPath 配置文件路径
    * @returns {Object} 解析后的配置对象
    */
-  static async parseConfig(configPath) {
+  static parseConfig(configPath) {
     try {
       if (!fs.existsSync(configPath)) {
         throw new Error(`配置文件不存在: ${configPath}`);
@@ -58,7 +58,7 @@ class LvorySyncProcessor {
   static async processSync(syncConfigPath) {
     try {
       // 1. 解析同步配置
-      const syncConfig = await this.parseConfig(syncConfigPath);
+      const syncConfig = this.parseConfig(syncConfigPath);
       const config = syncConfig.lvory_sync;
 
       // 2. 获取主配置
@@ -523,7 +523,7 @@ class LvorySyncProcessor {
           break;
         case 'priority':
           filteredNodes = filteredNodes
-            .sort((a, b) => a.priority - b.priority)
+            .toSorted((a, b) => a.priority - b.priority)
             .slice(0, scope.max_nodes);
           break;
       }

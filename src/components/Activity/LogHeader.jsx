@@ -50,13 +50,15 @@ const LogHeader = ({
         <div className="search-filter">
           <input
             type="text"
-            placeholder={
-              activeTab === 'connections' 
-                ? t('activity.searchConnections') 
-                : activeTab === 'singbox'
-                  ? '搜索 SingBox 日志...'
-                  : t('activity.searchLogs')
-            }
+            placeholder={(() => {
+              if (activeTab === 'connections') {
+                return t('activity.searchConnections');
+              } else if (activeTab === 'singbox') {
+                return '搜索 SingBox 日志...';
+              } else {
+                return t('activity.searchLogs');
+              }
+            })()}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

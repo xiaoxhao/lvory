@@ -17,7 +17,7 @@ let AdmZip;
 try {
   AdmZip = require('adm-zip');
 } catch (error) {
-  logger.warn('AdmZip库未安装，解压功能将不可用');
+  logger.warn(`AdmZip库未安装，解压功能将不可用: ${error.message}`);
 }
 
 /**
@@ -204,7 +204,8 @@ const downloadCore = async (mainWindow) => {
           if (redirectCount >= maxRedirects) {
             throw new Error(`超过最大重定向次数: ${maxRedirects}`);
           }
-          // 继续下一次重定向尝试
+          // 如果不是重定向次数超限，则重新抛出错误，让外层捕获处理
+          throw error;
         }
       }
     };
