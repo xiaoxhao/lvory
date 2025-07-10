@@ -8,7 +8,7 @@ const windowManager = require('../window');
 const { ipcMain, app, shell } = require('electron');
 const os = require('os');
 const https = require('https');
-const { getAppDataDir, getConfigDir } = require('../../utils/paths');
+const { getAppDataDir, getConfigDir, getRunModeInfo } = require('../../utils/paths');
 
 const APP_BUILD_DATE = '20240101';
 const APP_IS_PORTABLE = 'false';
@@ -83,6 +83,22 @@ function getIsPortable() {
     } catch (error) {
       console.error('获取便携模式标识失败:', error);
       return false;
+    }
+  });
+}
+
+function getAppRunModeInfo() {
+  ipcMain.handle('get-run-mode-info', async () => {
+    try {
+      return getRunModeInfo();
+    } catch (error) {
+      console.error('获取运行模式信息失败:', error);
+      return {
+        isPortable: false,
+        isAppImage: false,
+        platform: process.platform,
+        mode: 'standard'
+      };
     }
   });
 }
@@ -518,7 +534,8 @@ module.exports = {
   getAppVersion,
   getBuildDate,
   getIsPortable,
+  getAppRunModeInfo,
   checkForUpdates,
   openExternal,
   getAllVersions
-}; 
+};

@@ -359,6 +359,12 @@ const SettingsContent = ({ section }) => {
     AUTHOR: '-',
     CORE_VERSION: '-'
   });
+  const [runModeInfo, setRunModeInfo] = useState({
+    isPortable: false,
+    isAppImage: false,
+    platform: 'unknown',
+    mode: 'standard'
+  });
   const [configValues, setConfigValues] = useState({
     proxyPort: { value: '', loading: true, error: null },
     apiAddress: { value: '', loading: true, error: null }
@@ -442,9 +448,21 @@ const SettingsContent = ({ section }) => {
       const info = await getAboutInfo();
       setAboutInfo(info);
     };
-    
+
+    const loadRunModeInfo = async () => {
+      try {
+        if (window.electron && window.electron.getRunModeInfo) {
+          const modeInfo = await window.electron.getRunModeInfo();
+          setRunModeInfo(modeInfo);
+        }
+      } catch (error) {
+        console.error('获取运行模式信息失败:', error);
+      }
+    };
+
     if (section === 'about') {
       loadAboutInfo();
+      loadRunModeInfo();
     }
     
     // 当进入basic设置页面时，加载配置文件中的值
@@ -1091,6 +1109,39 @@ const SettingsContent = ({ section }) => {
                       fontWeight: '600',
                       color: '#1f2937'
                     }}>{aboutInfo.CORE_VERSION}</div>
+                  </div>
+
+                  {/* 运行模式卡片 */}
+                  <div style={{
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '12px',
+                    padding: '16px'
+                  }}>
+                    <div style={{
+                      color: '#64748b',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      marginBottom: '6px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>运行模式</div>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      marginBottom: '4px'
+                    }}>
+                      {runModeInfo.mode === 'portable' ? '便携模式' :
+                       runModeInfo.mode === 'appimage' ? 'AppImage' :
+                       '标准模式'}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#64748b',
+                      fontWeight: '500'
+                    }}>
+                      {runModeInfo.platform} • {runModeInfo.isPortable ? '便携' : runModeInfo.isAppImage ? 'AppImage' : '标准'}
+                    </div>
                   </div>
                 </div>
                 

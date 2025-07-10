@@ -42,7 +42,10 @@ contextBridge.exposeInMainWorld('electron', {
   
   // 打开外部链接
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
-  
+
+  // 获取运行模式信息
+  getRunModeInfo: () => ipcRenderer.invoke('get-run-mode-info'),
+
   // 调用main进程方法
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   
