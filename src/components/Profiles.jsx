@@ -244,6 +244,145 @@ const Profiles = () => {
     }
   };
 
+  // 渲染表格行内容
+  const renderTableRows = () => {
+    if (isLoading) {
+      return (
+        <tr>
+          <td colSpan="5" className="loading-row">
+            <div className="loading-spinner"></div>
+            <div>{t('profiles.loadingProfiles')}</div>
+          </td>
+        </tr>
+      );
+    }
+
+    if (profileFiles.length === 0) {
+      return (
+        <tr>
+          <td colSpan="5" className="empty-row">
+            <div className="empty-state">
+              <div className="empty-icon"></div>
+              <div>{t('profiles.noProfilesFound')}</div>
+            </div>
+          </td>
+        </tr>
+      );
+    }
+
+    return profileFiles.map((file, index) => (
+      <tr key={`profile-${file.name}-${index}`}>
+        <td>
+          <div
+            className={`file-name-cell ${activeProfile === file.name ? 'active-profile' : ''}`}
+            onClick={() => activateProfile(file.name)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                activateProfile(file.name);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`激活配置文件 ${file.name}`}
+          >
+            {file.name}
+
+            {/* 状态标识 */}
+            {file.status === 'failed' && (
+              <span className="status-badge expired">
+                {t('profiles.expired')}
+              </span>
+            )}
+            {!file.isComplete && (
+              <span className="status-badge incomplete">
+                {t('profiles.incomplete')}
+              </span>
+            )}
+            {file.hasCache && (
+              <span className="status-badge cached" title={`缓存文件: ${file.cacheInfo?.fileName}`}>
+                {t('profiles.cached')}
+              </span>
+            )}
+            {activeProfile === file.name && <span className="active-label">{t('profiles.active')}</span>}
+          </div>
+        </td>
+        <td className="protocol-column">
+          <span className={`protocol-badge ${file.protocol}`}>
+            {file.protocol === 'lvory' ? t('profiles.lvoryProtocol') : t('profiles.singboxProtocol')}
+          </span>
+        </td>
+        <td>{file.size || 'Unknown'}</td>
+        <td>{file.createDate || 'Unknown'}</td>
+        <td className="action-column">
+          <div className="dropdown">
+            <button
+              className="action-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDropdown(index);
+              }}
+            >
+              <span className="action-dots">⋮</span>
+            </button>
+
+            {activeDropdown === index && (
+              <div className="dropdown-menu">
+                <button
+                  className="dropdown-item"
+                  onClick={() => handleLink(file.name)}
+                >
+                  <span className="dropdown-icon link-icon"></span>
+                  <span>{t('profiles.copyFileName')}</span>
+                </button>
+                <button
+                  className="dropdown-item"
+                  onClick={() => handleEdit(file.name)}
+                >
+                  <span className="dropdown-icon edit-icon"></span>
+                  <span>{t('profiles.editFile')}</span>
+                </button>
+                <button
+                  className="dropdown-item"
+                  onClick={() => handleUpdate(file.name)}
+                >
+                  <span className="dropdown-icon refresh-icon"></span>
+                  <span>{t('profiles.updateProfile')}</span>
+                </button>
+                {file.protocol === 'lvory' && (
+                  <button
+                    className="dropdown-item"
+                    onClick={() => handleRefreshLvoryCache(file.name)}
+                  >
+                    <span className="dropdown-icon refresh-icon"></span>
+                    <span>{t('profiles.refreshLvoryCache')}</span>
+                  </button>
+                )}
+                {!file.isComplete && (
+                  <button
+                    className="dropdown-item"
+                    onClick={() => handleFix(file.name)}
+                  >
+                    <span className="dropdown-icon refresh-icon"></span>
+                    <span>{t('profiles.fixProfile')}</span>
+                  </button>
+                )}
+                <div className="dropdown-divider"></div>
+                <button
+                  className="dropdown-item delete-item"
+                  onClick={() => handleDelete(file.name)}
+                >
+                  <span className="dropdown-icon delete-icon"></span>
+                  <span>{t('profiles.deleteProfile')}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    ));
+  };
+
   // 处理刷新Lvory缓存
   const handleRefreshLvoryCache = (fileName) => {
     closeDropdown();
@@ -354,126 +493,7 @@ const Profiles = () => {
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan="5" className="loading-row">
-                  <div className="loading-spinner"></div>
-                  <div>{t('profiles.loadingProfiles')}</div>
-                </td>
-              </tr>
-            ) : profileFiles.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="empty-row">
-                  <div className="empty-state">
-                    <div className="empty-icon"></div>
-                    <div>{t('profiles.noProfilesFound')}</div>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              profileFiles.map((file, index) => (
-                <tr key={index}>
-                  <td>
-                    <div 
-                      className={`file-name-cell ${activeProfile === file.name ? 'active-profile' : ''}`}
-                      onClick={() => activateProfile(file.name)}
-                    >
-                      {file.name}
-                      
-                      {/* 状态标识 */}
-                      {file.status === 'failed' && (
-                        <span className="status-badge expired">
-                          {t('profiles.expired')}
-                        </span>
-                      )}
-                      {!file.isComplete && (
-                        <span className="status-badge incomplete">
-                          {t('profiles.incomplete')}
-                        </span>
-                      )}
-                      {file.hasCache && (
-                        <span className="status-badge cached" title={`缓存文件: ${file.cacheInfo?.fileName}`}>
-                          {t('profiles.cached')}
-                        </span>
-                      )}
-                      {activeProfile === file.name && <span className="active-label">{t('profiles.active')}</span>}
-                    </div>
-                  </td>
-                  <td className="protocol-column">
-                    <span className={`protocol-badge ${file.protocol}`}>
-                      {file.protocol === 'lvory' ? t('profiles.lvoryProtocol') : t('profiles.singboxProtocol')}
-                    </span>
-                  </td>
-                  <td>{file.size || 'Unknown'}</td>
-                  <td>{file.createDate || 'Unknown'}</td>
-                  <td className="action-column">
-                    <div className="dropdown">
-                      <button 
-                        className="action-button" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleDropdown(index);
-                        }}
-                      >
-                        <span className="action-dots">⋮</span>
-                      </button>
-                      
-                      {activeDropdown === index && (
-                        <div className="dropdown-menu">
-                          <button 
-                            className="dropdown-item"
-                            onClick={() => handleLink(file.name)}
-                          >
-                            <span className="dropdown-icon link-icon"></span>
-                            <span>{t('profiles.copyFileName')}</span>
-                          </button>
-                          <button 
-                            className="dropdown-item"
-                            onClick={() => handleEdit(file.name)}
-                          >
-                            <span className="dropdown-icon edit-icon"></span>
-                            <span>{t('profiles.editFile')}</span>
-                          </button>
-                          <button 
-                            className="dropdown-item"
-                            onClick={() => handleUpdate(file.name)}
-                          >
-                            <span className="dropdown-icon refresh-icon"></span>
-                            <span>{t('profiles.updateProfile')}</span>
-                          </button>
-                          {file.protocol === 'lvory' && (
-                            <button 
-                              className="dropdown-item"
-                              onClick={() => handleRefreshLvoryCache(file.name)}
-                            >
-                              <span className="dropdown-icon refresh-icon"></span>
-                              <span>{t('profiles.refreshLvoryCache')}</span>
-                            </button>
-                          )}
-                          {!file.isComplete && (
-                            <button 
-                              className="dropdown-item"
-                              onClick={() => handleFix(file.name)}
-                            >
-                              <span className="dropdown-icon refresh-icon"></span>
-                              <span>{t('profiles.fixProfile')}</span>
-                            </button>
-                          )}
-                          <div className="dropdown-divider"></div>
-                          <button 
-                            className="dropdown-item delete-item"
-                            onClick={() => handleDelete(file.name)}
-                          >
-                            <span className="dropdown-icon delete-icon"></span>
-                            <span>{t('profiles.deleteProfile')}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
+            {renderTableRows()}
           </tbody>
         </table>
       </div>

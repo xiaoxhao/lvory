@@ -3,6 +3,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useTranslation } from 'react-i18next';
 import { getAboutInfo } from '../../utils/version';
 import VersionManager from '../VersionManager';
+import SingBoxCoreManager from './SingBoxCoreManager';
 
 const styles = {
   container: {
@@ -364,6 +365,7 @@ const SettingsContent = ({ section }) => {
     apiAddress: { value: '', loading: true, error: null }
   });
   const [showVersionManager, setShowVersionManager] = useState(false);
+  const [showCoreManager, setShowCoreManager] = useState(false);
   const [isClearingCache, setIsClearingCache] = useState(false);
 
   // 从当前配置文件读取代理端口和API地址
@@ -981,7 +983,51 @@ const SettingsContent = ({ section }) => {
             </SettingsSection>
           </div>
         );
-        
+
+      case 'core':
+        return (
+          <div>
+            <SettingsSection
+              title={t('settings.coreManagement')}
+              description={t('settings.coreManagementDesc')}
+            >
+              {/* 当前内核版本显示 */}
+              <ReadOnlyLabel
+                label={t('settings.currentCoreVersion')}
+                value={aboutInfo.CORE_VERSION}
+                loading={false}
+                error={null}
+              />
+
+              {/* 内核管理按钮 */}
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginTop: '20px'
+              }}>
+                <button
+                  onClick={() => setShowCoreManager(true)}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#64748b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#475569'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#64748b'}
+                >
+                  {t('settings.manageCoreVersions')}
+                </button>
+              </div>
+            </SettingsSection>
+          </div>
+        );
+
       case 'about':
         return (
           <div style={{ 
@@ -1283,9 +1329,13 @@ const SettingsContent = ({ section }) => {
           {notification}
         </div>
       )}
-      <VersionManager 
-        isVisible={showVersionManager} 
-        onClose={() => setShowVersionManager(false)} 
+      <VersionManager
+        isVisible={showVersionManager}
+        onClose={() => setShowVersionManager(false)}
+      />
+      <SingBoxCoreManager
+        isVisible={showCoreManager}
+        onClose={() => setShowCoreManager(false)}
       />
     </div>
   );

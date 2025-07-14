@@ -9,6 +9,7 @@ const SettingsSidebar = ({ selectedSection, onSectionChange }) => {
       { id: 'basic', label: t('settings.basicSettings') },
       { id: 'nodes', label: t('settings.nodesSettings') },
       { id: 'advanced', label: t('settings.advancedSettings') },
+      { id: 'core', label: t('settings.coreManagement') },
     ],
     OTHERS: [
       { id: 'about', label: t('settings.about') },

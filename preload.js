@@ -261,6 +261,15 @@ contextBridge.exposeInMainWorld('electron', {
     getAll: () => ipcRenderer.invoke('get-all-versions')
   },
 
+  // 统一的内核管理接口
+  coreManager: {
+    getSingBoxReleases: () => ipcRenderer.invoke('core-manager-get-singbox-releases'),
+    getInstalledVersions: () => ipcRenderer.invoke('core-manager-get-installed-versions'),
+    downloadVersion: (version) => ipcRenderer.invoke('core-manager-download-version', version),
+    switchVersion: (version) => ipcRenderer.invoke('core-manager-switch-version', version),
+    deleteVersion: (version) => ipcRenderer.invoke('core-manager-delete-version', version)
+  },
+
   // 统一的网络工具接口
   traceroute: {
     execute: (target) => ipcRenderer.invoke('traceroute:execute', target),

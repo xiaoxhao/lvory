@@ -13,6 +13,7 @@ let settingsHandlers;
 let updateHandlers;
 let nodeHistoryHandlers;
 let tracerouteHandlers;
+let coreManagerHandlers;
 
 let ipcHandlersRegistered = false;
 
@@ -99,6 +100,7 @@ function setupHandlers() {
     updateHandlers = loadHandlerModule('update');
     nodeHistoryHandlers = loadHandlerModule('node-history');
     tracerouteHandlers = loadHandlerModule('traceroute');
+    coreManagerHandlers = loadHandlerModule('core-manager');
     
     // 导入工具模块
     const utils = require('./utils');
@@ -111,6 +113,7 @@ function setupHandlers() {
     if (updateHandlers) updateHandlers.setup();
     if (nodeHistoryHandlers) nodeHistoryHandlers.setup();
     if (tracerouteHandlers) tracerouteHandlers.registerTracerouteHandlers();
+    if (coreManagerHandlers) coreManagerHandlers.setup();
     
     // 设置网络接口处理程序
     utils.getNetworkInterfaces();
