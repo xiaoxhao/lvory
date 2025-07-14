@@ -68,6 +68,11 @@ if (electronSquirrelStartup) {
 // 判断是否是开发环境
 logger.info(`Running in ${isDev ? 'development' : 'production'} mode`);
 
+// 记录运行模式信息
+const { getRunModeInfo } = require('./src/utils/paths');
+const runModeInfo = getRunModeInfo();
+logger.info(`Application run mode: ${runModeInfo.mode} (portable: ${runModeInfo.isPortable}, appimage: ${runModeInfo.isAppImage}, platform: ${runModeInfo.platform})`);
+
 logger.logStartup();
 
 global.isQuitting = false;

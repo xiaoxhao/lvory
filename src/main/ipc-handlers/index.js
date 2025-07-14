@@ -57,6 +57,7 @@ const HANDLERS_TO_REMOVE = [
   'get-app-version',
   'get-build-date',
   'get-is-portable',
+  'get-run-mode-info',
   // 版本更新相关
   'check-for-updates',
   'get-all-versions',
@@ -122,7 +123,10 @@ function setupHandlers() {
     
     // 设置便携模式检测处理程序
     utils.getIsPortable();
-    
+
+    // 设置运行模式信息处理程序
+    utils.getAppRunModeInfo();
+
     // 设置版本更新检查处理程序
     utils.checkForUpdates();
     utils.getAllVersions();
