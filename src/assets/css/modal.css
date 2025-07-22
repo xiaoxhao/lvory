@@ -10,6 +10,7 @@
   align-items: center;
   z-index: 1000;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  animation: modalOverlayFadeIn 0.25s ease-out;
 }
 
 .modal-container {
@@ -25,6 +26,7 @@
   position: relative;
   z-index: 1001;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  animation: modalSlideInWithScale 0.25s ease-out;
 }
 
 /* 成功状态时增加高度 */
@@ -300,4 +302,54 @@
 
 .checkbox-label input[type="checkbox"] {
   margin-right: 8px;
-} 
+}
+
+/* Modal动画效果 */
+@keyframes modalOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideInWithScale {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 退出动画 */
+.modal-overlay.modal-exit {
+  animation: modalOverlayFadeOut 0.2s ease-in;
+}
+
+.modal-container.modal-exit {
+  animation: modalSlideOutWithScale 0.2s ease-in;
+}
+
+@keyframes modalOverlayFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modalSlideOutWithScale {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+}

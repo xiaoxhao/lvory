@@ -23,9 +23,6 @@ function isAppImageMode() {
   if (process.env.APPDIR) {
     return true;
   }
-
-  // 检查进程路径是否包含 AppImage 特征
-  // AppImage 通常会在临时目录中挂载，路径包含特定模式
   const execPath = process.execPath;
   if (execPath && (
     execPath.includes('/.mount_') || // AppImage 挂载目录特征
@@ -33,6 +30,19 @@ function isAppImageMode() {
     execPath.endsWith('.AppImage') // 直接运行 AppImage 文件
   )) {
     return true;
+  }
+
+  if (process.platform === 'linux') {
+    const homeDir = require('os').homedir();
+    const currentDir = process.cwd();
+
+    if (currentDir === homeDir && execPath && execPath.includes('/tmp/')) {
+      if (execPath.match(/\/tmp\/\.mount_[^\/]+\//) ||
+          execPath.match(/\/tmp\/appimage[^\/]*\//) ||
+          execPath.includes('squashfs-root')) {
+        return true;
+      }
+    }
   }
 
   return false;

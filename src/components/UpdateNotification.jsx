@@ -6,14 +6,13 @@ const styles = {
     position: 'fixed',
     bottom: '24px',
     right: '24px',
-    backgroundColor: '#ffffff',
-    backdropFilter: 'blur(8px)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: '8px',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08)',
     padding: '16px',
     width: '280px',
     zIndex: 9999,
-    animation: 'slideIn 0.3s ease-out',
+    animation: 'slideInWithScale 0.25s ease-out',
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
@@ -117,9 +116,15 @@ const styles = {
   skipVersionButtonHover: {
     color: '#6b7280',
   },
-  '@keyframes slideIn': {
-    from: { transform: 'translateY(20px)', opacity: 0 },
-    to: { transform: 'translateY(0)', opacity: 1 },
+  '@keyframes slideInWithScale': {
+    from: {
+      transform: 'translateY(20px) scale(0.95)',
+      opacity: 0
+    },
+    to: {
+      transform: 'translateY(0) scale(1)',
+      opacity: 1
+    },
   },
 };
 
@@ -136,9 +141,15 @@ const UpdateNotification = ({ onClose }) => {
     const styleSheet = document.createElement('style');
     styleSheet.id = 'update-notification-styles';
     styleSheet.textContent = `
-      @keyframes slideIn {
-        from { transform: translateY(20px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+      @keyframes slideInWithScale {
+        from {
+          transform: translateY(20px) scale(0.95);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
       }
     `;
     document.head.appendChild(styleSheet);

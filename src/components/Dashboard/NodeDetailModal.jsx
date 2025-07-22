@@ -26,27 +26,25 @@ const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => 
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(10, 15, 30, 0.6)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-      animation: 'fadeIn 0.2s ease-out'
+      animation: 'fadeIn 0.25s ease-out'
     }}>
       <div className="node-detail-modal" style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
-        borderRadius: '3px',
-        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 0 3px rgba(80, 140, 240, 0.1)',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.1)',
         width: '500px',
         maxWidth: '90%',
         maxHeight: '90vh',
         overflow: 'hidden',
-        animation: 'slideIn 0.3s ease-out',
+        animation: 'slideInWithScale 0.25s ease-out',
         display: 'flex',
         flexDirection: 'column',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
+        border: '1px solid rgba(0, 0, 0, 0.1)'
       }}>
         {/* 弹窗头部 */}
         <div className="node-detail-header" style={{
@@ -176,15 +174,15 @@ const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => 
             from { opacity: 0; }
             to { opacity: 1; }
           }
-          
-          @keyframes slideIn {
-            from { 
+
+          @keyframes slideInWithScale {
+            from {
               opacity: 0;
-              transform: translateY(-20px);
+              transform: translateY(-20px) scale(0.95);
             }
-            to { 
+            to {
               opacity: 1;
-              transform: translateY(0);
+              transform: translateY(0) scale(1);
             }
           }
         `}

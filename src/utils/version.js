@@ -46,10 +46,10 @@ const getVersionInfo = () => ({...VERSION_INFO});
 // 获取格式化的关于信息
 const getAboutInfo = async () => {
   let coreVersion = 'Not Installed';
-  
+
   // 尝试更新应用版本信息
   await initVersionInfo();
-  
+
   // 尝试获取内核版本
   if (window.electron && window.electron.singbox && window.electron.singbox.getVersion) {
     try {
@@ -61,7 +61,7 @@ const getAboutInfo = async () => {
       console.error('获取内核版本失败:', error);
     }
   }
-  
+
   return {
     ...VERSION_INFO,
     CORE_VERSION: coreVersion,

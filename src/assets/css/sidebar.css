@@ -1,14 +1,20 @@
 .sidebar {
   width: 215px;
   height: 100%;
-  background-color: transparent; /* 移除背景色 */
+  background-color: transparent;
   border-right: none;
   padding: 16px 12px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width 0.3s cubic-bezier(0.2, 0, 0, 1), padding 0.3s cubic-bezier(0.2, 0, 0, 1);
+  /* 优化width变化的性能 */
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width, padding;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout style paint;
 }
 
 .sidebar.minimized {
@@ -16,6 +22,8 @@
   padding-left: 12px;
   padding-right: 12px;
   align-items: center;
+  overflow-y: hidden;
+  justify-content: flex-start;
 }
 
 .sidebar.minimized .logo {
@@ -30,6 +38,7 @@
 
 .sidebar.minimized .main-menu ul {
   align-items: center;
+  margin: 0;
 }
 
 .sidebar.minimized .menu-item {
@@ -38,6 +47,8 @@
   width: 44px;
   height: 44px;
   position: relative;
+  /* 优化最小化状态的变换 */
+  transform: translateZ(0) scale(1);
 }
 
 .sidebar.minimized .menu-item .icon {
@@ -45,10 +56,14 @@
   font-size: 20px;
   width: 20px;
   height: 20px;
+  /* 优化图标在最小化状态下的动画 */
+  transform: translateZ(0) scale(1);
 }
 
 .sidebar.minimized .badge {
-  display: none; /* 在最小化模式下隐藏角标 */
+  opacity: 0;
+  transform: translateX(8px) scale(0.8);
+  pointer-events: none;
 }
 
 .logo {
@@ -56,13 +71,19 @@
   margin-bottom: 32px;
   display: flex;
   align-items: center;
-  justify-content: center; /* 居中logo */
+  justify-content: center;
   gap: 12px;
+  /* 优化logo动画性能 */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .logo-image {
   width: 32px;
   height: 32px;
+  /* 添加平滑的尺寸变化 */
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .logo h2 {
@@ -70,11 +91,29 @@
   font-weight: 500;
   color: #333333;
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; /* 使用现代线衬字体 */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+/* 最小化状态下的logo优化 */
+.sidebar.minimized .logo h2 {
+  opacity: 0;
+  transform: translateX(-10px) scale(0.8);
+  pointer-events: none;
 }
 
 .main-menu {
   margin-bottom: 24px;
+  flex: 1;
+  overflow: hidden;
+  /* 性能优化 */
+  will-change: margin;
+  transform: translateZ(0);
+  transition: margin 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .main-menu ul {
@@ -84,7 +123,19 @@
   padding: 0;
   margin: 0 0 0 5px;
   list-style-type: none;
+  /* 优化列表渲染 */
+  will-change: margin;
+  transform: translateZ(0);
+  transition: margin 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* 最小化状态下的菜单调整 */
+.sidebar.minimized .main-menu {
+  margin-bottom: 0;
+  flex: none;
+}
+
+
 
 .menu-item {
   display: flex;
@@ -92,11 +143,18 @@
   padding: 8px 14px 8px 24px;
   border-radius: 16px;
   cursor: pointer;
-  transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1);
+  /* 优化菜单项动画性能 */
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   color: #1f0303;
   font-weight: 500;
   font-size: 13px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* 启用GPU加速 */
+  transform: translateZ(0);
+  will-change: transform, background-color;
+  contain: layout style paint;
 }
 
 .menu-item:hover {
@@ -114,6 +172,26 @@
   width: 20px;
   height: 20px;
   display: inline-block;
+  /* 优化图标动画性能 */
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, margin;
+  transform: translateZ(0);
+}
+
+/* 菜单项文字动画优化 */
+.menu-item span:not(.icon):not(.ripple):not(.badge) {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.sidebar.minimized .menu-item span:not(.icon):not(.ripple):not(.badge) {
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
 }
 
 .badge {
@@ -125,7 +203,15 @@
   font-weight: 500;
   color: #333333;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* 优化badge动画 */
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
 }
+
+
 
 .terminal-icon {
   background-color: #666666; /* 使用指定色调 */
@@ -179,25 +265,24 @@
   outline-offset: 2px;
 }
 
-/* 改进动画效果 */
-.menu-item {
-  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
-.sidebar.minimized .menu-item .icon {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 /* 添加系统状态部分的MD3样式 */
 .system-status {
   margin-top: auto;
   padding: 12px;
-  background-color: rgba(246, 247, 237, 0.5); /* 使用主色调 */
+  background-color: rgba(246, 247, 237, 0.5);
   border-radius: 16px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; /* 使用现代线衬字体 */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12px;
+  /* 优化SystemStatus动画性能 */
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  contain: layout style paint;
 }
 
 /* 调整最小化状态下的系统状态图标 */
@@ -208,7 +293,9 @@
   right: 0;
 }
 
-/* 统一调整图标尺寸 */
+/* 统一调整图标尺寸和性能优化 */
 .icon {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: background-color;
+  transform: translateZ(0);
 }
