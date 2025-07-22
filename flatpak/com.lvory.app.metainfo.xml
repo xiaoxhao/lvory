@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.lvory.app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>lvory</name>
+  <name xml:lang="zh-CN">lvory</name>
+  <summary>Minimalist Cross-Platform Client for Singbox</summary>
+  <summary xml:lang="zh-CN">简约跨平台 Sing-box 客户端</summary>
+  
+  <description>
+    <p>
+      lvory is a minimalist cross-platform GUI client for sing-box, providing easy proxy management and configuration.
+      It offers a clean and intuitive interface for managing your network proxy settings with sing-box backend.
+    </p>
+    <p xml:lang="zh-CN">
+      lvory 是一个简约的跨平台 sing-box GUI 客户端，提供简单的代理管理和配置功能。
+      它为 sing-box 后端提供了一个清洁直观的界面来管理您的网络代理设置。
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Clean and intuitive user interface</li>
+      <li>Easy proxy configuration management</li>
+      <li>Real-time connection monitoring</li>
+      <li>Cross-platform support (Windows, macOS, Linux)</li>
+      <li>Portable mode support</li>
+      <li>Built-in traceroute functionality</li>
+      <li>Multi-language support</li>
+    </ul>
+    <p xml:lang="zh-CN">功能特性:</p>
+    <ul xml:lang="zh-CN">
+      <li>简洁直观的用户界面</li>
+      <li>简单的代理配置管理</li>
+      <li>实时连接监控</li>
+      <li>跨平台支持 (Windows, macOS, Linux)</li>
+      <li>便携模式支持</li>
+      <li>内置路由追踪功能</li>
+      <li>多语言支持</li>
+    </ul>
+  </description>
+  
+  <launchable type="desktop-id">com.lvory.app.desktop</launchable>
+  
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main interface</caption>
+      <caption xml:lang="zh-CN">主界面</caption>
+      <image>https://raw.githubusercontent.com/sxueck/lvory/main/docs/screenshot/main.png</image>
+    </screenshot>
+  </screenshots>
+  
+  <url type="homepage">https://github.com/sxueck/lvory</url>
+  <url type="bugtracker">https://github.com/sxueck/lvory/issues</url>
+  <url type="help">https://github.com/sxueck/lvory#readme</url>
+  <url type="vcs-browser">https://github.com/sxueck/lvory</url>
+  
+  <developer_name>lvory Team</developer_name>
+  <developer_name xml:lang="zh-CN">lvory 团队</developer_name>
+  
+  <categories>
+    <category>Network</category>
+    <category>Utility</category>
+  </categories>
+  
+  <keywords>
+    <keyword>proxy</keyword>
+    <keyword>vpn</keyword>
+    <keyword>singbox</keyword>
+    <keyword>network</keyword>
+    <keyword>tunnel</keyword>
+    <keyword xml:lang="zh-CN">代理</keyword>
+    <keyword xml:lang="zh-CN">网络</keyword>
+    <keyword xml:lang="zh-CN">隧道</keyword>
+  </keywords>
+  
+  <provides>
+    <binary>lvory</binary>
+  </provides>
+  
+  <releases>
+    <release version="0.2.1" date="2024-01-15">
+      <description>
+        <p>Latest stable release with improved performance and bug fixes</p>
+        <p xml:lang="zh-CN">最新稳定版本，改进了性能并修复了错误</p>
+      </description>
+    </release>
+  </releases>
+  
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-cartoon">none</content_attribute>
+    <content_attribute id="violence-fantasy">none</content_attribute>
+    <content_attribute id="violence-realistic">none</content_attribute>
+    <content_attribute id="violence-bloodshed">none</content_attribute>
+    <content_attribute id="violence-sexual">none</content_attribute>
+    <content_attribute id="violence-desecration">none</content_attribute>
+    <content_attribute id="violence-slavery">none</content_attribute>
+    <content_attribute id="violence-worship">none</content_attribute>
+    <content_attribute id="drugs-alcohol">none</content_attribute>
+    <content_attribute id="drugs-narcotics">none</content_attribute>
+    <content_attribute id="drugs-tobacco">none</content_attribute>
+    <content_attribute id="sex-nudity">none</content_attribute>
+    <content_attribute id="sex-themes">none</content_attribute>
+    <content_attribute id="sex-homosexuality">none</content_attribute>
+    <content_attribute id="sex-prostitution">none</content_attribute>
+    <content_attribute id="sex-adultery">none</content_attribute>
+    <content_attribute id="sex-appearance">none</content_attribute>
+    <content_attribute id="language-profanity">none</content_attribute>
+    <content_attribute id="language-humor">none</content_attribute>
+    <content_attribute id="language-discrimination">none</content_attribute>
+    <content_attribute id="social-chat">none</content_attribute>
+    <content_attribute id="social-info">mild</content_attribute>
+    <content_attribute id="social-audio">none</content_attribute>
+    <content_attribute id="social-location">none</content_attribute>
+    <content_attribute id="social-contacts">none</content_attribute>
+    <content_attribute id="money-purchasing">none</content_attribute>
+    <content_attribute id="money-gambling">none</content_attribute>
+  </content_rating>
+</component>

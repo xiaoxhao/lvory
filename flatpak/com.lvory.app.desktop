@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=lvory
+Name[zh_CN]=lvory
+GenericName=Sing-box Client
+GenericName[zh_CN]=Sing-box 客户端
+Comment=Minimalist Cross-Platform Client for Singbox
+Comment[zh_CN]=简约跨平台 Sing-box 客户端
+Icon=com.lvory.app
+Exec=lvory %U
+Terminal=false
+StartupNotify=true
+Categories=Network;Utility;
+Keywords=proxy;vpn;singbox;network;tunnel;
+Keywords[zh_CN]=代理;VPN;网络;隧道;
+MimeType=application/json;
+StartupWMClass=lvory
+X-GNOME-UsesNotifications=true

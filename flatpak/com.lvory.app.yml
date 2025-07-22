@@ -1,0 +1,170 @@
+id: com.lvory.app
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node18
+base: org.electronjs.Electron2.BaseApp
+base-version: '23.08'
+command: lvory
+separate-locales: false
+
+build-options:
+  append-path: /usr/lib/sdk/node18/bin
+  env:
+    XDG_CACHE_HOME: /run/build/com.lvory.app/flatpak-node/cache
+    npm_config_cache: /run/build/com.lvory.app/flatpak-node/npm-cache
+    npm_config_nodedir: /usr/lib/sdk/node18
+    npm_config_offline: 'true'
+    NPM_CONFIG_LOGLEVEL: info
+
+finish-args:
+  # IPC 和显示
+  - --share=ipc
+  - --socket=x11
+  - --socket=fallback-x11
+  - --device=dri
+  
+  # 音频支持
+  - --socket=pulseaudio
+  
+  # 网络访问（代理功能必需）
+  - --share=network
+  
+  # 文件系统访问
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-download
+  - --filesystem=xdg-config/lvory:create
+  - --filesystem=home/.config/lvory:create
+  
+  # 系统代理设置权限
+  - --talk-name=org.freedesktop.NetworkManager
+  - --system-talk-name=org.freedesktop.NetworkManager
+  
+  # 环境变量
+  - --env=ELECTRON_TRASH=gio
+  - --env=ELECTRON_IS_DEV=0
+  
+  # 便携模式支持
+  - --persist=.config/lvory
+  - --persist=.local/share/lvory
+
+cleanup:
+  - '/include'
+  - '/lib/pkgconfig'
+  - '/share/man'
+  - '/share/doc'
+  - '*.la'
+  - '*.a'
+
+modules:
+  # Node.js 依赖模块
+  - name: lvory-dependencies
+    buildsystem: simple
+    build-options:
+      env:
+        XDG_CACHE_HOME: /run/build/lvory-dependencies/flatpak-node/cache
+        npm_config_cache: /run/build/lvory-dependencies/flatpak-node/npm-cache
+        npm_config_nodedir: /usr/lib/sdk/node18
+        npm_config_offline: 'true'
+    subdir: main
+    sources:
+      - type: archive
+        url: https://github.com/sxueck/lvory/archive/v0.2.1.tar.gz
+        sha256: PLACEHOLDER_SHA256_HASH
+        dest: main
+      - generated-sources.json
+    build-commands:
+      # 安装依赖
+      - npm install --offline
+      # 构建前端资源
+      - npm run build:webpack
+      # 使用 electron-builder 构建应用
+      - |
+        . ../flatpak-node/electron-builder-arch-args.sh
+        npm run build:linux -- $ELECTRON_BUILDER_ARCH_ARGS --dir
+      # 复制构建结果
+      - cp -a dist/linux*unpacked /app/main
+      # 创建必要的目录结构
+      - mkdir -p /app/bin /app/cores /app/share/applications /app/share/icons/hicolor/256x256/apps /app/share/metainfo
+      # 安装应用程序启动脚本
+      - install -Dm755 ../lvory-wrapper.sh /app/bin/lvory
+      # 安装桌面文件
+      - install -Dm644 ../com.lvory.app.desktop /app/share/applications/com.lvory.app.desktop
+      # 安装图标
+      - install -Dm644 resource/icon/index256.png /app/share/icons/hicolor/256x256/apps/com.lvory.app.png
+      # 安装元数据
+      - install -Dm644 ../com.lvory.app.metainfo.xml /app/share/metainfo/com.lvory.app.metainfo.xml
+      # 创建 sing-box 核心目录
+      - mkdir -p /app/cores
+      # 设置权限
+      - chmod +x /app/main/lvory
+
+  # sing-box 核心文件处理模块
+  - name: sing-box-core
+    buildsystem: simple
+    build-commands:
+      # 创建核心文件下载脚本
+      - install -Dm755 ../download-singbox.sh /app/bin/download-singbox
+      # 创建核心目录
+      - mkdir -p /app/cores
+    sources:
+      - type: script
+        dest-filename: download-singbox.sh
+        commands:
+          - |
+            #!/bin/bash
+            # sing-box 核心下载脚本
+            # 这个脚本将在首次运行时下载 sing-box 核心
+            CORES_DIR="/app/cores"
+            SINGBOX_VERSION="1.8.0"
+            ARCH=$(uname -m)
+            
+            case $ARCH in
+              x86_64) ARCH_NAME="amd64" ;;
+              aarch64) ARCH_NAME="arm64" ;;
+              *) echo "不支持的架构: $ARCH"; exit 1 ;;
+            esac
+            
+            DOWNLOAD_URL="https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION}-linux-${ARCH_NAME}.tar.gz"
+            
+            if [ ! -f "$CORES_DIR/sing-box" ]; then
+              echo "正在下载 sing-box 核心..."
+              cd /tmp
+              curl -L "$DOWNLOAD_URL" -o sing-box.tar.gz
+              tar -xzf sing-box.tar.gz
+              cp sing-box-*/sing-box "$CORES_DIR/"
+              chmod +x "$CORES_DIR/sing-box"
+              rm -rf sing-box* /tmp/sing-box*
+              echo "sing-box 核心下载完成"
+            fi
+
+  # 应用程序启动脚本
+  - name: lvory-wrapper
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 lvory-wrapper.sh /app/bin/lvory-wrapper
+    sources:
+      - type: script
+        dest-filename: lvory-wrapper.sh
+        commands:
+          - |
+            #!/bin/bash
+            # lvory Flatpak 启动包装脚本
+            
+            # 设置环境变量
+            export ELECTRON_IS_DEV=0
+            export ELECTRON_TRASH=gio
+            
+            # 确保核心目录存在
+            mkdir -p "$HOME/.var/app/com.lvory.app/config/lvory"
+            mkdir -p "$HOME/.var/app/com.lvory.app/data/lvory/cores"
+            
+            # 检查并下载 sing-box 核心
+            if [ ! -f "$HOME/.var/app/com.lvory.app/data/lvory/cores/sing-box" ]; then
+              /app/bin/download-singbox
+              cp /app/cores/sing-box "$HOME/.var/app/com.lvory.app/data/lvory/cores/"
+            fi
+            
+            # 启动应用程序
+            exec zypak-wrapper /app/main/lvory "$@"
