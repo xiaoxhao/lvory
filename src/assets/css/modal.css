@@ -4,13 +4,15 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px) brightness(1.1);
+  -webkit-backdrop-filter: blur(20px) brightness(1.1);
+  background-color: rgba(255, 255, 255, 0.3);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  animation: modalOverlayFadeIn 0.25s ease-out;
+  animation: modalOverlayFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-container {
@@ -26,7 +28,9 @@
   position: relative;
   z-index: 1001;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  animation: modalSlideInWithScale 0.25s ease-out;
+  animation: modalSlideInWithScale 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 /* 成功状态时增加高度 */
@@ -63,7 +67,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -304,52 +308,60 @@
   margin-right: 8px;
 }
 
-/* Modal动画效果 */
+/* Modal动画效果 - 优化性能 */
 @keyframes modalOverlayFadeIn {
   from {
     opacity: 0;
+    backdrop-filter: blur(0px) brightness(1);
+    -webkit-backdrop-filter: blur(0px) brightness(1);
   }
   to {
     opacity: 1;
+    backdrop-filter: blur(20px) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) brightness(1.1);
   }
 }
 
 @keyframes modalSlideInWithScale {
   from {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(-20px) scale(0.95) translateZ(0);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1) translateZ(0);
   }
 }
 
-/* 退出动画 */
+/* 退出动画 - 优化性能 */
 .modal-overlay.modal-exit {
-  animation: modalOverlayFadeOut 0.2s ease-in;
+  animation: modalOverlayFadeOut 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .modal-container.modal-exit {
-  animation: modalSlideOutWithScale 0.2s ease-in;
+  animation: modalSlideOutWithScale 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 @keyframes modalOverlayFadeOut {
   from {
     opacity: 1;
+    backdrop-filter: blur(20px) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) brightness(1.1);
   }
   to {
     opacity: 0;
+    backdrop-filter: blur(0px) brightness(1);
+    -webkit-backdrop-filter: blur(0px) brightness(1);
   }
 }
 
 @keyframes modalSlideOutWithScale {
   from {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1) translateZ(0);
   }
   to {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(-20px) scale(0.95) translateZ(0);
   }
 }

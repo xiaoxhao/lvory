@@ -43,9 +43,16 @@ async function getSingBoxReleases() {
               return;
             }
 
-            // 过滤和格式化releases
+            // 过滤和格式化releases - 支持stable和alpha版本
             const formattedReleases = releases
-              .filter(release => !release.draft && release.tag_name.match(/^v\d+\.\d+\.\d+$/))
+              .filter(release => {
+                // 排除草稿版本
+                if (release.draft) return false;
+
+                // 支持标准版本 (v1.11.9) 和 alpha 版本 (v1.12.0-alpha.1)
+                const versionPattern = /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/;
+                return release.tag_name.match(versionPattern);
+              })
               .map(release => ({
                 id: release.id,
                 tag_name: release.tag_name,
@@ -53,7 +60,9 @@ async function getSingBoxReleases() {
                 published_at: release.published_at,
                 prerelease: release.prerelease,
                 body: release.body,
-                assets: release.assets
+                assets: release.assets,
+                // 添加版本类型标识
+                version_type: release.tag_name.includes('-alpha') ? 'alpha' : 'stable'
               }))
               .sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
 

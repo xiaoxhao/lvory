@@ -4,11 +4,14 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px) brightness(1.1);
+  -webkit-backdrop-filter: blur(20px) brightness(1.1);
+  background-color: rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: messageboxOverlayFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .messagebox-container {
@@ -18,17 +21,32 @@
   width: 350px;
   max-width: 90%;
   overflow: hidden;
-  animation: message-pop-in 0.2s ease-out;
+  animation: message-pop-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 @keyframes message-pop-in {
   0% {
-    transform: scale(0.8);
+    transform: scale(0.8) translateZ(0);
     opacity: 0;
   }
   100% {
-    transform: scale(1);
+    transform: scale(1) translateZ(0);
     opacity: 1;
+  }
+}
+
+@keyframes messageboxOverlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px) brightness(1);
+    -webkit-backdrop-filter: blur(0px) brightness(1);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(20px) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) brightness(1.1);
   }
 }
 
@@ -59,7 +77,9 @@
   padding: 5px 14px;
   font-size: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: background-color;
+  transform: translateZ(0);
   width: 70px;
   height: 26px;
 }

@@ -113,11 +113,14 @@ const VersionManager = ({ isVisible, onClose }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(90, 108, 87, 0.15)',
+      backdropFilter: 'blur(20px) brightness(1.1)',
+      WebkitBackdropFilter: 'blur(20px) brightness(1.1)',
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 10000,
+      animation: 'fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       backdropFilter: 'blur(8px)'
     }}>
       <div style={{

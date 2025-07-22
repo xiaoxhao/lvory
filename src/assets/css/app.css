@@ -10,6 +10,9 @@
   height: 100vh;
   overflow: hidden;
   position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+  backdrop-filter: blur(20px) brightness(1.1);
+  -webkit-backdrop-filter: blur(20px) brightness(1.1);
 }
 
 /* 窗口可拖动区域 */
@@ -102,7 +105,9 @@
 .main-content {
   flex: 1;
   overflow: hidden;
-  background-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px) brightness(1.02);
+  -webkit-backdrop-filter: blur(10px) brightness(1.02);
   position: relative;
   transition: padding 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: padding;
@@ -156,4 +161,18 @@
   border-radius: 7px; /* 半圆形 */
   min-width: 14px;
   text-align: center;
-} 
+}
+
+/* 全局动画定义 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px) brightness(1);
+    -webkit-backdrop-filter: blur(0px) brightness(1);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(20px) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) brightness(1.1);
+  }
+}

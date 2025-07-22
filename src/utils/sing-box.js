@@ -159,7 +159,7 @@ class SingBox {
       const result = await this.execute(['version']);
       
       if (result.success) {
-        const versionMatch = result.stdout.match(/sing-box version ([0-9]+\.[0-9]+\.[0-9]+)/i);
+        const versionMatch = result.stdout.match(/sing-box version ([0-9]+\.[0-9]+\.[0-9]+(?:-alpha\.[0-9]+)?)/i);
         const version = versionMatch ? versionMatch[1] : 'unknown';
         logger.info(`[SingBox] 成功获取版本: ${version}`);
         return { 

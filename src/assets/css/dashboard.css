@@ -3,7 +3,9 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background-color: #fff;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(15px) brightness(1.05);
+  -webkit-backdrop-filter: blur(15px) brightness(1.05);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   will-change: transform;
   transform: translateZ(0);

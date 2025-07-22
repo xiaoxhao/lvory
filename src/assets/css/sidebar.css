@@ -1,8 +1,10 @@
 .sidebar {
   width: 215px;
   height: 100%;
-  background-color: transparent;
-  border-right: none;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(15px) brightness(1.05);
+  -webkit-backdrop-filter: blur(15px) brightness(1.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
   padding: 16px 12px;
   overflow-y: auto;
   display: flex;
