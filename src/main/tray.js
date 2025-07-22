@@ -116,36 +116,33 @@ const createTray = () => {
         label: 'RUN',
         click: async () => {
           if (singbox.isRunning()) return;
-          
+
           const mainWindow = windowManager.getMainWindow();
           if (!mainWindow || mainWindow.isDestroyed()) return;
-          
+
           try {
             const configPath = profileManager.getConfigPath();
-            const proxyConfig = {
-              host: '127.0.0.1',
-              port: 7890,
-              enableSystemProxy: true
-            };
-            
-            logger.info(`从托盘启动sing-box内核，配置文件: ${configPath}`);
-            
+
+            // 获取设置管理器和统一的启动配置
+            const settingsManager = require('./settings-manager');
+            const startupConfig = settingsManager.getStartupConfig(configPath);
+
+            logger.info(`从托盘启动sing-box内核，配置文件: ${configPath}, 代理配置: ${startupConfig.proxyConfig.host}:${startupConfig.proxyConfig.port}`);
+
             // 先更新UI状态
             mainWindow.webContents.send('status-update', { isRunning: true });
             updateTrayMenuCallback(true);
-            
+
             // 启动内核
-            const result = await singbox.startCore({ 
-              configPath,
-              proxyConfig,
-              enableSystemProxy: true
-            });
-            
+            const result = await singbox.startCore(startupConfig);
+
             if (!result.success) {
               // 启动失败，恢复状态
               mainWindow.webContents.send('status-update', { isRunning: false });
               updateTrayMenuCallback(false);
               logger.error('从托盘启动失败:', result.error);
+            } else {
+              logger.info('从托盘启动sing-box内核成功');
             }
           } catch (error) {
             logger.error('从托盘启动sing-box内核失败:', error);
@@ -160,33 +157,40 @@ const createTray = () => {
         label: 'STOP',
         click: async () => {
           if (!singbox.isRunning()) return;
-          
+
+          const mainWindow = windowManager.getMainWindow();
+
           try {
             logger.info('从托盘停止sing-box内核');
-            
+
             // 先更新UI状态
-            const mainWindow = windowManager.getMainWindow();
             if (mainWindow?.isDestroyed?.() === false) {
               mainWindow.webContents.send('status-update', { isRunning: false });
             }
-            
             updateTrayMenuCallback(false);
-            
+
             // 停止内核
             const result = await singbox.stopCore();
-            
+
             if (!result.success) {
               // 停止失败，恢复状态
+              logger.error('从托盘停止失败:', result.error);
               if (mainWindow?.isDestroyed?.() === false) {
                 mainWindow.webContents.send('status-update', { isRunning: true });
               }
               updateTrayMenuCallback(true);
-              logger.error('从托盘停止失败:', result.error);
+            } else {
+              logger.info('从托盘停止sing-box内核成功');
+              // 确保系统代理已清除
+              try {
+                await singbox.disableSystemProxy();
+              } catch (proxyError) {
+                logger.warn('停止后清除系统代理失败:', proxyError);
+              }
             }
           } catch (error) {
             logger.error('从托盘停止sing-box内核失败:', error);
             // 恢复状态
-            const mainWindow = windowManager.getMainWindow();
             if (mainWindow?.isDestroyed?.() === false) {
               mainWindow.webContents.send('status-update', { isRunning: true });
             }

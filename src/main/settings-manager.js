@@ -147,11 +147,31 @@ class SettingsManager {
    */
   getProxyConfig(configPath = null) {
     const port = configPath ? this.updateProxyPortFromConfig(configPath) : parseInt(this.settings.proxyPort);
-    
+
     return {
       host: '127.0.0.1',
       port: port,
       enableSystemProxy: true
+    };
+  }
+
+  /**
+   * 获取启动内核所需的完整配置
+   * @param {String} configPath 配置文件路径
+   * @param {Object} overrides 覆盖配置（可选）
+   * @returns {Object} 启动配置对象
+   */
+  getStartupConfig(configPath, overrides = {}) {
+    const settings = this.getSettings();
+    const proxyConfig = this.getProxyConfig(configPath);
+
+    return {
+      configPath,
+      proxyConfig: { ...proxyConfig, ...overrides.proxyConfig },
+      enableSystemProxy: overrides.enableSystemProxy !== undefined ?
+        overrides.enableSystemProxy : proxyConfig.enableSystemProxy,
+      tunMode: overrides.tunMode !== undefined ?
+        overrides.tunMode : (settings.tunMode || false)
     };
   }
 

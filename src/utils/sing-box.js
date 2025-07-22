@@ -745,15 +745,15 @@ class SingBox {
     try {
       const { host, port } = this.proxyConfig;
       logger.info(`[SingBox] 启用系统代理: ${host}:${port}`);
-      
+
       const result = await systemProxy.setGlobalProxy({ host, port });
-      if (result) {
+      if (result && result.success) {
         logger.info('[SingBox] 系统代理已启用');
+        return true;
       } else {
-        logger.error('[SingBox] 系统代理启用失败');
+        logger.error('[SingBox] 系统代理启用失败:', result ? result.error : '未知错误');
+        return false;
       }
-      
-      return result;
     } catch (error) {
       logger.error(`[SingBox] 启用系统代理时发生异常: ${error.message}`);
       return false;
@@ -767,15 +767,15 @@ class SingBox {
   async disableSystemProxy() {
     try {
       logger.info('[SingBox] 禁用系统代理');
-      
+
       const result = await systemProxy.removeGlobalProxy();
-      if (result) {
+      if (result && result.success) {
         logger.info('[SingBox] 系统代理已禁用');
+        return true;
       } else {
-        logger.error('[SingBox] 系统代理禁用失败');
+        logger.error('[SingBox] 系统代理禁用失败:', result ? result.error : '未知错误');
+        return false;
       }
-      
-      return result;
     } catch (error) {
       logger.error(`[SingBox] 禁用系统代理时发生异常: ${error.message}`);
       return false;
