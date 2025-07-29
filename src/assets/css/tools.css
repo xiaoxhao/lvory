@@ -293,12 +293,6 @@
   gap: 4px;
 }
 
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
 .status-ok {
   background: #38a169;
 }
@@ -609,10 +603,6 @@
   50% {
     opacity: 0.7;
   }
-}
-
-.trace-button.tracing {
-  animation: pulse 2s infinite;
 }
 
 /* 加载状态 */
