@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as echarts from 'echarts';
 import '../../assets/css/stats-overview.css';
 import IPService from '../../services/ip/IPService';
@@ -41,7 +41,7 @@ const persistentData = {
   cumulativeTraffic: { up: 0, down: 0 }
 };
 
-const StatsOverview = ({ apiAddress }) => {
+const StatsOverview = ({ apiAddress, privacySettings }) => {
   const [latency, setLatency] = useState(0);
   const [packetLoss, setPacketLoss] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState('connected');
@@ -818,6 +818,31 @@ const StatsOverview = ({ apiAddress }) => {
   const handleIpInfoClick = () => {
     setShowAsnInfo(!showAsnInfo);
   };
+
+  // 处理IP地址隐藏逻辑 - 使用 useMemo 缓存结果
+  const formatIpForDisplay = useMemo(() => {
+    return (ipString) => {
+      if (!ipString || !privacySettings) return ipString;
+
+      if (privacySettings.hidePersonalIP === 'full') {
+        return '隐藏';
+      } else if (privacySettings.hidePersonalIP === 'partial') {
+        // 部分隐藏IP地址
+        const ipMatch = ipString.match(/(\d+\.\d+\.\d+\.)\d+/);
+        if (ipMatch) {
+          return ipString.replace(/(\d+\.\d+\.\d+\.)\d+/, '$1***');
+        }
+        // 如果不是标准IP格式，隐藏后半部分
+        const parts = ipString.split(' ');
+        if (parts.length > 1) {
+          return parts[0] + ' ***';
+        }
+        return ipString.length > 10 ? ipString.substring(0, 10) + '***' : ipString;
+      }
+
+      return ipString;
+    };
+  }, [privacySettings?.hidePersonalIP]);
   
   // 初始化全屏延迟图表
   const initFullscreenChart = () => {
@@ -1248,7 +1273,7 @@ const StatsOverview = ({ apiAddress }) => {
             <div id="stats-date" className="stats-date">
               {kernelRunning && (ipLocation || asnInfo) ? (
               <span onClick={handleIpInfoClick} style={{ cursor: 'pointer' }}>
-                  Node IP: {showAsnInfo && asnInfo ? asnInfo : ipLocation}
+                  Node IP: {formatIpForDisplay(showAsnInfo && asnInfo ? asnInfo : ipLocation)}
               </span>
               ) : (
                 new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })

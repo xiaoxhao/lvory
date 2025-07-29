@@ -275,6 +275,93 @@ const SelectWithLabel = ({ label, value, onChange, options }) => (
   </div>
 );
 
+const SliderWithLabel = ({ label, value, onChange, min = 1, max = 10, description }) => (
+  <div style={{ marginBottom: '20px' }}>
+    <label style={styles.label}>{label}</label>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      marginTop: '8px'
+    }}>
+      <span style={{
+        fontSize: '12px',
+        color: '#64748b',
+        fontWeight: '500',
+        minWidth: '20px'
+      }}>{min}</span>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value, 10))}
+          style={{
+            width: '100%',
+            height: '6px',
+            borderRadius: '3px',
+            background: `linear-gradient(to right, #818cf8 0%, #818cf8 ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
+            outline: 'none',
+            appearance: 'none',
+            cursor: 'pointer'
+          }}
+        />
+        <style>
+          {`
+            input[type="range"]::-webkit-slider-thumb {
+              appearance: none;
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              background: #818cf8;
+              cursor: pointer;
+              border: 2px solid white;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            input[type="range"]::-moz-range-thumb {
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              background: #818cf8;
+              cursor: pointer;
+              border: 2px solid white;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+          `}
+        </style>
+      </div>
+      <span style={{
+        fontSize: '12px',
+        color: '#64748b',
+        fontWeight: '500',
+        minWidth: '20px'
+      }}>{max}</span>
+      <div style={{
+        backgroundColor: '#f1f5f9',
+        borderRadius: '6px',
+        padding: '4px 8px',
+        fontSize: '13px',
+        fontWeight: '600',
+        color: '#475569',
+        minWidth: '30px',
+        textAlign: 'center'
+      }}>
+        {value}
+      </div>
+    </div>
+    {description && (
+      <p style={{
+        fontSize: '12px',
+        color: '#64748b',
+        marginTop: '8px',
+        marginBottom: '0',
+        marginLeft: '2px'
+      }}>{description}</p>
+    )}
+  </div>
+);
+
 const ToggleWithTooltip = ({ label, tKey, value, onChange, disabled = false, tooltipText }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -342,10 +429,12 @@ const SettingsContent = ({ section }) => {
     // 高级设置
     gpuAcceleration: false,
     kernelWatchdog: true,
-    logRotationPeriod: 7,
     language: 'zh_CN',
     nodeIPDetailAPI: 'ip.sb',
     tunMode: false,
+
+    // 测速设置
+    concurrentSpeedTestCount: 5,
   });
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const [isResetButtonHovered, setIsResetButtonHovered] = useState(false);
@@ -537,11 +626,11 @@ const SettingsContent = ({ section }) => {
       backendAddress: 'backend_address',
       gpuAcceleration: 'gpu_acceleration',
       kernelWatchdog: 'kernel_watchdog',
-      logRotationPeriod: 'log_rotation_period',
       language: 'language',
       keepNodeTrafficHistory: 'keep_node_traffic_history',
       nodeIPDetailAPI: 'node_ip_detail_api',
       tunMode: 'tun_mode',
+      concurrentSpeedTestCount: 'concurrent_speed_test_count',
     };
 
     // 如果是autoStart，它是系统级设置，不需要存入用户配置文件
@@ -708,10 +797,10 @@ const SettingsContent = ({ section }) => {
       // 高级设置
       gpuAcceleration: config.gpu_acceleration || false,
       kernelWatchdog: config.kernel_watchdog !== undefined ? config.kernel_watchdog : prevSettings.kernelWatchdog,
-      logRotationPeriod: config.log_rotation_period || 7,
       language: config.language || 'zh_CN',
       nodeIPDetailAPI: config.node_ip_detail_api || 'ip.sb',
       tunMode: config.tun_mode || false,
+      concurrentSpeedTestCount: config.concurrent_speed_test_count || 5,
     };
   };
 
@@ -875,6 +964,16 @@ const SettingsContent = ({ section }) => {
               {renderToggle(t('settings.foregroundOnly'), 'foregroundOnly', settings.foregroundOnly)}
               <DescriptionText>{t('settings.foregroundOnlyDesc')}</DescriptionText>
 
+              {/* 并发测速数量 */}
+              <SliderWithLabel
+                label={t('settings.concurrentSpeedTestCount')}
+                value={settings.concurrentSpeedTestCount}
+                onChange={(value) => handleSettingChange('concurrentSpeedTestCount', value)}
+                min={1}
+                max={10}
+                description={t('settings.concurrentSpeedTestCountDesc')}
+              />
+
 
 
               {/* 日志设置 */}
@@ -912,21 +1011,7 @@ const SettingsContent = ({ section }) => {
                 {/* 禁用 SingBox 日志 */}
                 {renderToggle(t('settings.singboxLogDisabled'), 'logDisabled', settings.logDisabled)}
 
-                {/* 应用日志设置分隔线 */}
-                <div style={{ margin: '20px 0', borderTop: '1px solid #e5e7eb' }}></div>
-                
-                {/* 日志轮转周期 */}
-                <div style={{...styles.toggleContainer, marginBottom: '12px'}}>
-                  <label style={styles.toggleLabel}>{t('settings.logRotation')}</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="90"
-                    value={settings.logRotationPeriod}
-                    onChange={(e) => handleSettingChange('logRotationPeriod', parseInt(e.target.value, 10))}
-                    style={{...styles.input, width: '80px'}}
-                  />
-                </div>
+
 
 
               </div>

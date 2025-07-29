@@ -217,8 +217,14 @@ const RouteRuleGroupCard = ({ group, index }) => {
   );
 };
 
-// Material 3 风格的节点卡片组件
-const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
+const NodeCard = React.memo(({ profile, testResults, loadingStates, privateMode, privacySettings, onClick }) => {
+  // 缓存隐藏状态以提高性能
+  const hideStates = useMemo(() => ({
+    hideNodeNames: privateMode || (privacySettings?.hideNodeNames ?? false),
+    hideNodeIPs: privateMode || (privacySettings?.hideNodeIPs ?? false),
+    hideNodeTypes: privateMode || (privacySettings?.hideNodeTypes ?? false)
+  }), [privateMode, privacySettings?.hideNodeNames, privacySettings?.hideNodeIPs, privacySettings?.hideNodeTypes]);
+
   // 根据节点质量获取圆点颜色
   const getNodeQualityColor = (latency) => {
     if (latency === 'timeout' || latency === undefined || latency === null) {
@@ -253,6 +259,7 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
   };
 
   const latency = testResults[profile.tag];
+  const isLoading = loadingStates[profile.tag] || false;
   const qualityColor = getNodeQualityColor(latency);
   const typeBackgroundColor = getNodeTypeBackgroundColor(profile.type);
 
@@ -312,26 +319,26 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
             marginRight: '8px',
             flexShrink: 0
           }}></div>
-          <div style={{ 
-            fontSize: '12px', 
-            fontWeight: '600', 
+          <div style={{
+            fontSize: '12px',
+            fontWeight: '600',
             color: '#333333',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             lineHeight: '16px'
           }}>
-            {privateMode ? '********' : (profile.tag || 'Unknown')}
+            {hideStates.hideNodeNames ? '********' : (profile.tag || 'Unknown')}
           </div>
         </div>
         
-        {/* 右侧：延迟显示 */}
-        {latency !== undefined && (
+        {/* 右侧：延迟显示或加载动画 */}
+        {(isLoading || latency !== undefined) && (
           <div style={{
             fontSize: '10px',
             fontWeight: '500',
-            color: latency === 'timeout' ? '#d32f2f' : '#2e7d32',
-            backgroundColor: latency === 'timeout' ? 'rgba(211, 47, 47, 0.1)' : 'rgba(46, 125, 50, 0.1)',
+            color: isLoading ? '#666' : (latency === 'timeout' ? '#d32f2f' : '#2e7d32'),
+            backgroundColor: isLoading ? 'rgba(102, 102, 102, 0.1)' : (latency === 'timeout' ? 'rgba(211, 47, 47, 0.1)' : 'rgba(46, 125, 50, 0.1)'),
             borderRadius: '3px',
             padding: '2px 6px',
             marginLeft: '8px',
@@ -339,9 +346,24 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
             lineHeight: '16px',
             height: '16px',
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: '4px'
           }}>
-            {latency === 'timeout' ? '超时' : `${latency}ms`}
+            {isLoading ? (
+              <>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  border: '1px solid #666',
+                  borderTop: '1px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                <span>测速中</span>
+              </>
+            ) : (
+              <span>{latency === 'timeout' ? '超时' : `${latency}ms`}</span>
+            )}
           </div>
         )}
       </div>
@@ -365,7 +387,7 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
           whiteSpace: 'nowrap',
           flexShrink: 0
         }}>
-          {profile.type || 'Unknown'}
+          {hideStates.hideNodeTypes ? '***' : (profile.type || 'Unknown')}
         </div>
         
         {/* 右侧：IP地址/服务器地址 */}
@@ -379,14 +401,14 @@ const NodeCard = ({ profile, testResults, privateMode, onClick }) => {
           maxWidth: '60%',
           textAlign: 'right'
         }}>
-          {privateMode ? '****' : (profile.server || 'N/A')}
+          {hideStates.hideNodeIPs ? '****' : (profile.server || 'N/A')}
         </div>
       </div>
     </button>
   );
-};
+});
 
-const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onToggleExpandedView }) => {
+const NodeList = ({ profileData, testResults, loadingStates, privateMode, privacySettings, isExpandedView, onToggleExpandedView }) => {
   const { t } = useTranslation();
   const [nodeGroups, setNodeGroups] = useState([]); // 节点组数据
   const [nodes, setNodes] = useState([]); // 包含组信息的节点数据
@@ -734,7 +756,9 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
                 key={index}
                 profile={profile}
                 testResults={testResults}
+                loadingStates={loadingStates}
                 privateMode={privateMode}
+                privacySettings={privacySettings}
                 onClick={() => openNodeDetail(profile)}
               />
             ))}
@@ -1072,14 +1096,29 @@ const NodeList = ({ profileData, testResults, privateMode, isExpandedView, onTog
       
       {/* 节点详情弹窗 */}
       {showNodeDetail && selectedNode && (
-        <NodeDetailModal 
-          node={selectedNode} 
-          isOpen={showNodeDetail} 
+        <NodeDetailModal
+          node={selectedNode}
+          isOpen={showNodeDetail}
           onClose={closeNodeDetail}
           testResult={testResults[selectedNode.tag]}
           privateMode={privateMode}
+          privacySettings={privacySettings}
         />
       )}
+
+      {/* 添加加载动画的CSS */}
+      <style>
+        {`
+          @keyframes spin {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+        `}
+      </style>
     </div>
   );
 };

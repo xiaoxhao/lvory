@@ -30,15 +30,18 @@ export default {
     foregroundOnly: 'Foreground Only',
     foregroundOnlyDesc: 'When enabled, closing the window will exit the program instead of hiding to tray',
     logSettings: 'Log Settings',
-    logRotation: 'Log Rotation Period (Days)',
-    
+
     // SingBox log settings
     singboxLogLevel: 'SingBox Log Level',
     singboxLogOutput: 'SingBox Log Output File',
     logOutputPlaceholder: 'Leave empty for console output (e.g. box.log)',
     logOutputDesc: 'Specify log file path, leave empty for console output',
     singboxLogDisabled: 'Disable SingBox Logs',
-    
+
+    // Speed test settings
+    concurrentSpeedTestCount: 'Concurrent Speed Test Count',
+    concurrentSpeedTestCountDesc: 'Number of nodes to test simultaneously. Recommended range is 1-10. Higher values may impact system performance.',
+
     // Nodes settings
     nodesSettings: 'Nodes Settings',
     configureNodes: 'Configure node monitoring and management settings',

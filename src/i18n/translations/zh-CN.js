@@ -30,15 +30,18 @@ export default {
     foregroundOnly: '仅前台运行',
     foregroundOnlyDesc: '启用后，关闭窗口将直接退出程序而非隐藏到托盘',
     logSettings: '日志设置',
-    logRotation: '日志轮转周期（天）',
-    
+
     // SingBox 日志设置
     singboxLogLevel: 'SingBox 日志等级',
     singboxLogOutput: 'SingBox 日志输出文件',
     logOutputPlaceholder: '留空则输出到控制台（如: box.log）',
     logOutputDesc: '指定日志文件路径，留空则输出到控制台',
     singboxLogDisabled: '禁用 SingBox 日志',
-    
+
+    // 测速设置
+    concurrentSpeedTestCount: '并发测速数量',
+    concurrentSpeedTestCountDesc: '同时进行测速的节点数量，建议设置为1-10之间。数值过高可能影响系统性能。',
+
     // 节点设置
     nodesSettings: '节点设置',
     configureNodes: '配置节点监控和管理设置',

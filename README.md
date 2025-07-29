@@ -42,8 +42,9 @@ Lvory 是一个基于 Electron 开发的高度灵活的跨平台 SingBox 客户�
 
 </div>
 
-更多截图请查看 [更多截图](docs/screenshot.md)
+更多截图请查看 [更多截图](docs/screenshot.md)   
 
+或者也可以通过 [#42](https://github.com/sxueck/lvory/issues/42) 查看程序实际运行的效果
 
 ## 快速开始
 

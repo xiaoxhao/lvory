@@ -47,7 +47,6 @@ class ConfigManager {
         nodeExitIPPurity: false,
         keepNodeTrafficHistory: false,
         kernelWatchdog: true,
-        logRotationPeriod: 7,
         language: 'zh_CN',
         foregroundOnly: false
       }

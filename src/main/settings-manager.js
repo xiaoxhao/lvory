@@ -30,7 +30,6 @@ class SettingsManager {
       
       // 高级设置
       kernelWatchdog: true,
-      logRotationPeriod: 7,
       language: 'zh_CN',
       foregroundOnly: false
     };

@@ -12,6 +12,7 @@ import useCoreManagement from './CoreManagement';
 import useSingBoxControl from './SingBoxControl';
 import useStatusMonitor from './StatusMonitor';
 import useProfileUpdate from './hooks/useProfileUpdate';
+import usePrivacySettings from '../../hooks/usePrivacySettings';
 import { debouncedCall } from '../../utils/ipcOptimizer';
 
 const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
@@ -20,6 +21,9 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
   const [profileData, setProfileData] = useState([]);
   const [nodeTypeStats, setNodeTypeStats] = useState({ ss: 0, vm: 0, tr: 0, dir: 0, other: 0 });
   const [privateMode, setPrivateMode] = useState(false);
+
+  // 使用优化的隐私设置 hook
+  const { privacySettings, setPrivacySettings } = usePrivacySettings();
   
   // 添加扩展视图状态
   const [isExpandedView, setIsExpandedView] = useState(false);
@@ -35,7 +39,7 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
   });
 
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' or 'activity'
-  const { isTesting, testResults, setTestResults, handleSpeedTest } = useSpeedTest(profileData, apiAddress);
+  const { isTesting, testResults, loadingStates, setTestResults, handleSpeedTest } = useSpeedTest(profileData, apiAddress);
   
   const coreManagement = useCoreManagement()
   const singBoxControl = useSingBoxControl();
@@ -157,6 +161,9 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
     setPrivateMode(!privateMode);
   };
 
+  // 处理隐私设置变更 - 现在由 hook 自动处理持久化
+  const handlePrivacySettingsChange = setPrivacySettings;
+
   // 添加切换扩展视图的函数
   const toggleExpandedView = () => {
     setIsExpandedView(!isExpandedView);
@@ -185,7 +192,7 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
               gap: '0px',
               flexShrink: 0 // 防止被压缩
             }}>
-              <ControlPanel 
+              <ControlPanel
                 isRunning={isRunning}
                 onTogglePrivate={togglePrivateMode}
                 onSpeedTest={handleSpeedTest}
@@ -202,6 +209,8 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
                 downloadProgress={downloadProgress}
                 downloadMessage={downloadMessage}
                 onSwitchToActivity={onSwitchToActivity}
+                privacySettings={privacySettings}
+                onPrivacySettingsChange={handlePrivacySettingsChange}
                 style={{ padding: '5px 0' }}
               />
               
@@ -213,7 +222,10 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
                 backgroundColor: 'transparent',
                 minHeight: '160px'
               }}>
-                <StatsOverview apiAddress={apiAddress} />
+                <StatsOverview
+                  apiAddress={apiAddress}
+                  privacySettings={privacySettings}
+                />
               </div>
 
               <ProfileModal 
@@ -230,10 +242,12 @@ const Dashboard = ({ activeView = 'dashboard', onSwitchToActivity }) => {
             position: 'relative',
             minHeight: 0 // 确保flex子元素可以正确收缩
           }}>
-            <NodeList 
+            <NodeList
               profileData={profileData}
               testResults={testResults}
+              loadingStates={loadingStates}
               privateMode={privateMode}
+              privacySettings={privacySettings}
               isExpandedView={isExpandedView}
               onToggleExpandedView={toggleExpandedView}
             />

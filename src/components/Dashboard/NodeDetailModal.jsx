@@ -1,6 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
-const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => {
+const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode, privacySettings }) => {
+  // 缓存隐藏状态以提高性能
+  const hideStates = useMemo(() => ({
+    hideNodeNames: privateMode || (privacySettings?.hideNodeNames ?? false),
+    hideNodeIPs: privateMode || (privacySettings?.hideNodeIPs ?? false),
+    hideNodeTypes: privateMode || (privacySettings?.hideNodeTypes ?? false)
+  }), [privateMode, privacySettings?.hideNodeNames, privacySettings?.hideNodeIPs, privacySettings?.hideNodeTypes]);
+
   if (!isOpen || !node) return null;
   
   // 获取节点类型对应的颜色
@@ -69,7 +76,7 @@ const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => 
               fontWeight: '600',
               fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
             }}>
-              {privateMode ? '********' : node.tag || 'Unknown Node'}
+              {hideStates.hideNodeNames ? '********' : node.tag || 'Unknown Node'}
             </h2>
           </div>
           <button onClick={onClose} style={{
@@ -125,12 +132,12 @@ const NodeDetailModal = ({ node, isOpen, onClose, testResult, privateMode }) => 
                   borderRadius: '2px',
                   backgroundColor: getNodeTypeColor(node.type)
                 }}></span>
-                {node.type || 'Unknown'}
+                {hideStates.hideNodeTypes ? '***' : (node.type || 'Unknown')}
               </div>
 
               <div style={{ color: '#666', fontWeight: '500' }}>服务器地址:</div>
               <div style={{ color: '#333', wordBreak: 'break-all' }}>
-                {privateMode ? '********' : (node.server || 'N/A')}
+                {hideStates.hideNodeIPs ? '********' : (node.server || 'N/A')}
               </div>
             </div>
           </div>

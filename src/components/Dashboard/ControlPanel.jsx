@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PrivacySettingsModal from './PrivacySettingsModal';
 
 const customStyles = {
   eyeIcon: {
@@ -27,9 +28,12 @@ const ControlPanel = ({
   isDownloadingCore,
   downloadProgress,
   downloadMessage,
-  onSwitchToActivity // 添加切换到Activity的回调
+  onSwitchToActivity, // 添加切换到Activity的回调
+  privacySettings,
+  onPrivacySettingsChange
 }) => {
   const [showProxyConfigModal, setShowProxyConfigModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     powershell: true,
     git: false,
@@ -850,27 +854,40 @@ go env -w GOSUMDB=off`
     );
   };
   
+  // 处理隐私设置保存
+  const handlePrivacySettingsSave = (newSettings) => {
+    onPrivacySettingsChange(newSettings);
+  };
+
+  // 检查是否有任何隐私设置启用
+  const hasPrivacyEnabled = privacySettings && (
+    privacySettings.hideNodeNames ||
+    privacySettings.hideNodeIPs ||
+    privacySettings.hideNodeTypes ||
+    privacySettings.hidePersonalIP !== 'none'
+  );
+
   // 渲染眼睛图标
   const renderEyeIcon = () => {
     return (
-      <div 
+      <div
         style={{
           ...customStyles.eyeIcon,
-          backgroundColor: privateMode ? '#f5f7f9' : 'transparent',
+          backgroundColor: hasPrivacyEnabled ? '#f5f7f9' : 'transparent',
           transition: 'transform 0.2s ease-in-out, background-color 0.2s ease'
         }}
-        onClick={onTogglePrivate}
-        title={privateMode ? "Click to show sensitive information" : "Click to hide sensitive information"}
+        onClick={() => setShowPrivacyModal(true)}
+        title="Click to configure privacy settings"
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.1)';
-          e.currentTarget.style.backgroundColor = privateMode ? '#e9ecf1' : '#f0f4ff';
+          e.currentTarget.style.backgroundColor = hasPrivacyEnabled ? '#e9ecf1' : '#f0f4ff';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.backgroundColor = privateMode ? '#f5f7f9' : 'transparent';
+          e.currentTarget.style.backgroundColor = hasPrivacyEnabled ? '#f5f7f9' : 'transparent';
         }}
       >
-        {privateMode ? (
+        {hasPrivacyEnabled ? (
           // 闭眼图标
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#505a6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
@@ -1131,6 +1148,14 @@ go env -w GOSUMDB=off`
       </div>
 
       {renderProxyConfigModal()}
+
+      {/* 隐私设置模态弹窗 */}
+      <PrivacySettingsModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        onSave={onPrivacySettingsChange}
+        currentSettings={privacySettings}
+      />
 
       <style>{`
         @keyframes loading-shimmer {
