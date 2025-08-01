@@ -11,8 +11,23 @@ function ensureContainer() {
   if (!messageBoxContainer) {
     messageBoxContainer = document.createElement('div');
     messageBoxContainer.id = 'message-box-container';
+    messageBoxContainer.style.position = 'absolute';
+    messageBoxContainer.style.top = '0';
+    messageBoxContainer.style.left = '0';
+    messageBoxContainer.style.right = '0';
+    messageBoxContainer.style.bottom = '0';
+    messageBoxContainer.style.pointerEvents = 'none';
+    messageBoxContainer.style.zIndex = '100';
+
+    // 将容器添加到 body，但样式会让它定位到 main-content
     document.body.appendChild(messageBoxContainer);
     messageBoxRoot = createRoot(messageBoxContainer);
+  }
+
+  // 每次调用时检查是否需要重新定位到 main-content
+  const mainContent = document.querySelector('.main-content');
+  if (mainContent && messageBoxContainer.parentNode !== mainContent) {
+    mainContent.appendChild(messageBoxContainer);
   }
 }
 

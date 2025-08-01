@@ -1086,30 +1086,25 @@ const SettingsContent = ({ section }) => {
               />
 
               {/* 内核管理按钮 */}
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                marginTop: '20px'
-              }}>
-                <button
-                  onClick={() => setShowCoreManager(true)}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#64748b',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#475569'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#64748b'}
-                >
-                  {t('settings.manageCoreVersions')}
-                </button>
-              </div>
+              <button
+                onClick={() => setShowCoreManager(true)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#64748b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  marginTop: '16px'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#475569'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#64748b'}
+              >
+                {t('settings.manageCoreVersions')}
+              </button>
             </SettingsSection>
           </div>
         );

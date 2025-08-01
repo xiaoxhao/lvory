@@ -148,15 +148,7 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+
 
   const isVersionInstalled = (version) => {
     return installedVersions.includes(version);
@@ -207,51 +199,43 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
       }}>
         {/* Header */}
         <div style={{
-          padding: '24px',
+          padding: '20px 24px',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: '#f8fafc'
+          backgroundColor: '#ffffff'
         }}>
           <div>
             <h2 style={{
               margin: 0,
-              fontSize: '22px',
+              fontSize: '20px',
               fontWeight: '600',
               color: '#1e293b',
               fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
             }}>
               {t('settings.coreManagement')}
             </h2>
-            <p style={{
-              margin: '4px 0 0 0',
-              fontSize: '14px',
-              color: '#64748b',
-              fontWeight: '400'
-            }}>
-              {t('settings.coreManagementDesc')}
-            </p>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(100, 116, 139, 0.1)',
+              background: 'transparent',
               border: 'none',
-              fontSize: '20px',
+              fontSize: '18px',
               cursor: 'pointer',
               color: '#64748b',
-              padding: '8px',
-              borderRadius: '8px',
+              padding: '6px',
+              borderRadius: '6px',
               transition: 'all 0.2s ease',
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(100, 116, 139, 0.2)'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(100, 116, 139, 0.1)'}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(100, 116, 139, 0.1)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
           >
             ×
           </button>
@@ -261,33 +245,34 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
         <div style={{
           padding: '16px 24px',
           borderBottom: '1px solid #e2e8f0',
-          backgroundColor: '#f1f5f9'
+          backgroundColor: '#f8fafc'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '600' }}>
-              {t('settings.currentVersion')}:
-            </span>
-            <span style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              padding: '4px 12px',
-              backgroundColor: '#10b981',
-              color: 'white',
-              borderRadius: '6px'
-            }}>
-              {currentVersion || t('settings.unknown')}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+                {t('settings.currentVersion')}:
+              </span>
+              <span style={{
+                fontSize: '15px',
+                fontWeight: '600',
+                padding: '3px 10px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                borderRadius: '5px'
+              }}>
+                {currentVersion || t('settings.unknown')}
+              </span>
+            </div>
             <button
               onClick={loadReleases}
               disabled={loading}
               style={{
-                marginLeft: 'auto',
-                padding: '6px 14px',
-                borderRadius: '8px',
+                padding: '6px 12px',
+                borderRadius: '6px',
                 border: '1px solid #e2e8f0',
                 backgroundColor: '#ffffff',
                 color: '#64748b',
-                fontSize: '13px',
+                fontSize: '12px',
                 fontWeight: '500',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.6 : 1,
@@ -301,16 +286,16 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
 
         {/* Version Filter */}
         <div style={{
-          padding: '16px 24px',
+          padding: '12px 24px',
           borderBottom: '1px solid #e2e8f0',
-          backgroundColor: '#f8fafc'
+          backgroundColor: '#ffffff'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '600' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
               版本类型:
             </span>
             {[
-              { key: 'all', label: '全部版本' },
+              { key: 'all', label: '全部' },
               { key: 'stable', label: '稳定版' },
               { key: 'alpha', label: '测试版' }
             ].map(item => (
@@ -318,12 +303,12 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
                 key={item.key}
                 onClick={() => setVersionFilter(item.key)}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '8px',
+                  padding: '4px 10px',
+                  borderRadius: '5px',
                   border: '1px solid #e2e8f0',
                   backgroundColor: versionFilter === item.key ? '#64748b' : '#ffffff',
                   color: versionFilter === item.key ? '#ffffff' : '#64748b',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: '500',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease'
@@ -349,7 +334,7 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
         <div style={{
           flex: 1,
           overflow: 'auto',
-          padding: '16px 24px',
+          padding: '12px 24px',
           backgroundColor: '#ffffff'
         }}>
           {/* Loading State */}
@@ -433,8 +418,8 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
 
           {/* Releases List */}
           {!loading && !error && filteredReleases.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {filteredReleases.slice(0, 20).map(release => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {filteredReleases.slice(0, 15).map(release => {
                 const version = release.tag_name.replace(/^v/, '');
                 const isInstalled = isVersionInstalled(version);
                 const isDownloading = isVersionDownloading(version);
@@ -445,134 +430,121 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
                   <div
                     key={release.id}
                     style={{
-                      border: isCurrent ? '2px solid #10b981' : '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '16px',
-                      backgroundColor: isCurrent ? 'rgba(16, 185, 129, 0.05)' : '#ffffff',
+                      border: isCurrent ? '1px solid #10b981' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      backgroundColor: isCurrent ? 'rgba(16, 185, 129, 0.03)' : '#ffffff',
                       transition: 'all 0.2s ease'
                     }}
                   >
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: '12px'
+                      alignItems: 'center'
                     }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <h3 style={{
-                            margin: 0,
-                            fontSize: '16px',
-                            fontWeight: '600',
-                            color: '#1e293b'
-                          }}>
-                            {release.name}
-                          </h3>
-                          {isCurrent && (
-                            <span style={{
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              backgroundColor: '#10b981',
-                              color: 'white'
-                            }}>
-                              {t('settings.currentVersion')}
-                            </span>
-                          )}
-                          {isInstalled && !isCurrent && (
-                            <span style={{
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              backgroundColor: '#64748b',
-                              color: 'white'
-                            }}>
-                              {t('settings.installed')}
-                            </span>
-                          )}
-                          {/* 版本类型标识 */}
-                          {release.version_type === 'alpha' && (
-                            <span style={{
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              backgroundColor: '#f59e0b',
-                              color: 'white'
-                            }}>
-                              Alpha
-                            </span>
-                          )}
-                        </div>
-                        <p style={{
-                          margin: 0,
-                          fontSize: '13px',
-                          color: '#64748b',
-                          fontWeight: '400'
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b'
                         }}>
-                          {t('settings.releaseDate')}: {formatDate(release.published_at)}
-                        </p>
+                          {release.name}
+                        </span>
+                        {isCurrent && (
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            backgroundColor: '#10b981',
+                            color: 'white'
+                          }}>
+                            当前
+                          </span>
+                        )}
+                        {isInstalled && !isCurrent && (
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            backgroundColor: '#64748b',
+                            color: 'white'
+                          }}>
+                            已安装
+                          </span>
+                        )}
+                        {release.version_type === 'alpha' && (
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            backgroundColor: '#f59e0b',
+                            color: 'white'
+                          }}>
+                            Alpha
+                          </span>
+                        )}
                       </div>
-                      
-                      <div style={{ display: 'flex', gap: '8px' }}>
+
+                      <div style={{ display: 'flex', gap: '6px' }}>
                         {!isInstalled && (
                           <button
                             onClick={() => handleDownload(version)}
                             disabled={isDownloading}
                             style={{
-                              padding: '6px 12px',
+                              padding: '4px 10px',
                               backgroundColor: isDownloading ? '#9ca3af' : '#3b82f6',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '12px',
+                              borderRadius: '5px',
+                              fontSize: '11px',
                               fontWeight: '500',
                               cursor: isDownloading ? 'not-allowed' : 'pointer',
                               transition: 'all 0.2s ease'
                             }}
                           >
-                            {isDownloading ? t('settings.downloading') : t('settings.download')}
+                            {isDownloading ? '下载中' : '下载'}
                           </button>
                         )}
-                        
+
                         {isInstalled && !isCurrent && (
                           <button
                             onClick={() => handleSwitchVersion(version)}
                             disabled={isSwitching}
                             style={{
-                              padding: '6px 12px',
+                              padding: '4px 10px',
                               backgroundColor: isSwitching ? '#9ca3af' : '#10b981',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '12px',
+                              borderRadius: '5px',
+                              fontSize: '11px',
                               fontWeight: '500',
                               cursor: isSwitching ? 'not-allowed' : 'pointer',
                               transition: 'all 0.2s ease'
                             }}
                           >
-                            {isSwitching ? t('settings.switching') : t('settings.switchTo')}
+                            {isSwitching ? '切换中' : '切换'}
                           </button>
                         )}
-                        
+
                         {isInstalled && !isCurrent && (
                           <button
                             onClick={() => handleDeleteVersion(version)}
                             style={{
-                              padding: '6px 12px',
+                              padding: '4px 10px',
                               backgroundColor: '#dc2626',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '12px',
+                              borderRadius: '5px',
+                              fontSize: '11px',
                               fontWeight: '500',
                               cursor: 'pointer',
                               transition: 'all 0.2s ease'
                             }}
                           >
-                            {t('settings.delete')}
+                            删除
                           </button>
                         )}
                       </div>
@@ -593,7 +565,7 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -601,61 +573,61 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
         }}>
           <div style={{
             backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '500px',
+            borderRadius: '10px',
+            padding: '20px',
+            maxWidth: '400px',
             width: '90%',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)'
           }}>
             <h3 style={{
-              margin: '0 0 16px 0',
-              fontSize: '18px',
+              margin: '0 0 12px 0',
+              fontSize: '16px',
               fontWeight: '600',
               color: '#dc2626'
             }}>
-              {t('settings.switchVersionWarning')}
+              切换版本警告
             </h3>
             <p style={{
-              margin: '0 0 24px 0',
-              fontSize: '14px',
+              margin: '0 0 20px 0',
+              fontSize: '13px',
               color: '#64748b',
-              lineHeight: '1.5'
+              lineHeight: '1.4'
             }}>
-              {t('settings.switchVersionWarningDesc')}
+              切换内核版本可能导致兼容性问题，确定要继续吗？
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {
                   setShowWarning(false);
                   setPendingSwitchVersion(null);
                 }}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 14px',
                   backgroundColor: '#f3f4f6',
                   color: '#4b5563',
                   border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  fontSize: '14px',
+                  borderRadius: '5px',
+                  fontSize: '13px',
                   fontWeight: '500',
                   cursor: 'pointer'
                 }}
               >
-                {t('settings.cancel')}
+                取消
               </button>
               <button
                 onClick={confirmSwitchVersion}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 14px',
                   backgroundColor: '#dc2626',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
+                  borderRadius: '5px',
+                  fontSize: '13px',
                   fontWeight: '500',
                   cursor: 'pointer'
                 }}
               >
-                {t('settings.confirmSwitch')}
+                确认切换
               </button>
             </div>
           </div>

@@ -107,7 +107,7 @@ const App = () => {
           }
         } catch (error) {
           if (!isMounted) return;
-          // 获取配置文件数量失败
+          console.error('获取配置文件数量失败:', error); // 添加错误日志
           setProfilesCount(0);
         }
       }

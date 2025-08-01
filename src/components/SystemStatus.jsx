@@ -7,10 +7,6 @@ const SystemStatus = () => {
     coreVersion: 'N/A',
   });
   const [profileData, setProfileData] = useState([]);
-  const [isDownloadingCore, setIsDownloadingCore] = useState(false);
-  const [coreDownloadProgress, setCoreDownloadProgress] = useState(0);
-  const [coreDownloadError, setCoreDownloadError] = useState('');
-  const [coreDownloadSuccess, setCoreDownloadSuccess] = useState(false);
 
   // 初始化数据订阅：监听配置文件变更事件并获取sing-box核心版本信息
   useEffect(() => {
@@ -68,50 +64,7 @@ const SystemStatus = () => {
     };
   }, []);
 
-  // 处理内核下载
-  const handleCoreDownload = () => {
-    if (window.electron && window.electron.singbox && window.electron.singbox.downloadCore) {
-      setIsDownloadingCore(true);
-      setCoreDownloadError('');
-      setCoreDownloadSuccess(false);
-      
-      window.electron.singbox.downloadCore()
-        .then(result => {
-          setIsDownloadingCore(false);
-          if (result.success) {
-            setCoreDownloadSuccess(true);
-            // 更新版本信息
-            window.electron.singbox.getVersion().then(versionResult => {
-              if (versionResult.success) {
-                setSystemStats(prev => ({
-                  ...prev,
-                  coreVersion: versionResult.version || 'unknown'
-                }));
-              }
-            });
-          } else {
-            setCoreDownloadError(result.error || '下载失败');
-          }
-        })
-        .catch(error => {
-          setIsDownloadingCore(false);
-          setCoreDownloadError(error.message || '下载过程中出错');
-        });
-    }
-  };
 
-  // 监听内核下载进度
-  useEffect(() => {
-    if (window.electron && window.electron.download && window.electron.download.onCoreProgress) {
-      const removeListener = window.electron.download.onCoreProgress(progress => {
-        setCoreDownloadProgress(progress.progress);
-      });
-      
-      return () => {
-        if (removeListener) removeListener();
-      };
-    }
-  }, []);
 
   return (
     <div className="system-status-card">
@@ -125,14 +78,6 @@ const SystemStatus = () => {
       <div className="status-item">
         <div className="status-label">Core Version</div>
         <div className="status-value">{systemStats.coreVersion}</div>
-      </div>
-
-      <div className="core-download-section">
-        <button onClick={handleCoreDownload} disabled={isDownloadingCore}>
-          {isDownloadingCore ? `Downloading Core (${coreDownloadProgress.toFixed(1)}%)` : 'Download Core'}
-        </button>
-        {coreDownloadError && <div className="download-error">Error: {coreDownloadError}</div>}
-        {coreDownloadSuccess && <div className="download-success">Core Downloaded Successfully!</div>}
       </div>
     </div>
   );

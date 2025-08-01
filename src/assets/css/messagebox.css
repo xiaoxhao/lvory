@@ -14,6 +14,30 @@
   animation: messageboxOverlayFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.messagebox-overlay.main-content-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(20px) brightness(1.1);
+  -webkit-backdrop-filter: blur(20px) brightness(1.1);
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 0;
+  z-index: 100;
+  pointer-events: all;
+  animation: mainContentModalFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 确保消息框容器的指针事件正常 */
+#message-box-container {
+  pointer-events: none;
+}
+
+#message-box-container .messagebox-overlay {
+  pointer-events: all;
+}
+
 .messagebox-container {
   background-color: white;
   border-radius: 8px;
@@ -24,6 +48,18 @@
   animation: message-pop-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
   transform: translateZ(0);
+}
+
+/* main-content 区域内的模态弹窗容器样式 */
+.messagebox-overlay.main-content-modal .messagebox-container {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px) brightness(1.02);
+  -webkit-backdrop-filter: blur(10px) brightness(1.02);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  width: 320px;
+  max-width: 85%;
 }
 
 @keyframes message-pop-in {
@@ -38,6 +74,21 @@
 }
 
 @keyframes messageboxOverlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px) brightness(1);
+    -webkit-backdrop-filter: blur(0px) brightness(1);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(20px) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) brightness(1.1);
+  }
+}
+
+
+
+@keyframes mainContentModalFadeIn {
   from {
     opacity: 0;
     backdrop-filter: blur(0px) brightness(1);
