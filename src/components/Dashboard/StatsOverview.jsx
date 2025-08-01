@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as echarts from 'echarts';
 import '../../assets/css/stats-overview.css';
 import IPService from '../../services/ip/IPService';
+import { formatBytesToObject, formatWithOptimalUnit } from '../../utils/formatters';
 
 // 流量数据缓存
 const trafficData = {
@@ -771,48 +772,9 @@ const StatsOverview = ({ apiAddress, privacySettings }) => {
     }
   };
   
-  // 格式化实时速率显示
-  const formatTraffic = (bytes) => {
-    if (bytes < 1024) return { value: Math.round(bytes), unit: 'B/s' };
-    if (bytes < 1024 * 1024) return { value: Math.round(bytes / 1024), unit: 'KB/s' };
-    return { value: Math.round(bytes / (1024 * 1024)), unit: 'MB/s' };
-  };
-  
-  // 格式化累计流量显示
-  const formatTotalTraffic = (bytes) => {
-    if (bytes < 1024) return { value: Math.round(bytes), unit: 'B' };
-    if (bytes < 1024 * 1024) return { value: Math.round(bytes / 1024), unit: 'KB' };
-    if (bytes < 1024 * 1024 * 1024) return { value: Math.round(bytes / (1024 * 1024)), unit: 'MB' };
-    return { value: Math.round(bytes / (1024 * 1024 * 1024)), unit: 'GB' };
-  };
-
-  // 自动进行单位换算，确保数值不超过3位数
-  const formatWithOptimalUnit = (formatResult) => {
-    let { value, unit } = formatResult;
-    const unitMap = {
-      'B/s': ['B/s', 'KB/s', 'MB/s', 'GB/s'],
-      'KB/s': ['KB/s', 'MB/s', 'GB/s'],
-      'MB/s': ['MB/s', 'GB/s'],
-      'B': ['B', 'KB', 'MB', 'GB', 'TB'],
-      'KB': ['KB', 'MB', 'GB', 'TB'],
-      'MB': ['MB', 'GB', 'TB'],
-      'GB': ['GB', 'TB']
-    };
-    
-    const units = unitMap[unit] || [unit];
-    let unitIndex = 0;
-    
-    // 如果数值大于999，进行单位换算
-    while (value > 999 && unitIndex < units.length - 1) {
-      value = value / 1024;
-      unitIndex++;
-    }
-    
-    // 处理小数，如果数值大于100显示整数，否则保留一位小数
-    value = value > 100 ? Math.round(value) : Math.round(value * 10) / 10;
-    
-    return { value, unit: units[unitIndex] };
-  };
+  // 使用共用的格式化函数
+  const formatTraffic = (bytes) => formatBytesToObject(bytes, '/s');
+  const formatTotalTraffic = (bytes) => formatBytesToObject(bytes);
   
   // 处理IP信息点击事件，切换显示内容
   const handleIpInfoClick = () => {

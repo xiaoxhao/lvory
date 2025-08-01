@@ -2,7 +2,7 @@ export default {
   settings: {
     // 基本设置
     basicSettings: '基本设置',
-    configureBasic: '配置程序的基本设置和行为。',
+    configureBasic: '配置程序的基本设置和行为',
     proxyPort: '代理端口',
     enterProxyPort: '输入代理端口（例如 7890）',
     apiAddress: 'API 地址',
@@ -40,7 +40,7 @@ export default {
 
     // 测速设置
     concurrentSpeedTestCount: '并发测速数量',
-    concurrentSpeedTestCountDesc: '同时进行测速的节点数量，建议设置为1-10之间。数值过高可能影响系统性能。',
+    concurrentSpeedTestCountDesc: '同时进行测速的节点数量，建议设置为1-10之间。数值过高可能影响系统性能',
 
     // 节点设置
     nodesSettings: '节点设置',
@@ -67,7 +67,7 @@ export default {
     coreVersion: '内核版本',
     license: '许可证',
     projectUrl: '项目地址',
-    aboutDisclaimer: 'lvory 是一个基于 Sing-Box 内核的通用桌面GUI客户端，旨在提供高性能、灵活且易用的网络代理服务。',
+    aboutDisclaimer: 'lvory 是一个基于 Sing-Box 内核的通用桌面GUI客户端，旨在提供高性能、灵活且易用的网络代理服务',
     
     // 开发者工具
     developerTools: '开发者工具',
@@ -76,7 +76,7 @@ export default {
     versionManagerDesc: '管理应用版本和内核版本',
     clearCache: '重置缓存',
     clearCacheDesc: '清理应用的所有缓存数据、日志文件和临时文件',
-    clearCacheConfirm: '确定要清理所有缓存数据吗？这将删除日志文件、应用数据存储和配置缓存。',
+    clearCacheConfirm: '确定要清理所有缓存数据吗？这将删除日志文件、应用数据存储和配置缓存',
     clearCacheSuccess: '缓存清理成功',
     clearCacheFailed: '缓存清理失败',
     clearing: '清理中...',

@@ -16,24 +16,7 @@ body {
   font-weight: 300;
 }
 
-/* 当窗口在后台或隐藏时应用的样式 */
-.background-throttled * {
-  animation-play-state: paused !important;
-  transition: none !important;
-}
 
-.window-hidden {
-  opacity: 0.98;
-  will-change: auto;
-}
-
-/* 后台节流时暂停所有CSS动画和过渡 */
-.background-throttled .animated,
-.background-throttled [class*="animate-"],
-.background-throttled [class*="motion-"] {
-  animation-play-state: paused !important;
-  transition: none !important;
-}
 ul {
   list-style: none;
 }

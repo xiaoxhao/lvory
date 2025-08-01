@@ -167,7 +167,7 @@ const UpdateNotification = ({ onClose }) => {
       if (window.electron && window.electron.checkForUpdates) {
         try {
           const result = await window.electron.checkForUpdates();
-          console.log('Update check result:', result);
+
           if (result && result.success) {
             if (result.hasUpdate || result.updateType === 'development') {
               // 检查是否跳过此版本
@@ -175,7 +175,7 @@ const UpdateNotification = ({ onClose }) => {
                 try {
                   const skipVersion = localStorage.getItem('skipVersion');
                   if (skipVersion === result.latestVersion) {
-                    console.log('用户已选择跳过此版本:', skipVersion);
+
                     return;
                   }
                 } catch (error) {
@@ -187,7 +187,7 @@ const UpdateNotification = ({ onClose }) => {
             }
           }
         } catch (error) {
-          console.error('检查更新失败:', error);
+          // 静默处理更新检查失败
         }
       }
     };
@@ -229,7 +229,7 @@ const UpdateNotification = ({ onClose }) => {
       localStorage.setItem('skipVersion', skipVersion);
       if (onClose) onClose();
     } catch (error) {
-      console.error('保存跳过版本信息失败:', error);
+      // 静默处理保存失败
     }
   };
 

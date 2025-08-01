@@ -190,56 +190,7 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.customer-pipeline {
-  display: flex;
-  gap: 20px;
-  margin-top: 20px;
-  width: 100%;
-}
 
-.pipeline-stage {
-  min-width: 280px;
-  flex: 1;
-}
-
-.stage-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 0;
-}
-
-/* Typography settings */
-:root {
-  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-size-title: 18px;
-  --font-size-subtitle: 14px;
-  --font-size-body: 13px;
-  --font-size-secondary: 11px;
-}
-
-.stage-header h3 {
-  font-size: var(--font-size-subtitle);
-  font-weight: 500;
-  font-family: var(--font-main);
-  color: #333333;
-}
-
-.pipeline-stage:first-child .stage-header h3,
-.pipeline-stage:last-child .stage-header h3 {
-  font-size: var(--font-size-title);
-  font-weight: 600;
-  font-family: var(--font-main);
-  color: #333333;
-}
-
-.stage-header .count {
-  font-size: 12px;
-  font-weight: 400;
-  color: #666666;
-}
 
 .customer-cards {
   display: flex;

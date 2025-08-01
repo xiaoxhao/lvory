@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import '../../assets/css/dashboard.css';
 import Activity from '../Activity';
 

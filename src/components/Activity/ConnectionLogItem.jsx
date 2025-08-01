@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatTimestamp } from '../../utils/formatters';
 
 const logColors = {
   info: '#4CAF50',
@@ -16,18 +17,7 @@ const directionIcons = {
   outbound: '⬆️'
 };
 
-const formatTimestamp = (timestamp) => {
-  if (!timestamp) return '--:--:--';
-  try {
-    const date = new Date(timestamp);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
-  } catch (e) {
-    return timestamp.toString();
-  }
-};
+
 
 // 解析连接日志格式
 const parseConnectionLog = (payload) => {

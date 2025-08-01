@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatTimestamp } from '../../utils/formatters';
 
 const logColors = {
   INFO: '#4CAF50',
@@ -16,18 +17,7 @@ const logIcons = {
   CONFIG: '',
 };
 
-const formatTimestamp = (timestamp) => {
-  if (!timestamp) return '--:--:--';
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) {
-    return '--:--:--'; // 或者 'Invalid Date'
-  }
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
-  const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
-  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
-};
+
 
 const safeString = (value) => {
   if (value === undefined || value === null) return '';
@@ -35,13 +25,14 @@ const safeString = (value) => {
 };
 
 const LogItem = ({ log, index, coreStatus }) => {
-  if (!log) return null;
-  
   const [isVisible, setIsVisible] = useState(true);
-  const level = safeString(log.level || 'INFO').toLowerCase();
-  const type = safeString(log.type || 'SYSTEM');
-  const message = safeString(log.message || '');
-  
+
+  // 确保 log 存在，否则使用空对象作为 fallback，以避免在 Hooks 之前进行条件返回
+  const currentLog = log || {};
+  const level = safeString(currentLog.level || 'INFO').toLowerCase();
+  const type = safeString(currentLog.type || 'SYSTEM');
+  const message = safeString(currentLog.message || '');
+
   // 基于内核状态决定日志显示
   useEffect(() => {
     // 如果内核已停止且这是连接相关的日志，则淡化显示
@@ -51,7 +42,7 @@ const LogItem = ({ log, index, coreStatus }) => {
       setIsVisible(true);
     }
   }, [coreStatus, type]);
-  
+
   // 获取日志优先级
   const getLogPriority = () => {
     if (type === 'SINGBOX') return 'high';
@@ -61,15 +52,19 @@ const LogItem = ({ log, index, coreStatus }) => {
     }
     return 'medium';
   };
-  
+
   const priority = getLogPriority();
   const itemClass = `log-item log-${level} log-priority-${priority} ${!isVisible ? 'log-dimmed' : ''}`;
-  
+
+  if (!log) {
+    return null;
+  }
+
   return (
     <div className={itemClass}>
-      <div className="log-timestamp">{formatTimestamp(log.timestamp)}</div>
-      <div className="log-level" style={{ color: logColors[log.level] || '#000' }}>
-        {log.level || 'INFO'}
+      <div className="log-timestamp">{formatTimestamp(currentLog.timestamp, true)}</div>
+      <div className="log-level" style={{ color: logColors[currentLog.level] || '#000' }}>
+        {currentLog.level || 'INFO'}
       </div>
       <div className="log-type">
         {logIcons[type] || '🔹'} {type}

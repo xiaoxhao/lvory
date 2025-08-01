@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -7,9 +7,9 @@ import Tools from './components/Tools';
 import Activity from './components/Activity';
 import Settings from './components/Settings/Settings';
 import UpdateNotification from './components/UpdateNotification';
-import { AppProvider, useAppContext } from './context/AppContext';
+import { AppProvider } from './context/AppContext';
 import { initMessageBox } from './utils/messageBox';
-import './i18n'; // 引入i18n初始化文件
+import './i18n';
 import './assets/css/global.css';
 import './assets/css/app.css';
 
@@ -28,12 +28,6 @@ const App = () => {
   // 添加配置文件数量状态
   const [profilesCount, setProfilesCount] = useState(0);
   const [isMacOS, setIsMacOS] = useState(checkIsMacOS());
-  // 添加窗口可见性状态
-  const [isWindowVisible, setIsWindowVisible] = useState(true);
-  // 用于存储动画帧请求ID集合
-  const animationFrameRefs = useRef(new Set());
-  // 用于存储非必要的定时器
-  const timersRef = useRef({});
   // 添加更新通知状态
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   // 添加系统设置状态
@@ -94,63 +88,6 @@ const App = () => {
       }
     }
   };
-  
-  // 监听窗口可见性变化事件
-  useEffect(() => {
-    if (window.electron && window.electron.window && window.electron.window.onVisibilityChange) {
-      let isMounted = true;
-      const handleVisibilityChange = (state) => {
-        if (!isMounted) return;
-        setIsWindowVisible(state.isVisible);
-        
-        if (state.isVisible) {
-          // 窗口显示时，恢复正常渲染
-          resumeRendering();
-        } else {
-          // 窗口隐藏时，暂停不必要的渲染
-          pauseRendering();
-        }
-      };
-      
-      // 注册事件监听
-      const unsubscribe = window.electron.window.onVisibilityChange(handleVisibilityChange);
-      
-      return () => {
-        isMounted = false;
-        if (typeof unsubscribe === 'function') {
-          unsubscribe();
-        }
-      };
-    }
-  }, []); // 空依赖数组表示只执行一次
-
-  const pauseRendering = () => {
-    // 取消所有不必要的requestAnimationFrame
-    animationFrameRefs.current.forEach(id => {
-      window.cancelAnimationFrame(id);
-    });
-    animationFrameRefs.current.clear();
-
-    // 暂停所有不必要的定时器
-    Object.values(timersRef.current).forEach(timer => {
-      if (timer) {
-        clearInterval(timer);
-      }
-    });
-    
-    // 调整渲染更新频率
-    if (document.body) {
-      document.body.classList.add('background-throttled');
-    }
-  };
-
-  // 恢复正常渲染和计算
-  const resumeRendering = () => {
-    // 恢复必要的UI更新
-    if (document.body) {
-      document.body.classList.remove('background-throttled');
-    }
-  };
 
   // 获取配置文件数量
   useEffect(() => {
@@ -165,12 +102,12 @@ const App = () => {
           if (result && result.success && Array.isArray(result.files)) {
             setProfilesCount(result.files.length);
           } else {
-            console.error('获取配置文件数据格式不正确:', result);
+            // 配置文件数据格式不正确
             setProfilesCount(0);
           }
         } catch (error) {
           if (!isMounted) return;
-          console.error('获取配置文件数量失败:', error);
+          // 获取配置文件数量失败
           setProfilesCount(0);
         }
       }
@@ -262,7 +199,7 @@ const App = () => {
       <Router basename="/">
         <Routes>
           <Route path="/" element={
-            <div className={`app-container ${isMacOS ? 'mac-os' : ''} ${isSettingsActive ? 'settings-active' : ''} ${!isWindowVisible ? 'window-hidden' : ''}`}>
+            <div className={`app-container ${isMacOS ? 'mac-os' : ''} ${isSettingsActive ? 'settings-active' : ''}`}>
               {/* 添加可拖动区域 */}
               <div className="window-draggable-area"></div>
               

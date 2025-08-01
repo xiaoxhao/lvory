@@ -336,8 +336,6 @@ const Tools = () => {
               {isTracing ? t('tools.stopTrace') : t('tools.startTrace')}
             </button>
           </div>
-
-
         </div>
         
         <div className="tool-view-area">

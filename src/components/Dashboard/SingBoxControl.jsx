@@ -65,7 +65,7 @@ const useSingBoxControl = () => {
       try {
         await checkCoreExists();
       } catch (error) {
-        console.error('初始化内核检查失败:', error);
+        // 初始化内核检查失败
         setCoreExists(false);
       }
     };
@@ -78,7 +78,7 @@ const useSingBoxControl = () => {
     const handleProxyStateRestored = (event, data) => {
       if (data.success) {
         setIsRunning(true);
-        console.log('代理状态已恢复，代理正在运行');
+        // 代理状态已恢复
       }
     };
 

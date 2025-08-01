@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../assets/css/servicenodes.css';
+import { formatBytes } from '../utils/formatters';
 
 const ServiceNodes = () => {
   const [nodes, setNodes] = useState([]);
@@ -171,14 +172,7 @@ const ServiceNodes = () => {
     }
   };
 
-  // 格式化流量显示
-  const formatTraffic = (bytes) => {
-    if (bytes === undefined || bytes === null) return '0 B';
-    if (bytes < 1024) return `${Math.round(bytes)} B`;
-    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-  };
+  const formatTraffic = (bytes) => formatBytes(bytes);
 
   // 渲染节点卡片
   const renderNodes = () => (

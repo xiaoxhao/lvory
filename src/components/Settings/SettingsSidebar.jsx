@@ -18,7 +18,7 @@ const SettingsSidebar = ({ selectedSection, onSectionChange }) => {
 
   return (
     <div style={{
-      width: '240px',
+      width: '170px',
       borderRight: '1px solid #e5e7eb',
       padding: '16px',
       backgroundColor: '#f8fafc',
