@@ -854,10 +854,7 @@ go env -w GOSUMDB=off`
     );
   };
   
-  // 处理隐私设置保存
-  const handlePrivacySettingsSave = (newSettings) => {
-    onPrivacySettingsChange(newSettings);
-  };
+
 
   // 检查是否有任何隐私设置启用
   const hasPrivacyEnabled = privacySettings && (

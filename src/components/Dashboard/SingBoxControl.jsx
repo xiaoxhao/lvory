@@ -65,7 +65,7 @@ const useSingBoxControl = () => {
       try {
         await checkCoreExists();
       } catch (error) {
-        // 初始化内核检查失败
+        console.warn('初始化内核检查失败:', error);
         setCoreExists(false);
       }
     };

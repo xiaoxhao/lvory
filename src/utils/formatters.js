@@ -121,7 +121,7 @@ export const formatTimestamp = (timestamp, includeMilliseconds = false) => {
  * @returns {string} 格式化后的延迟字符串
  */
 export const formatLatency = (latency) => {
-  if (latency === undefined || latency === null) {
+  if (latency == null) {
     return 'timeout';
   }
   

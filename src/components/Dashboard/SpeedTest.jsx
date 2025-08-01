@@ -43,9 +43,9 @@ const testNode = async (node, apiAddress) => {
 // 获取并发数量设置
 const getConcurrentCount = async () => {
   try {
-    if (window.electron && window.electron.userConfig && window.electron.userConfig.get) {
+    if (window.electron?.userConfig?.get) {
       const result = await window.electron.userConfig.get();
-      if (result.success && result.config && result.config.settings) {
+      if (result?.success && result?.config?.settings) {
         const count = result.config.settings.concurrent_speed_test_count;
         // 确保数值在合理范围内，添加性能保护
         if (typeof count === 'number' && count >= 1 && count <= 10) {

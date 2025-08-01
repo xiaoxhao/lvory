@@ -2,8 +2,20 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import NodeDetailModal from './NodeDetailModal';
 
+const getLatencyColor = (isLoading, latency) => {
+  if (isLoading) return '#666';
+  if (latency === 'timeout') return '#d32f2f';
+  return '#2e7d32';
+};
+
+const getLatencyBackgroundColor = (isLoading, latency) => {
+  if (isLoading) return 'rgba(102, 102, 102, 0.1)';
+  if (latency === 'timeout') return 'rgba(211, 47, 47, 0.1)';
+  return 'rgba(46, 125, 50, 0.1)';
+};
+
 // 路由规则组卡片组件
-const RouteRuleGroupCard = ({ group, index }) => {
+const RouteRuleGroupCard = ({ group }) => {
   const getRouteTypeColor = (type) => {
     switch (type) {
       case 'ip_is_private': return '#5a6c57';
@@ -337,8 +349,8 @@ const NodeCard = React.memo(({ profile, testResults, loadingStates, privateMode,
           <div style={{
             fontSize: '10px',
             fontWeight: '500',
-            color: isLoading ? '#666' : (latency === 'timeout' ? '#d32f2f' : '#2e7d32'),
-            backgroundColor: isLoading ? 'rgba(102, 102, 102, 0.1)' : (latency === 'timeout' ? 'rgba(211, 47, 47, 0.1)' : 'rgba(46, 125, 50, 0.1)'),
+            color: getLatencyColor(isLoading, latency),
+            backgroundColor: getLatencyBackgroundColor(isLoading, latency),
             borderRadius: '3px',
             padding: '2px 6px',
             marginLeft: '8px',

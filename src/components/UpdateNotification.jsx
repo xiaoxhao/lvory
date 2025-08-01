@@ -187,7 +187,7 @@ const UpdateNotification = ({ onClose }) => {
             }
           }
         } catch (error) {
-          // 静默处理更新检查失败
+          console.warn('检查更新失败:', error);
         }
       }
     };
@@ -229,7 +229,7 @@ const UpdateNotification = ({ onClose }) => {
       localStorage.setItem('skipVersion', skipVersion);
       if (onClose) onClose();
     } catch (error) {
-      // 静默处理保存失败
+      console.warn('保存跳过版本失败:', error);
     }
   };
 
