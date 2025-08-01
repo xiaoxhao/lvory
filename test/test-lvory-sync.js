@@ -19,7 +19,13 @@ function parseArguments() {
     switch (args[i]) {
       case '--config':
       case '-c':
-        options.configPath = args[++i];
+        if (i + 1 < args.length) {
+          options.configPath = args[i + 1];
+          i++;
+        } else {
+          console.error(`错误: 选项 ${args[i]} 需要一个参数值。`);
+          process.exit(1);
+        }
         break;
       case '--show-config':
       case '-s':
@@ -27,11 +33,23 @@ function parseArguments() {
         break;
       case '--test-mode':
       case '-t':
-        options.testMode = args[++i]; // basic, full, config-only
+        if (i + 1 < args.length) {
+          options.testMode = args[i + 1]; // basic, full, config-only
+          i++;
+        } else {
+          console.error(`错误: 选项 ${args[i]} 需要一个参数值。`);
+          process.exit(1);
+        }
         break;
       case '--output':
       case '-o':
-        options.outputFile = args[++i];
+        if (i + 1 < args.length) {
+          options.outputFile = args[i + 1];
+          i++;
+        } else {
+          console.error(`错误: 选项 ${args[i]} 需要一个参数值。`);
+          process.exit(1);
+        }
         break;
       case '--verbose':
       case '-v':

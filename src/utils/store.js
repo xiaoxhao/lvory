@@ -79,7 +79,7 @@ async function get(key) {
     let current = storeData;
     
     for (const k of keys) {
-      if (current === null || current === undefined || !Object.prototype.hasOwnProperty.call(current, k)) {
+      if (current === null || current === undefined || !Object.hasOwn(current, k)) {
         return null;
       }
       current = current[k];
@@ -117,7 +117,7 @@ async function remove(key) {
     // 导航到倒数第二层
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
-      if (current === null || current === undefined || !Object.prototype.hasOwnProperty.call(current, k)) {
+      if (current === null || current === undefined || !Object.hasOwn(current, k)) {
         // 键路径不存在，视为删除成功
         return true;
       }
@@ -126,7 +126,7 @@ async function remove(key) {
     
     // 删除最后一个键
     const lastKey = keys[keys.length - 1];
-    if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, lastKey)) {
+    if (current && typeof current === 'object' && Object.hasOwn(current, lastKey)) {
       delete current[lastKey];
     }
     

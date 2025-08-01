@@ -98,6 +98,7 @@ async function setLinuxProxyFallback(options) {
     try {
       await execAsync('which gsettings');
     } catch (error) {
+      logger.error(`检查gsettings命令失败: ${error.message}`);
       return { success: false, error: 'gsettings命令不可用，无法设置系统代理' };
     }
     
@@ -140,6 +141,7 @@ async function removeLinuxProxyFallback() {
     try {
       await execAsync('which gsettings');
     } catch (error) {
+      logger.error(`检查gsettings命令失败: ${error.message}`);
       return { success: false, error: 'gsettings命令不可用' };
     }
     
@@ -167,6 +169,7 @@ async function setMacOSProxyFallback(options) {
     try {
       await execAsync('which networksetup');
     } catch (error) {
+      logger.error(`检查networksetup命令失败: ${error.message}`);
       return { success: false, error: 'networksetup命令不可用，无法设置系统代理' };
     }
     
@@ -217,6 +220,7 @@ async function removeMacOSProxyFallback() {
     try {
       await execAsync('which networksetup');
     } catch (error) {
+      logger.error(`检查networksetup命令失败: ${error.message}`);
       return { success: false, error: 'networksetup命令不可用' };
     }
     

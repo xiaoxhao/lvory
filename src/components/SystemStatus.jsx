@@ -121,6 +121,19 @@ const SystemStatus = () => {
         <div className="status-label">TotalNodes</div>
         <div className="status-value">{profileData.length} 个</div>
       </div>
+
+      <div className="status-item">
+        <div className="status-label">Core Version</div>
+        <div className="status-value">{systemStats.coreVersion}</div>
+      </div>
+
+      <div className="core-download-section">
+        <button onClick={handleCoreDownload} disabled={isDownloadingCore}>
+          {isDownloadingCore ? `Downloading Core (${coreDownloadProgress.toFixed(1)}%)` : 'Download Core'}
+        </button>
+        {coreDownloadError && <div className="download-error">Error: {coreDownloadError}</div>}
+        {coreDownloadSuccess && <div className="download-success">Core Downloaded Successfully!</div>}
+      </div>
     </div>
   );
 };
