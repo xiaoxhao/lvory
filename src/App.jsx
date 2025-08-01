@@ -285,11 +285,11 @@ const App = () => {
               
               {/* 内容区域 */}
               <div className="content-container">
-                <Sidebar 
-                  activeItem={activeItem} 
-                  onItemClick={handleItemClick} 
+                <Sidebar
+                  activeItem={activeItem}
+                  onItemClick={handleItemClick}
                   profilesCount={profilesCount}
-                  isMinimized={isSettingsActive}
+                  isMinimized={false}
                 />
                 <div className="main-content" style={{ position: 'relative' }}>
                   {activeItem === 'dashboard' && (
