@@ -31,10 +31,12 @@ class CoreFactory {
     try {
       switch (coreType) {
         case CORE_TYPES.SINGBOX:
-          coreInstance = require('../sing-box');
+          const SingBoxAdapter = require('./singbox-adapter');
+          coreInstance = new SingBoxAdapter();
           break;
         case CORE_TYPES.MIHOMO:
-          coreInstance = require('../mihomo');
+          const Mihomo = require('../mihomo');
+          coreInstance = new Mihomo();
           break;
         default:
           throw new Error(`Unknown core type: ${coreType}`);

@@ -94,23 +94,19 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
     }
   };
 
-  const handleSwitchVersion = (version) => {
-    setPendingSwitchVersion(version);
-    setShowWarning(true);
-  };
+  const handleSwitchVersion = async (version) => {
+    setSwitchingVersion(version);
 
-  const confirmSwitchVersion = async () => {
-    if (!pendingSwitchVersion) return;
-    
-    setSwitchingVersion(pendingSwitchVersion);
-    setShowWarning(false);
-    
     try {
       if (window.electron && window.electron.coreManager && window.electron.coreManager.switchVersion) {
-        const result = await window.electron.coreManager.switchVersion(pendingSwitchVersion);
+        const result = await window.electron.coreManager.switchVersion(version);
         if (result.success) {
-          setCurrentVersion(pendingSwitchVersion);
+          setCurrentVersion(version);
           await loadAboutInfo();
+
+          // 切换成功后显示兼容性警告
+          setPendingSwitchVersion(version);
+          setShowWarning(true);
         } else {
           setError(`切换失败: ${result.error}`);
         }
@@ -120,8 +116,13 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
       setError(`切换失败: ${error.message}`);
     } finally {
       setSwitchingVersion(null);
-      setPendingSwitchVersion(null);
     }
+  };
+
+  const confirmSwitchVersion = async () => {
+    // 这个函数现在只是关闭警告对话框
+    setShowWarning(false);
+    setPendingSwitchVersion(null);
   };
 
   const handleDeleteVersion = async (version) => {
@@ -545,10 +546,10 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
               margin: '0 0 16px 0',
               fontSize: '18px',
               fontWeight: '600',
-              color: '#dc2626',
+              color: '#f59e0b',
               fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
             }}>
-              切换版本警告
+              内核版本切换提醒
             </h3>
             <p style={{
               margin: '0 0 24px 0',
@@ -556,39 +557,14 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
               color: '#64748b',
               lineHeight: '1.5'
             }}>
-              切换内核版本可能导致兼容性问题，确定要继续吗？
+              内核版本已成功切换！请注意，不同版本的内核可能存在兼容性差异，如遇到问题请及时切换回原版本。
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  setShowWarning(false);
-                  setPendingSwitchVersion(null);
-                }}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#4b5563',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#e5e7eb';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#f3f4f6';
-                }}
-              >
-                取消
-              </button>
               <button
                 onClick={confirmSwitchVersion}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#dc2626',
+                  backgroundColor: '#10b981',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
@@ -598,13 +574,13 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#b91c1c';
+                  e.target.style.backgroundColor = '#059669';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#dc2626';
+                  e.target.style.backgroundColor = '#10b981';
                 }}
               >
-                确认切换
+                我知道了
               </button>
             </div>
           </div>
