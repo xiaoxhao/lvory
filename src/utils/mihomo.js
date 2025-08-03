@@ -248,26 +248,37 @@ class Mihomo extends BaseCore {
     try {
       const binaryPath = this.getBinaryPath();
       const installed = fs.existsSync(binaryPath);
-      
+
       if (installed) {
         // 尝试获取版本信息来验证二进制文件是否可用
         const versionResult = await this.getVersion();
+
+        // 使用统一的文件工具获取文件信息
+        const { getFileInfo } = require('../utils/file-utils');
+        const fileInfo = getFileInfo(binaryPath);
+
         return {
           success: true,
           installed: versionResult.success,
           path: binaryPath,
-          version: versionResult.version || null
+          version: versionResult.version || null,
+          ...fileInfo
         };
       } else {
         return {
           success: true,
           installed: false,
-          path: binaryPath
+          path: binaryPath,
+          reason: '二进制文件不存在'
         };
       }
     } catch (error) {
       this.log('error', '检查安装状态失败:', error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.message,
+        installed: false
+      };
     }
   }
 
@@ -305,13 +316,16 @@ class Mihomo extends BaseCore {
    */
   async downloadCore() {
     try {
-      const universalDownloader = require('../main/core-downloader-universal');
+      const { universalCoreDownloader } = require('../main/core-downloader-universal');
       const utils = require('../main/ipc-handlers/utils');
       const mainWindow = utils.getMainWindow();
 
       this.log('info', '开始下载 mihomo 内核');
 
-      const result = await universalDownloader.downloadCore(this.coreType, null, mainWindow);
+      // 使用配置版本下载 mihomo
+      const { CORE_VERSIONS } = require('../config/versions');
+      const version = CORE_VERSIONS[this.coreType];
+      const result = await universalCoreDownloader.downloadCore(this.coreType, version, mainWindow);
 
       if (result.success) {
         this.log('info', `mihomo 内核下载成功: ${result.version}`);
@@ -319,10 +333,13 @@ class Mihomo extends BaseCore {
         this.log('error', `mihomo 内核下载失败: ${result.error}`);
       }
 
-      return result;
+      // 使用统一的错误处理
+      const { createSerializableResult } = require('../utils/error-handler');
+      return createSerializableResult(result);
     } catch (error) {
       this.log('error', '下载内核时发生异常:', error);
-      return { success: false, error: error.message };
+      const { normalizeError } = require('../utils/error-handler');
+      return normalizeError(error, { defaultMessage: '下载失败' });
     }
   }
 
@@ -485,4 +502,4 @@ class Mihomo extends BaseCore {
   }
 }
 
-module.exports = new Mihomo();
+module.exports = Mihomo;

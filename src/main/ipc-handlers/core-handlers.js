@@ -153,6 +153,17 @@ function setup() {
     }
   });
 
+  // 检查指定类型内核是否已安装
+  ipcMain.handle('core-check-type-installed', async (event, coreType) => {
+    try {
+      const core = coreFactory.createCore(coreType);
+      return await core.checkInstalled();
+    } catch (error) {
+      logger.error(`检查 ${coreType} 内核安装状态失败:`, error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 验证配置文件
   ipcMain.handle('core-check-config', async (event, configPath) => {
     try {
@@ -179,10 +190,17 @@ function setup() {
   ipcMain.handle('core-download', async () => {
     try {
       const core = coreFactory.getCurrentCore();
-      return await core.downloadCore();
+      const result = await core.downloadCore();
+
+      // 确保返回的结果是可序列化的
+      return {
+        success: Boolean(result.success),
+        error: result.error ? String(result.error) : undefined,
+        version: result.version ? String(result.version) : undefined
+      };
     } catch (error) {
       logger.error('下载内核失败:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: String(error.message || '下载失败') };
     }
   });
 
@@ -210,17 +228,20 @@ function setup() {
       const coreType = coreFactory.getCurrentCoreType();
       const config = core.getCoreConfig();
       
+      // 确保所有返回的配置信息都是可序列化的基本类型
       return {
         success: true,
-        coreType,
+        coreType: String(coreType),
         config: {
-          name: config.name,
-          displayName: config.displayName,
-          configFormat: config.configFormat,
-          configExtensions: config.configExtensions,
-          defaultApiAddress: config.defaultApiAddress,
-          defaultProxyPort: config.defaultProxyPort,
-          supportedFeatures: config.supportedFeatures
+          name: String(config.name || ''),
+          displayName: String(config.displayName || ''),
+          configFormat: String(config.configFormat || ''),
+          configExtensions: Array.isArray(config.configExtensions) ?
+            config.configExtensions.map(ext => String(ext)) : [],
+          defaultApiAddress: String(config.defaultApiAddress || ''),
+          defaultProxyPort: Number(config.defaultProxyPort || 0),
+          supportedFeatures: config.supportedFeatures ?
+            JSON.parse(JSON.stringify(config.supportedFeatures)) : {}
         }
       };
     } catch (error) {

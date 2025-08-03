@@ -8,10 +8,12 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentVersion, setCurrentVersion] = useState('');
+  const [selectedVersion, setSelectedVersion] = useState(''); // 用户选择的版本
   const [installedVersions, setInstalledVersions] = useState([]);
   const [downloadingVersions, setDownloadingVersions] = useState(new Set());
   const [switchingVersion, setSwitchingVersion] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingSwitchVersion, setPendingSwitchVersion] = useState(null);
   const [aboutInfo, setAboutInfo] = useState({ CORE_VERSION: '-' });
 
@@ -28,7 +30,9 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
     try {
       const info = await getAboutInfo();
       setAboutInfo(info);
-      setCurrentVersion(info.CORE_VERSION || '-');
+      const version = info.CORE_VERSION || '-';
+      setCurrentVersion(version);
+      setSelectedVersion(version);
     } catch (error) {
       console.error('获取关于信息失败:', error);
     }
@@ -94,33 +98,45 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
     }
   };
 
-  const handleSwitchVersion = async (version) => {
-    setSwitchingVersion(version);
+  const handleSwitchVersion = (version) => {
+    setSelectedVersion(version);
+    setShowConfirmDialog(true);
+  };
+
+  const confirmVersionSwitch = async () => {
+    setShowConfirmDialog(false);
+    setSwitchingVersion(selectedVersion);
 
     try {
       if (window.electron && window.electron.coreManager && window.electron.coreManager.switchVersion) {
-        const result = await window.electron.coreManager.switchVersion(version);
+        const result = await window.electron.coreManager.switchVersion(selectedVersion);
         if (result.success) {
-          setCurrentVersion(version);
+          setCurrentVersion(selectedVersion);
           await loadAboutInfo();
 
           // 切换成功后显示兼容性警告
-          setPendingSwitchVersion(version);
+          setPendingSwitchVersion(selectedVersion);
           setShowWarning(true);
         } else {
           setError(`切换失败: ${result.error}`);
+          setSelectedVersion(currentVersion); // 恢复选择
         }
       }
     } catch (error) {
       console.error('切换版本失败:', error);
       setError(`切换失败: ${error.message}`);
+      setSelectedVersion(currentVersion); // 恢复选择
     } finally {
       setSwitchingVersion(null);
     }
   };
 
+  const cancelVersionSwitch = () => {
+    setShowConfirmDialog(false);
+    setSelectedVersion(currentVersion); // 恢复选择
+  };
+
   const confirmSwitchVersion = async () => {
-    // 这个函数现在只是关闭警告对话框
     setShowWarning(false);
     setPendingSwitchVersion(null);
   };
@@ -581,6 +597,96 @@ const SingBoxCoreManager = ({ isVisible, onClose }) => {
                 }}
               >
                 我知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 确认切换对话框 */}
+      {showConfirmDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1001
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)'
+          }}>
+            <h3 style={{
+              margin: '0 0 16px 0',
+              color: '#1e293b',
+              fontSize: '18px',
+              fontWeight: '600'
+            }}>
+              确认切换版本
+            </h3>
+            <p style={{
+              margin: '0 0 20px 0',
+              color: '#475569',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }}>
+              您确定要从版本 <strong>{currentVersion}</strong> 切换到 <strong>{selectedVersion}</strong> 吗？
+              <br /><br />
+              切换版本会停止当前运行的内核，不同版本可能存在兼容性差异。
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelVersionSwitch}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f1f5f9',
+                  color: '#475569',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e2e8f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#f1f5f9';
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmVersionSwitch}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#b91c1c';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#dc2626';
+                }}
+              >
+                确认切换
               </button>
             </div>
           </div>

@@ -6,13 +6,17 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { showMessage } from '../../utils/messageBox';
+import SimpleCoreDownloader from './SimpleCoreDownloader';
 
 const CoreSettings = () => {
   const [coreTypes, setCoreTypes] = useState([]);
   const [currentCoreType, setCurrentCoreType] = useState('');
+  const [selectedCoreType, setSelectedCoreType] = useState(''); // 用户选择的内核类型
   const [coreConfig, setCoreConfig] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+
 
   // 加载支持的内核类型
   useEffect(() => {
@@ -40,6 +44,7 @@ const CoreSettings = () => {
         const result = await window.electron.core.getCurrentType();
         if (result.success) {
           setCurrentCoreType(result.coreType);
+          setSelectedCoreType(result.coreType); // 同时设置选择的内核类型
         }
       }
     } catch (error) {
@@ -60,73 +65,73 @@ const CoreSettings = () => {
     }
   };
 
-  const handleCoreTypeChange = async (newCoreType) => {
-    if (newCoreType === currentCoreType) {
+  const handleCoreTypeChange = (newCoreType) => {
+    setSelectedCoreType(newCoreType);
+  };
+
+  const handleApplyCoreTypeChange = async () => {
+    if (selectedCoreType === currentCoreType) {
       return;
     }
 
+    // 直接显示确认对话框，允许切换到未安装的内核
+    setShowConfirmDialog(true);
+  };
+
+  const confirmCoreTypeSwitch = async () => {
+    setShowConfirmDialog(false);
     setIsSwitching(true);
+
     try {
       if (window.electron && window.electron.core) {
-        const result = await window.electron.core.switchType(newCoreType);
+        const result = await window.electron.core.switchType(selectedCoreType);
         if (result.success) {
-          setCurrentCoreType(newCoreType);
+          setCurrentCoreType(selectedCoreType);
           await loadCoreConfig(); // 重新加载配置信息
-          showMessage(`成功切换到 ${newCoreType} 内核`, 'success');
+
+          if (result.warning) {
+            // 切换成功但有警告（如内核未安装）
+            showMessage(`已切换到 ${selectedCoreType} 内核，但内核文件未安装。请在内核管理中下载安装`, 'warning');
+          } else {
+            showMessage(`成功切换到 ${selectedCoreType} 内核`, 'success');
+          }
         } else {
-          showMessage(`切换内核失败: ${result.error}`, 'error');
+          // 检查是否是内核未安装的错误（兼容旧版本）
+          if (result.error && result.error.includes('not installed')) {
+            // 内核未安装时，仍然允许切换，但给出提示
+            setCurrentCoreType(selectedCoreType);
+            await loadCoreConfig(); // 重新加载配置信息
+            showMessage(`已切换到 ${selectedCoreType} 内核，但内核文件未安装。请在内核管理中下载安装`, 'warning');
+          } else if (result.error && result.error.includes('is not a constructor')) {
+            showMessage(`内核初始化失败，请检查内核文件是否完整`, 'error');
+            setSelectedCoreType(currentCoreType); // 恢复选择
+          } else {
+            showMessage(`切换内核失败: ${result.error}`, 'error');
+            setSelectedCoreType(currentCoreType); // 恢复选择
+          }
         }
       }
     } catch (error) {
       console.error('切换内核类型失败:', error);
-      showMessage(`切换内核失败: ${error.message}`, 'error');
+      if (error.message && error.message.includes('is not a constructor')) {
+        showMessage('内核初始化失败，请检查内核文件是否完整', 'error');
+      } else {
+        showMessage(`切换内核失败: ${error.message}`, 'error');
+      }
+      setSelectedCoreType(currentCoreType); // 恢复选择
     } finally {
       setIsSwitching(false);
     }
   };
 
-  const checkCoreInstallation = async () => {
-    setIsLoading(true);
-    try {
-      if (window.electron && window.electron.core) {
-        const result = await window.electron.core.checkInstalled();
-        if (result.success) {
-          if (result.installed) {
-            showMessage(`${currentCoreType} 内核已安装 (版本: ${result.version || '未知'})`, 'success');
-          } else {
-            showMessage(`${currentCoreType} 内核未安装`, 'warning');
-          }
-        } else {
-          showMessage(`检查安装状态失败: ${result.error}`, 'error');
-        }
-      }
-    } catch (error) {
-      console.error('检查内核安装状态失败:', error);
-      showMessage(`检查安装状态失败: ${error.message}`, 'error');
-    } finally {
-      setIsLoading(false);
-    }
+  const cancelCoreTypeSwitch = () => {
+    setShowConfirmDialog(false);
+    setSelectedCoreType(currentCoreType); // 恢复选择
   };
 
-  const downloadCore = async (version = null) => {
-    setIsLoading(true);
-    try {
-      if (window.electron && window.electron.coreManager) {
-        const result = await window.electron.coreManager.downloadCore(currentCoreType, version);
-        if (result.success) {
-          showMessage(`${currentCoreType} 内核下载成功 (版本: ${result.version})`, 'success');
-          await checkCoreInstallation(); // 重新检查安装状态
-        } else {
-          showMessage(`内核下载失败: ${result.error}`, 'error');
-        }
-      }
-    } catch (error) {
-      console.error('下载内核失败:', error);
-      showMessage(`下载内核失败: ${error.message}`, 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
+
+
 
   return (
     <div className="core-settings">
@@ -142,19 +147,48 @@ const CoreSettings = () => {
             </span>
           </label>
           <div className="setting-control">
-            <select 
-              value={currentCoreType} 
-              onChange={(e) => handleCoreTypeChange(e.target.value)}
-              disabled={isSwitching}
-              className="setting-select"
-            >
-              {coreTypes.map(coreType => (
-                <option key={coreType.value} value={coreType.value}>
-                  {coreType.label}
-                </option>
-              ))}
-            </select>
-            {isSwitching && <span className="loading-indicator">切换中...</span>}
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <select
+                value={selectedCoreType}
+                onChange={(e) => handleCoreTypeChange(e.target.value)}
+                disabled={isSwitching}
+                className="setting-select"
+                style={{ flex: 1 }}
+              >
+                {coreTypes.map(coreType => (
+                  <option key={coreType.value} value={coreType.value}>
+                    {coreType.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleApplyCoreTypeChange}
+                disabled={isSwitching || selectedCoreType === currentCoreType}
+                className="btn btn-primary"
+                style={{
+                  minWidth: '80px',
+                  opacity: selectedCoreType === currentCoreType ? 0.5 : 1
+                }}
+              >
+                {isSwitching ? '切换中...' : '应用'}
+              </button>
+            </div>
+            {currentCoreType && (
+              <div style={{
+                marginTop: '8px',
+                fontSize: '12px',
+                color: '#666',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span>当前内核:</span>
+                <span style={{
+                  fontWeight: '500',
+                  color: '#10b981'
+                }}>{coreTypes.find(t => t.value === currentCoreType)?.label || currentCoreType}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -175,24 +209,14 @@ const CoreSettings = () => {
           </div>
         )}
 
-        {/* 内核管理操作 */}
+        {/* 内核管理操作 - 使用独立组件 */}
         <div className="setting-item">
           <label className="setting-label">内核管理</label>
           <div className="setting-actions">
-            <button 
-              onClick={checkCoreInstallation}
-              disabled={isLoading}
-              className="btn btn-secondary"
-            >
-              {isLoading ? '检查中...' : '检查安装状态'}
-            </button>
-            <button 
-              onClick={downloadCore}
-              disabled={isLoading}
-              className="btn btn-primary"
-            >
-              {isLoading ? '下载中...' : '下载内核'}
-            </button>
+            <SimpleCoreDownloader
+              coreType={currentCoreType}
+              onDownloadComplete={loadCoreConfig}
+            />
           </div>
         </div>
 
@@ -203,6 +227,96 @@ const CoreSettings = () => {
           </div>
         </div>
       </div>
+
+      {/* 确认对话框 */}
+      {showConfirmDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)'
+          }}>
+            <h3 style={{
+              margin: '0 0 16px 0',
+              color: '#1e293b',
+              fontSize: '18px',
+              fontWeight: '600'
+            }}>
+              确认切换内核
+            </h3>
+            <p style={{
+              margin: '0 0 20px 0',
+              color: '#475569',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }}>
+              您确定要从 <strong>{coreTypes.find(t => t.value === currentCoreType)?.label || currentCoreType}</strong> 切换到 <strong>{coreTypes.find(t => t.value === selectedCoreType)?.label || selectedCoreType}</strong> 内核吗？
+              <br /><br />
+              切换内核会停止当前运行的服务，不同内核使用不同的配置格式。
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelCoreTypeSwitch}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f1f5f9',
+                  color: '#475569',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e2e8f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#f1f5f9';
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmCoreTypeSwitch}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#b91c1c';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#dc2626';
+                }}
+              >
+                确认切换
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .core-settings {
@@ -373,6 +487,8 @@ const CoreSettings = () => {
           line-height: 1.6;
           font-weight: 500;
         }
+
+
       `}</style>
     </div>
   );

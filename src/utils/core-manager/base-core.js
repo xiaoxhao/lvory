@@ -99,10 +99,10 @@ class BaseCore {
    * @returns {string} 二进制文件路径
    */
   getBinaryPath() {
-    const utils = require('../../main/utils');
+    const { getBinDir } = require('../paths');
     const path = require('path');
-    const appDataDir = utils.getAppDataDir();
-    return path.join(appDataDir, 'bin', this.config.binaryName);
+    const binDir = getBinDir();
+    return path.join(binDir, this.config.binaryName);
   }
 
   /**

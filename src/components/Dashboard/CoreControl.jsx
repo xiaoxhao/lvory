@@ -74,7 +74,7 @@ const useCoreControl = () => {
     const handleDownloadProgress = (progress) => {
       setDownloadProgress(progress.progress);
       setDownloadMessage(progress.message || '');
-      
+
       if (progress.progress === 100) {
         setTimeout(() => {
           setIsDownloadingCore(false);
@@ -86,11 +86,30 @@ const useCoreControl = () => {
       }
     };
 
+    const handleDownloadComplete = (data) => {
+      console.log('Core download complete:', data);
+
+      if (data.success) {
+        setIsDownloadingCore(false);
+        setDownloadProgress(100);
+        setDownloadMessage('安装完成');
+        showMessage(`${data.coreType} 内核安装完成`, 'success');
+        checkCoreExists();
+      } else {
+        setIsDownloadingCore(false);
+        setDownloadProgress(0);
+        setDownloadMessage('');
+        showMessage('下载失败: ' + (data.error || '未知错误'), 'error');
+      }
+    };
+
     if (window.electron && window.electron.ipcRenderer) {
       window.electron.ipcRenderer.on('core-download-progress', handleDownloadProgress);
-      
+      window.electron.ipcRenderer.on('core-download-complete', handleDownloadComplete);
+
       return () => {
         window.electron.ipcRenderer.removeListener('core-download-progress', handleDownloadProgress);
+        window.electron.ipcRenderer.removeListener('core-download-complete', handleDownloadComplete);
       };
     }
   }, []);
@@ -221,32 +240,46 @@ const useCoreControl = () => {
 
   // 下载内核
   const downloadCore = async () => {
-    if (window.electron && window.electron.core) {
-      setIsDownloadingCore(true);
-      setDownloadProgress(0);
-      setDownloadMessage('准备下载...');
-      
-      try {
-        const result = await window.electron.core.download();
-        
-        if (result && result.success) {
-          setDownloadProgress(100);
-          setDownloadMessage('下载完成');
-          setTimeout(() => {
-            setIsDownloadingCore(false);
-            checkCoreExists();
-          }, 1000);
-          showMessage(`${currentCoreType} 内核下载成功`);
-        } else {
-          setIsDownloadingCore(false);
-          const errorMsg = result && result.error ? result.error : '下载失败';
-          showMessage(`下载失败: ${errorMsg}`);
-        }
-      } catch (error) {
-        setIsDownloadingCore(false);
-        console.error(`下载 ${currentCoreType} 内核异常:`, error);
-        showMessage(`下载异常: ${error.message}`);
+    if (!window.electron || !window.electron.coreManager) {
+      showMessage('下载功能不可用');
+      return;
+    }
+
+    setIsDownloadingCore(true);
+    setDownloadProgress(0);
+    setDownloadMessage('准备下载...');
+
+    try {
+      // 获取当前内核类型
+      const coreType = currentCoreType || 'sing-box';
+
+      // 指定版本下载
+      const targetVersions = {
+        'sing-box': 'v1.12.0-rc.4',
+        'mihomo': 'v1.19.12'
+      };
+
+      const version = targetVersions[coreType];
+      if (!version) {
+        throw new Error(`不支持的内核类型: ${coreType}`);
       }
+
+      console.log(`开始下载 ${coreType} ${version}`);
+
+      const result = await window.electron.coreManager.downloadCore(coreType, version);
+
+      if (result && result.success) {
+        // 注意：实际的进度更新通过IPC事件处理，这里只处理最终结果
+        showMessage(`${coreType} 内核下载成功`);
+      } else {
+        setIsDownloadingCore(false);
+        const errorMsg = result && result.error ? result.error : '下载失败';
+        showMessage(`下载失败: ${errorMsg}`);
+      }
+    } catch (error) {
+      setIsDownloadingCore(false);
+      console.error(`下载 ${currentCoreType} 内核异常:`, error);
+      showMessage(`下载异常: ${error.message}`);
     }
   };
 

@@ -8,7 +8,7 @@ const { pipeline } = require('stream');
 const logger = require('../../utils/logger');
 const utils = require('./utils');
 const { CORE_TYPES, getCoreConfig } = require('../../constants/core-types');
-const universalDownloader = require('../core-downloader-universal');
+const { universalCoreDownloader } = require('../core-downloader-universal');
 
 const streamPipeline = promisify(pipeline);
 
@@ -51,20 +51,24 @@ async function getSingBoxReleases() {
                 // 排除草稿版本
                 if (release.draft) return false;
 
-                // 支持标准版本 (v1.11.9) 和 alpha 版本 (v1.12.0-alpha.1)
                 const versionPattern = /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/;
                 return release.tag_name.match(versionPattern);
               })
               .map(release => ({
-                id: release.id,
-                tag_name: release.tag_name,
-                name: release.name,
-                published_at: release.published_at,
-                prerelease: release.prerelease,
-                body: release.body,
-                assets: release.assets,
+                id: Number(release.id || 0),
+                tag_name: String(release.tag_name || ''),
+                name: String(release.name || ''),
+                published_at: String(release.published_at || ''),
+                prerelease: Boolean(release.prerelease),
+                body: String(release.body || ''),
+                assets: Array.isArray(release.assets) ? release.assets.map(asset => ({
+                  name: String(asset.name || ''),
+                  download_count: Number(asset.download_count || 0),
+                  size: Number(asset.size || 0),
+                  browser_download_url: String(asset.browser_download_url || '')
+                })) : [],
                 // 添加版本类型标识
-                version_type: release.tag_name.includes('-alpha') ? 'alpha' : 'stable'
+                version_type: String(release.tag_name || '').includes('-alpha') ? 'alpha' : 'stable'
               }))
               .sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
 
@@ -141,10 +145,14 @@ function getInstalledVersions() {
         return 0;
       });
 
-    return { success: true, versions };
+    // 确保返回的结果是可序列化的
+    return {
+      success: true,
+      versions: versions.map(version => String(version))
+    };
   } catch (error) {
     logger.error('获取已安装版本失败:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: String(error.message || '获取版本失败') };
   }
 }
 
@@ -421,7 +429,19 @@ function setup() {
 
   // 下载版本
   ipcMain.handle('core-manager-download-version', async (event, version) => {
-    return await downloadVersion(version);
+    try {
+      const result = await downloadVersion(version);
+
+      // 确保返回的结果是可序列化的
+      return {
+        success: Boolean(result.success),
+        error: result.error ? String(result.error) : undefined,
+        version: result.version ? String(result.version) : undefined
+      };
+    } catch (error) {
+      logger.error(`下载版本 ${version} 失败:`, error);
+      return { success: false, error: String(error.message || '下载失败') };
+    }
   });
 
   // 切换版本
@@ -503,14 +523,14 @@ function setup() {
       if (coreType === CORE_TYPES.SINGBOX) {
         return await getSingBoxReleases();
       } else if (coreType === CORE_TYPES.MIHOMO) {
-        const releases = await universalDownloader.getGitHubReleases(coreType);
+        const releases = await universalCoreDownloader.getGitHubReleases(coreType);
         return {
           success: true,
           releases: releases.map(release => ({
-            tag_name: release.tag_name,
-            name: release.name,
-            published_at: release.published_at,
-            prerelease: release.prerelease
+            tag_name: String(release.tag_name || ''),
+            name: String(release.name || ''),
+            published_at: String(release.published_at || ''),
+            prerelease: Boolean(release.prerelease)
           }))
         };
       } else {
@@ -525,13 +545,31 @@ function setup() {
   // 通用内核版本管理 - 下载版本
   ipcMain.handle('core-manager-download-core', async (event, coreType, version) => {
     try {
+      logger.info(`收到下载内核请求: coreType=${coreType}, version=${version}`);
       const utils = require('./utils');
       const mainWindow = utils.getMainWindow();
 
-      const result = await universalDownloader.downloadCore(coreType, version, mainWindow);
-      return result;
+      logger.info('开始调用 universalCoreDownloader.downloadCore');
+      const result = await universalCoreDownloader.downloadCore(coreType, version, mainWindow);
+      logger.info('下载结果:', result);
+
+      // 确保返回的结果是可序列化的，移除任何不可序列化的属性
+      const serializableResult = {
+        success: result.success,
+        error: result.error,
+        version: result.version,
+        // 不包含 path 或其他可能包含不可序列化对象的属性
+      };
+
+      // 只有在成功时才包含版本信息
+      if (result.success && result.version) {
+        serializableResult.version = result.version;
+      }
+
+      return serializableResult;
     } catch (error) {
       logger.error(`下载 ${coreType} ${version} 失败:`, error);
+      logger.error('错误堆栈:', error.stack);
       return { success: false, error: error.message };
     }
   });
@@ -539,11 +577,16 @@ function setup() {
   // 通用内核版本管理 - 获取最新版本
   ipcMain.handle('core-manager-get-latest-version', async (event, coreType) => {
     try {
-      const latestVersion = await universalDownloader.getLatestVersion(coreType);
-      return { success: true, version: latestVersion };
+      const latestVersion = await universalCoreDownloader.getLatestVersion(coreType);
+
+      // 确保返回的结果是可序列化的
+      return {
+        success: true,
+        version: latestVersion ? String(latestVersion) : undefined
+      };
     } catch (error) {
       logger.error(`获取 ${coreType} 最新版本失败:`, error);
-      return { success: false, error: error.message };
+      return { success: false, error: String(error.message || '获取版本失败') };
     }
   });
 
@@ -555,9 +598,80 @@ function setup() {
       const binaryPath = path.join(appDataDir, 'bin', config.binaryName);
 
       const installed = fs.existsSync(binaryPath);
-      return { success: true, installed, path: binaryPath };
+      let fileSize = null;
+      let isExecutable = false;
+
+      if (installed) {
+        try {
+          const stats = fs.statSync(binaryPath);
+          fileSize = stats.size;
+
+          // 检查文件是否可执行（非Windows系统）
+          if (process.platform !== 'win32') {
+            isExecutable = !!(stats.mode & parseInt('111', 8));
+          } else {
+            // Windows系统默认认为.exe文件可执行
+            isExecutable = binaryPath.endsWith('.exe');
+          }
+        } catch (statError) {
+          logger.warn(`获取 ${coreType} 文件信息失败:`, statError);
+        }
+      }
+
+      // 确保返回的结果是可序列化的
+      return {
+        success: true,
+        installed: Boolean(installed),
+        path: String(binaryPath),
+        fileSize: fileSize ? Number(fileSize) : null,
+        isExecutable: Boolean(isExecutable),
+        coreType: String(coreType)
+      };
     } catch (error) {
       logger.error(`检查 ${coreType} 安装状态失败:`, error);
+      return {
+        success: false,
+        error: String(error.message || '检查安装状态失败'),
+        coreType: String(coreType)
+      };
+    }
+  });
+
+  ipcMain.handle('core-manager-download-core-async', async (event, coreType, version) => {
+    try {
+      logger.info(`启动异步下载: coreType=${coreType}, version=${version}`);
+      const utils = require('./utils');
+      const mainWindow = utils.getMainWindow();
+
+      // 立即返回，不等待下载完成
+      setImmediate(async () => {
+        try {
+          const result = await universalCoreDownloader.downloadCore(coreType, version, mainWindow);
+
+          // 下载完成后发送事件
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('core-download-complete', {
+              success: result.success,
+              coreType,
+              version: result.version,
+              error: result.error
+            });
+          }
+        } catch (error) {
+          logger.error(`异步下载失败:`, error);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('core-download-complete', {
+              success: false,
+              coreType,
+              error: error.message
+            });
+          }
+        }
+      });
+
+      return { success: true, message: '下载已启动' };
+    } catch (error) {
+      logger.error(`启动异步下载失败:`, error);
       return { success: false, error: error.message };
     }
   });

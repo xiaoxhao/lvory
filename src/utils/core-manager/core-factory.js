@@ -112,14 +112,37 @@ class CoreFactory {
         return { success: true, message: 'Already using the specified core type' };
       }
 
-      // 停止当前内核
-      const currentCore = this.getCurrentCore();
-      if (currentCore && typeof currentCore.getStatus === 'function') {
-        const status = currentCore.getStatus();
-        if (status.isRunning) {
-          logger.info(`[CoreFactory] Stopping current core: ${currentCoreType}`);
-          await currentCore.stopCore();
+      // 检查新内核是否已安装
+      let newCore;
+      let isInstalled = false;
+      let installCheckError = null;
+
+      try {
+        newCore = this.createCore(newCoreType);
+        const installCheck = await newCore.checkInstalled();
+        if (!installCheck.success) {
+          installCheckError = installCheck.error;
+          logger.warn(`[CoreFactory] Failed to check ${newCoreType} installation: ${installCheck.error}`);
+        } else {
+          isInstalled = installCheck.installed;
         }
+      } catch (error) {
+        logger.error(`[CoreFactory] Failed to create or check ${newCoreType} core:`, error);
+        installCheckError = error.message;
+      }
+
+      // 停止当前内核
+      try {
+        const currentCore = this.getCurrentCore();
+        if (currentCore && typeof currentCore.getStatus === 'function') {
+          const status = currentCore.getStatus();
+          if (status.isRunning) {
+            logger.info(`[CoreFactory] Stopping current core: ${currentCoreType}`);
+            await currentCore.stopCore();
+          }
+        }
+      } catch (error) {
+        logger.warn(`[CoreFactory] Failed to stop current core ${currentCoreType}:`, error);
       }
 
       // 更新设置
@@ -130,12 +153,25 @@ class CoreFactory {
       this.setCurrentCoreType(newCoreType);
 
       logger.info(`[CoreFactory] Successfully switched from ${currentCoreType} to ${newCoreType}`);
-      return { 
-        success: true, 
-        message: `Successfully switched to ${newCoreType}`,
-        previousCore: currentCoreType,
-        currentCore: newCoreType
-      };
+
+      // 根据安装状态返回不同的结果
+      if (isInstalled) {
+        return {
+          success: true,
+          message: `Successfully switched to ${newCoreType}`,
+          previousCore: currentCoreType,
+          currentCore: newCoreType
+        };
+      } else {
+        return {
+          success: true,
+          warning: true,
+          message: `Switched to ${newCoreType}, but core is not installed. Please download and install the core first.`,
+          previousCore: currentCoreType,
+          currentCore: newCoreType,
+          installError: installCheckError
+        };
+      }
     } catch (error) {
       logger.error('[CoreFactory] Failed to switch core type:', error);
       return { success: false, error: error.message };

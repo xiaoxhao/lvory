@@ -277,7 +277,16 @@ contextBridge.exposeInMainWorld('electron', {
     getReleases: (coreType) => ipcRenderer.invoke('core-manager-get-releases', coreType),
     downloadCore: (coreType, version) => ipcRenderer.invoke('core-manager-download-core', coreType, version),
     getLatestVersion: (coreType) => ipcRenderer.invoke('core-manager-get-latest-version', coreType),
-    checkCoreInstalled: (coreType) => ipcRenderer.invoke('core-manager-check-core-installed', coreType)
+    checkCoreInstalled: (coreType) => ipcRenderer.invoke('core-manager-check-core-installed', coreType),
+
+    // 简化异步下载接口
+    downloadCoreAsync: (coreType, version) => ipcRenderer.invoke('core-manager-download-core-async', coreType, version),
+
+    // 下载完成事件监听
+    onDownloadComplete: (callback) => {
+      ipcRenderer.on('core-download-complete', (event, data) => callback(data));
+      return () => ipcRenderer.removeListener('core-download-complete', callback);
+    }
   },
 
   // 统一的内核接口（新）
@@ -296,6 +305,7 @@ contextBridge.exposeInMainWorld('electron', {
     getDetailedStatus: () => ipcRenderer.invoke('core-get-detailed-status'),
     getVersion: () => ipcRenderer.invoke('core-get-version'),
     checkInstalled: () => ipcRenderer.invoke('core-check-installed'),
+    checkTypeInstalled: (coreType) => ipcRenderer.invoke('core-check-type-installed', coreType),
 
     // 配置管理
     checkConfig: (configPath) => ipcRenderer.invoke('core-check-config', configPath),

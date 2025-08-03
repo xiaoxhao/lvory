@@ -6,7 +6,7 @@ const logger = require('../../utils/logger');
 const utils = require('./utils');
 const singbox = require('../../utils/sing-box');
 const profileManager = require('../profile-manager');
-const coreDownloader = require('../core-downloader');
+const { downloadCore: coreDownloader } = require('../core-downloader-universal');
 const fs = require('fs');
 const path = require('path');
 
@@ -192,10 +192,16 @@ function setup() {
   ipcMain.handle('singbox-download-core', async () => {
     try {
       const result = await singbox.downloadCore();
-      return result;
+
+      // 确保返回的结果是可序列化的
+      return {
+        success: Boolean(result.success),
+        error: result.error ? String(result.error) : undefined,
+        version: result.version ? String(result.version) : undefined
+      };
     } catch (error) {
       logger.error('下载sing-box内核失败:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: String(error.message || '下载失败') };
     }
   });
   
@@ -203,7 +209,15 @@ function setup() {
   ipcMain.handle('download-core', async (event) => {
     try {
       const mainWindow = utils.getMainWindow();
-      const result = await coreDownloader.downloadCore(mainWindow);
+      const result = await coreDownloader(mainWindow);
+
+      // 确保返回的结果是可序列化的
+      const serializableResult = {
+        success: Boolean(result.success),
+        error: result.error ? String(result.error) : undefined,
+        version: result.version ? String(result.version) : undefined
+      };
+
       // 如果下载成功，尝试获取版本信息
       if (result.success) {
         setTimeout(async () => {
@@ -211,16 +225,17 @@ function setup() {
           if (versionInfo.success && mainWindow && !mainWindow.isDestroyed()) {
             // 通知渲染进程更新版本信息
             mainWindow.webContents.send('core-version-update', {
-              version: versionInfo.version,
-              fullOutput: versionInfo.fullOutput
+              version: versionInfo.version ? String(versionInfo.version) : '',
+              fullOutput: versionInfo.fullOutput ? String(versionInfo.fullOutput) : ''
             });
           }
         }, 500); // 稍微延迟以确保文件已正确解压并可访问
       }
-      return result;
+
+      return serializableResult;
     } catch (error) {
       logger.error('下载内核处理器错误:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: String(error.message || '下载失败') };
     }
   });
   

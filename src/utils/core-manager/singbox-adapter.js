@@ -144,26 +144,37 @@ class SingBoxAdapter extends BaseCore {
     try {
       const singbox = this.getSingBoxInstance();
       const installed = singbox.checkInstalled();
-      
+
       if (installed) {
         // 尝试获取版本信息来验证二进制文件是否可用
         const versionResult = await this.getVersion();
+
+        // 使用统一的文件工具获取文件信息
+        const { getFileInfo } = require('../../utils/file-utils');
+        const fileInfo = getFileInfo(singbox.binPath);
+
         return {
           success: true,
           installed: versionResult.success,
           path: singbox.binPath,
-          version: versionResult.version || null
+          version: versionResult.version || null,
+          ...fileInfo
         };
       } else {
         return {
           success: true,
           installed: false,
-          path: singbox.binPath
+          path: singbox.binPath,
+          reason: '二进制文件不存在'
         };
       }
     } catch (error) {
       logger.error('[SingBoxAdapter] 检查安装状态失败:', error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.message,
+        installed: false
+      };
     }
   }
 
