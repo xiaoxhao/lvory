@@ -106,12 +106,29 @@ const Profiles = () => {
           const targetFilePath = fileInfo.path;
           
           console.log(`激活配置文件: ${fileName} (${fileInfo.protocol || 'singbox'}), 路径: ${targetFilePath}`);
-          
-          const setResult = await window.electron.config.setPath(targetFilePath);
+
+          // 根据协议类型设置相应的内核和配置
+          let setResult;
+          if (fileInfo.protocol === 'lvory' || fileInfo.protocol === 'mihomo') {
+            // 对于 Lvory 和 Mihomo 协议，需要设置 Mihomo 内核
+            setResult = await window.electron.config.setPath(targetFilePath, {
+              coreType: 'mihomo',
+              protocol: fileInfo.protocol
+            });
+          } else {
+            // 对于 SingBox 协议，使用 SingBox 内核
+            setResult = await window.electron.config.setPath(targetFilePath, {
+              coreType: 'singbox',
+              protocol: 'singbox'
+            });
+          }
+
           if (setResult && setResult.success) {
             setActiveProfile(fileName);
             if (fileInfo.protocol === 'lvory') {
               showMessage(`${t('profiles.lvoryConfigActivated')}${fileName}`);
+            } else if (fileInfo.protocol === 'mihomo') {
+              showMessage(`${t('profiles.mihomoConfigActivated')}${fileName}`);
             } else {
               showMessage(`${t('profiles.configActivated')}${fileName}`);
             }
@@ -309,7 +326,9 @@ const Profiles = () => {
         </td>
         <td className="protocol-column">
           <span className={`protocol-badge ${file.protocol}`}>
-            {file.protocol === 'lvory' ? t('profiles.lvoryProtocol') : t('profiles.singboxProtocol')}
+            {file.protocol === 'lvory' ? t('profiles.lvoryProtocol') :
+             file.protocol === 'mihomo' ? t('profiles.mihomoProtocol') :
+             t('profiles.singboxProtocol')}
           </span>
         </td>
         <td>{file.size || 'Unknown'}</td>
@@ -349,13 +368,13 @@ const Profiles = () => {
                   <span className="dropdown-icon refresh-icon"></span>
                   <span>{t('profiles.updateProfile')}</span>
                 </button>
-                {file.protocol === 'lvory' && (
+                {(file.protocol === 'lvory' || file.protocol === 'mihomo') && (
                   <button
                     className="dropdown-item"
                     onClick={() => handleRefreshLvoryCache(file.name)}
                   >
                     <span className="dropdown-icon refresh-icon"></span>
-                    <span>{t('profiles.refreshLvoryCache')}</span>
+                    <span>{file.protocol === 'lvory' ? t('profiles.refreshLvoryCache') : t('profiles.refreshMihomoCache')}</span>
                   </button>
                 )}
                 {!file.isComplete && (

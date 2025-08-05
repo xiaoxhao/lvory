@@ -120,7 +120,7 @@ contextBridge.exposeInMainWorld('electron', {
   // 统一的配置路径管理接口
   config: {
     getPath: () => ipcRenderer.invoke('get-config-path'),
-    setPath: (filePath) => ipcRenderer.invoke('set-config-path', filePath),
+    setPath: (filePath, options) => ipcRenderer.invoke('set-config-path', filePath, options),
     getCurrent: () => ipcRenderer.invoke('get-current-config'),
     reprocess: () => ipcRenderer.invoke('reprocess-current-config')
   },
@@ -273,7 +273,6 @@ contextBridge.exposeInMainWorld('electron', {
     switchVersion: (version) => ipcRenderer.invoke('core-manager-switch-version', version),
     deleteVersion: (version) => ipcRenderer.invoke('core-manager-delete-version', version),
 
-    // 新的通用接口
     getReleases: (coreType) => ipcRenderer.invoke('core-manager-get-releases', coreType),
     downloadCore: (coreType, version) => ipcRenderer.invoke('core-manager-download-core', coreType, version),
     getLatestVersion: (coreType) => ipcRenderer.invoke('core-manager-get-latest-version', coreType),

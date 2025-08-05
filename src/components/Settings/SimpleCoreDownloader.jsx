@@ -130,14 +130,6 @@ const SimpleCoreDownloader = ({ coreType, onDownloadComplete }) => {
       >
         下载/更新内核
       </DownloadButton>
-
-      <style>{`
-        .simple-core-downloader {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-      `}</style>
     </div>
   );
 };

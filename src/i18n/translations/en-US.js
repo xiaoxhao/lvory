@@ -137,6 +137,7 @@ export default {
     incomplete: 'INCOMPLETE',
     cached: 'CACHED',
     lvoryProtocol: 'Lvory',
+    mihomoProtocol: 'Mihomo',
     singboxProtocol: 'SingBox',
     loadLocalFile: 'Load Local File',
     selectConfigFile: 'Select Config File',
@@ -163,7 +164,9 @@ export default {
     fixNotAvailable: 'Fix API not available, please check if the application needs an update',
     configActivated: 'Configuration file switched: ',
     lvoryConfigActivated: 'Lvory config activated and parsed to SingBox: ',
+    mihomoConfigActivated: 'Mihomo config activated: ',
     refreshLvoryCache: 'Refresh Cache',
+    refreshMihomoCache: 'Refresh Cache',
     refreshLvoryCacheSuccess: 'Lvory cache refreshed successfully',
     refreshLvoryCacheFailed: 'Failed to refresh Lvory cache:',
     refreshLvoryCacheNotAvailable: 'Refresh cache feature not available'
@@ -182,6 +185,8 @@ export default {
     singboxDescription: 'Standard SingBox configuration format with full proxy features and routing rules',
     lvoryProtocol: 'Lvory Protocol',
     lvoryDescription: 'Lvory smart sync protocol with multi-source configuration merging and auto-updates',
+    mihomoProtocol: 'Mihomo',
+    mihomoDescription: 'Clash-compatible configuration format with mainstream proxy protocols and rules',
     // Input fields
     enterUrl: 'Enter URL to download profile:',
     urlPlaceholder: 'https://example.com/profile.config',

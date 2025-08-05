@@ -31,7 +31,7 @@
 
 /* 模式选择 */
 .mode-selection {
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 
 .mode-tabs {
@@ -49,22 +49,30 @@
   background-color: transparent;
   color: var(--neutral-600);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   border-radius: var(--border-radius-sm);
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
+  letter-spacing: 0.025em;
+  position: relative;
 }
 
 .mode-tab:hover {
   color: var(--neutral-700);
   background-color: var(--neutral-50);
+  transform: translateY(-1px);
 }
 
 .mode-tab.active {
   background-color: white;
   color: var(--primary-color);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+}
+
+.mode-tab:active {
+  transform: translateY(0);
 }
 
 /* 协议选择 */
@@ -74,15 +82,15 @@
 
 .protocol-selection-label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--neutral-900);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .protocol-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
 }
 
@@ -98,26 +106,32 @@
 }
 
 .protocol-option-label {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   padding: 16px;
   border: 1px solid var(--neutral-200);
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background-color: white;
   text-align: center;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-height: 80px;
 }
 
 .protocol-option-label:hover {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
 }
 
 .protocol-option input[type="radio"]:checked + .protocol-option-label {
   border-color: var(--primary-color);
-  background-color: var(--primary-light);
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(37, 99, 235, 0.08) 100%);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  transform: translateY(-1px);
 }
 
 .protocol-option-title {
@@ -125,6 +139,8 @@
   font-weight: 600;
   color: var(--neutral-900);
   margin-bottom: 6px;
+  letter-spacing: 0.025em;
+  font-family: 'SF Pro Display', 'Segoe UI', 'Roboto', sans-serif;
 }
 
 .protocol-option input[type="radio"]:checked + .protocol-option-label .protocol-option-title {
@@ -133,8 +149,10 @@
 
 .protocol-option-description {
   font-size: 12px;
-  color: var(--neutral-500);
+  color: var(--neutral-600);
   line-height: 1.4;
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
 /* 输入字段 */
@@ -144,32 +162,44 @@
 
 .url-input-container label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--neutral-900);
   margin-bottom: 8px;
+  letter-spacing: 0.025em;
+  font-family: 'SF Pro Display', 'Segoe UI', 'Roboto', sans-serif;
 }
 
 .url-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 1px solid var(--neutral-300);
   border-radius: var(--border-radius);
-  font-size: 14px;
-  transition: var(--transition);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
   background-color: white;
   color: var(--neutral-900);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  letter-spacing: 0.025em;
 }
 
 .url-input::placeholder {
   color: var(--neutral-400);
+  font-weight: 400;
+}
+
+.url-input:hover {
+  border-color: var(--neutral-400);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .url-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1), 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .url-input:disabled {
@@ -177,31 +207,41 @@
   color: var(--neutral-500);
   cursor: not-allowed;
   border-color: var(--neutral-200);
+  transform: none;
 }
 
 /* 下拉选择 */
 .update-interval select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 1px solid var(--neutral-300);
   border-radius: var(--border-radius);
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
   background-color: white;
   color: var(--neutral-900);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 12px center;
+  background-position: right 14px center;
   background-repeat: no-repeat;
-  background-size: 16px;
-  padding-right: 40px;
+  background-size: 14px;
+  padding-right: 38px;
   appearance: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  letter-spacing: 0.025em;
+}
+
+.update-interval select:hover {
+  border-color: var(--neutral-400);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .update-interval select:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1), 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 /* 文件选择 */
@@ -219,26 +259,42 @@
 
 .file-select-button {
   width: 100%;
-  padding: 12px 16px;
-  border: 1px dashed var(--neutral-300);
+  padding: 16px 20px;
+  border: 2px dashed var(--neutral-300);
   border-radius: var(--border-radius);
   font-size: 14px;
+  font-weight: 500;
   background-color: var(--neutral-50);
   color: var(--neutral-600);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 48px;
+  gap: 10px;
+  min-height: 56px;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.025em;
+}
+
+.file-select-button::before {
+  content: "📁";
+  font-size: 18px;
+  transition: transform 0.3s ease;
 }
 
 .file-select-button:hover {
   border-color: var(--primary-color);
   background-color: var(--primary-light);
   color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.file-select-button:hover::before {
+  transform: scale(1.1);
 }
 
 .file-select-button:focus {
@@ -247,10 +303,28 @@
   box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
 }
 
-.file-select-button::before {
-  content: "⊞";
-  font-size: 16px;
+.file-select-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+}
+
+/* 选中文件时的样式 */
+.file-select-button.file-selected {
+  border-color: var(--success-color);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.05) 0%, rgba(5, 150, 105, 0.1) 100%);
+  color: var(--success-color);
+}
+
+.file-select-button.file-selected::before {
+  content: "✓";
+  color: var(--success-color);
   font-weight: bold;
+}
+
+.file-select-button.file-selected:hover {
+  border-color: var(--success-color);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(5, 150, 105, 0.15) 100%);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
 }
 
 /* 加载状态 */
@@ -312,6 +386,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  animation: fadeInUp 0.5s ease-out both;
 }
 
 .success-title::before {
@@ -326,18 +401,49 @@
   border-radius: 50%;
   font-size: 12px;
   font-weight: 700;
+  animation: checkmarkRotate 0.6s ease-out;
+}
+
+@keyframes checkmarkRotate {
+  0% {
+    transform: rotate(-180deg) scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: rotate(-90deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
 }
 
 .success-filename {
-  font-size: 14px;
-  color: var(--neutral-700);
-  background-color: var(--neutral-100);
-  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--neutral-800);
+  background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
+  padding: 14px 18px;
   border-radius: var(--border-radius);
   margin-bottom: 12px;
-  font-weight: 500;
-  font-family: 'Monaco', 'Consolas', monospace;
+  font-family: 'SF Pro Display', 'Segoe UI', 'Roboto', sans-serif;
   word-break: break-all;
+  border: 1px solid var(--neutral-200);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  letter-spacing: 0.025em;
+  line-height: 1.4;
+  animation: fadeInUp 0.5s ease-out 0.2s both;
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .success-update {
@@ -439,83 +545,173 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 44px;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.025em;
+}
+
+/* 按钮点击波纹效果 */
+.cancel-button::before,
+.download-button::before,
+.try-again-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+  pointer-events: none;
+}
+
+.cancel-button:active::before,
+.download-button:active::before,
+.try-again-button:active::before {
+  width: 300px;
+  height: 300px;
 }
 
 .cancel-button {
   background-color: white;
   color: var(--neutral-700);
   border: 1px solid var(--neutral-300);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .cancel-button:hover {
   background-color: var(--neutral-50);
   border-color: var(--neutral-400);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cancel-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .download-button {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 .download-button:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  background: linear-gradient(135deg, var(--primary-hover) 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+}
+
+.download-button:active:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
 }
 
 .download-button:disabled {
-  background-color: var(--neutral-300);
+  background: var(--neutral-300);
   color: var(--neutral-500);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.6;
 }
 
 .try-again-button {
-  background-color: var(--error-color);
+  background: linear-gradient(135deg, var(--error-color) 0%, #b91c1c 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
 
 .try-again-button:hover {
-  background-color: #b91c1c;
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+}
+
+.try-again-button:active {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
 }
 
 /* 成功状态的模态框顶部装饰 */
 .modal.success-state .modal-content {
   border-top: 4px solid var(--success-color);
+  animation: successPulse 0.6s ease-out;
+}
+
+/* 动画效果 */
+@keyframes successPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes buttonPress {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 为按钮添加按压动画 */
+.download-button:active,
+.cancel-button:active,
+.try-again-button:active {
+  animation: buttonPress 0.15s ease-out;
 }
 
 /* 响应式优化 */
+@media (max-width: 768px) {
+  .protocol-options {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 @media (max-width: 640px) {
   .profile-modal-content {
     max-width: 100%;
     margin: 0 16px;
   }
-  
+
   .protocol-options {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  
+
   .mode-tabs {
     grid-template-columns: 1fr 1fr;
   }
-  
+
   .modal-actions {
     flex-direction: column-reverse;
   }
-  
+
   .cancel-button,
   .download-button,
   .try-again-button {
     width: 100%;
   }
-} 
+}

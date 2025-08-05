@@ -35,28 +35,43 @@ function setup() {
   });
   
   // 设置配置文件路径
-  ipcMain.handle('set-config-path', async (event, filePath) => {
+  ipcMain.handle('set-config-path', async (event, filePath, options = {}) => {
     try {
       if (!filePath) {
         return { success: false, error: '文件路径不能为空' };
       }
-      
+
       const configDir = utils.getConfigDir();
       const fullPath = path.isAbsolute(filePath) ? filePath : path.join(configDir, filePath);
-      
+
       // 检查文件是否存在
       if (!fs.existsSync(fullPath)) {
         return { success: false, error: `文件不存在: ${fullPath}` };
       }
-      
+
+      // 如果指定了内核类型，先切换内核
+      if (options.coreType) {
+        const coreFactory = require('../../utils/core-manager/core-factory');
+        const currentCoreType = coreFactory.getCurrentCoreType();
+
+        if (currentCoreType !== options.coreType) {
+          logger.info(`切换内核类型: ${currentCoreType} -> ${options.coreType}`);
+          const switchResult = await coreFactory.switchCore(options.coreType);
+          if (!switchResult.success && !switchResult.warning) {
+            logger.warn(`内核切换失败: ${switchResult.error}`);
+            // 继续执行，但记录警告
+          }
+        }
+      }
+
       // 获取SingBox实例检查是否正在运行
       const singbox = require('../../utils/sing-box');
       const isRunning = singbox.isRunning();
-      
+
       // 使用profileManager的智能设置方法处理Lvory和SingBox配置
       const success = await profileManager.setConfigPathSmart(fullPath);
       if (success) {
-        logger.info(`配置文件已成功设置: ${fullPath}`);
+        logger.info(`配置文件已成功设置: ${fullPath} (协议: ${options.protocol || 'auto'})`);
         
         // 如果内核正在运行，需要重启以应用新配置
         if (isRunning) {
@@ -197,11 +212,34 @@ function setup() {
           let protocol = 'singbox'; // 默认协议
           let hasCache = false;
           let cacheInfo = null;
-          
+
           try {
             if (metaCache[file]) {
               status = metaCache[file].status || 'active';
               protocol = metaCache[file].protocol || 'singbox';
+            } else {
+              // 如果没有元数据，尝试根据文件内容自动检测协议类型
+              try {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const ext = path.extname(file).toLowerCase();
+
+                if (ext === '.json') {
+                  // JSON文件默认为 singbox
+                  protocol = 'singbox';
+                } else if (ext === '.yaml' || ext === '.yml') {
+                  // YAML文件根据内容判断
+                  if (content.includes('lvory_sync:')) {
+                    protocol = 'lvory';
+                  } else if (content.includes('proxies:') || content.includes('proxy-groups:')) {
+                    protocol = 'mihomo';
+                  } else {
+                    protocol = 'mihomo'; // YAML文件默认为 mihomo
+                  }
+                }
+              } catch (err) {
+                logger.warn(`自动检测协议类型失败: ${err.message}`);
+              }
+            }
               
               // 检查是否有缓存文件
               if (metaCache[file].singboxCache) {
@@ -230,17 +268,30 @@ function setup() {
           try {
             const content = fs.readFileSync(filePath, 'utf8');
             const ext = path.extname(file).toLowerCase();
-            
+
             if (ext === '.json') {
-              // JSON文件检查inbounds字段
+              // JSON文件检查inbounds字段 (SingBox)
               const configObj = JSON.parse(content);
               if (!configObj.inbounds || configObj.inbounds.length === 0) {
                 isComplete = false;
               }
             } else if (ext === '.yaml' || ext === '.yml') {
-              // YAML文件检查lvory_sync或proxies字段
-              if (!content.includes('lvory_sync:') && !content.includes('proxies:')) {
-                isComplete = false;
+              // YAML文件根据协议类型检查不同字段
+              if (protocol === 'lvory') {
+                // Lvory协议检查lvory_sync字段
+                if (!content.includes('lvory_sync:')) {
+                  isComplete = false;
+                }
+              } else if (protocol === 'mihomo') {
+                // Mihomo协议检查proxies字段
+                if (!content.includes('proxies:')) {
+                  isComplete = false;
+                }
+              } else {
+                // 通用检查
+                if (!content.includes('lvory_sync:') && !content.includes('proxies:')) {
+                  isComplete = false;
+                }
               }
             }
           } catch (err) {
@@ -750,12 +801,36 @@ function setup() {
         } catch (err) {
           return { success: false, error: `无效的YAML格式: ${err.message}` };
         }
+      } else if (protocol === 'mihomo') {
+        // 对于mihomo协议，验证YAML格式
+        try {
+          const yaml = require('js-yaml');
+          const parsed = yaml.load(content);
+
+          // 验证Mihomo/Clash配置基本结构
+          if (!parsed || (typeof parsed !== 'object')) {
+            return { success: false, error: '无效的YAML配置格式' };
+          }
+
+          // 检查是否包含Clash/Mihomo的基本字段
+          const hasValidStructure = parsed.proxies || parsed['proxy-groups'] ||
+                                   parsed.rules || parsed.port || parsed['mixed-port'];
+
+          if (!hasValidStructure) {
+            logger.warn('文件内容可能不是有效的Mihomo/Clash配置格式');
+          }
+
+          // 保持原始YAML格式
+          validatedContent = content;
+        } catch (err) {
+          return { success: false, error: `无效的YAML格式: ${err.message}` };
+        }
       } else {
         // 对于singbox协议，验证JSON格式
         try {
           const parsedContent = JSON.parse(content);
           validatedContent = JSON.stringify(parsedContent, null, 2);
-          
+
           // 验证SingBox配置基本结构
           if (!parsedContent.inbounds && !parsedContent.outbounds) {
             logger.warn('文件内容可能不是有效的SingBox配置格式');

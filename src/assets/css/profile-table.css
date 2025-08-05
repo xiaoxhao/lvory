@@ -126,6 +126,12 @@
   border: 1px solid #bde3f0;
 }
 
+.protocol-badge.mihomo {
+  background-color: #fef3e8;
+  color: #d97706;
+  border: 1px solid #fed7aa;
+}
+
 .protocol-badge.singbox {
   background-color: #f0f8e8;
   color: #27ae60;

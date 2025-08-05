@@ -20,8 +20,8 @@ const DownloadButton = ({
   const getVariantStyles = () => {
     const variants = {
       primary: {
-        background: '#3b82f6',
-        hover: '#2563eb',
+        background: 'rgb(129, 140, 248)',
+        hover: 'rgb(109, 120, 228)',
         downloading: '#10b981'
       },
       secondary: {
@@ -150,19 +150,13 @@ const DownloadButton = ({
           position: relative;
         }
 
-        .download-button {
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
         .download-button:hover:not(:disabled) {
           background: ${variantStyles.hover} !important;
           transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
         .download-button:disabled {
           transform: none;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .download-button.downloading {
