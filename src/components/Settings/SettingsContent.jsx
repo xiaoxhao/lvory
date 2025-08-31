@@ -453,19 +453,21 @@ const SettingsContent = ({ section }) => {
 
   const [configValues, setConfigValues] = useState({
     proxyPort: { value: '', loading: true, error: null },
-    apiAddress: { value: '', loading: true, error: null }
+    apiAddress: { value: '', loading: true, error: null },
+    allowLan: { value: false, loading: true, error: null }
   });
   const [showVersionManager, setShowVersionManager] = useState(false);
   const [showCoreManager, setShowCoreManager] = useState(false);
   const [isClearingCache, setIsClearingCache] = useState(false);
 
-  // 从当前配置文件读取代理端口和API地址
+  // 从当前配置文件读取代理端口、API地址和局域网模式
   const loadConfigValues = async () => {
     try {
       setConfigValues(prev => ({
         ...prev,
         proxyPort: { value: '', loading: true, error: null },
-        apiAddress: { value: '', loading: true, error: null }
+        apiAddress: { value: '', loading: true, error: null },
+        allowLan: { value: false, loading: true, error: null }
       }));
 
       if (window.electron && window.electron.config && window.electron.config.getCurrent) {
@@ -475,56 +477,69 @@ const SettingsContent = ({ section }) => {
           
           let proxyPort = '';
           let apiAddress = '';
-          
+          let allowLan = false;
+
           try {
-            // 查找mixed类型的inbound端口
+            // 查找mixed类型的inbound端口和监听地址
             if (config.inbounds && Array.isArray(config.inbounds)) {
               const mixedInbound = config.inbounds.find(inbound => inbound.type === 'mixed');
-              if (mixedInbound && mixedInbound.listen_port) {
-                proxyPort = mixedInbound.listen_port.toString();
+              if (mixedInbound) {
+                if (mixedInbound.listen_port) {
+                  proxyPort = mixedInbound.listen_port.toString();
+                }
+                // 检查listen字段来确定是否允许局域网
+                if (mixedInbound.listen) {
+                  allowLan = mixedInbound.listen === '0.0.0.0';
+                }
               }
             }
-            
+
             // 获取API地址
             if (config.experimental && config.experimental.clash_api && config.experimental.clash_api.external_controller) {
               apiAddress = config.experimental.clash_api.external_controller;
             }
-            
+
             setConfigValues({
               proxyPort: { value: proxyPort, loading: false, error: null },
-              apiAddress: { value: apiAddress, loading: false, error: null }
+              apiAddress: { value: apiAddress, loading: false, error: null },
+              allowLan: { value: allowLan, loading: false, error: null }
             });
-            
+
             // 同时更新settings状态，用于其他逻辑
             setSettings(prev => ({
               ...prev,
               proxyPort: proxyPort,
-              apiAddress: apiAddress
+              apiAddress: apiAddress,
+              allowLan: allowLan
             }));
           } catch (parseError) {
             console.error('解析配置值失败:', parseError);
             setConfigValues({
               proxyPort: { value: '', loading: false, error: '解析失败' },
-              apiAddress: { value: '', loading: false, error: '解析失败' }
+              apiAddress: { value: '', loading: false, error: '解析失败' },
+              allowLan: { value: false, loading: false, error: '解析失败' }
             });
           }
         } else {
           setConfigValues({
             proxyPort: { value: '', loading: false, error: '配置文件不存在' },
-            apiAddress: { value: '', loading: false, error: '配置文件不存在' }
+            apiAddress: { value: '', loading: false, error: '配置文件不存在' },
+            allowLan: { value: false, loading: false, error: '配置文件不存在' }
           });
         }
       } else {
         setConfigValues({
           proxyPort: { value: '', loading: false, error: 'API不可用' },
-          apiAddress: { value: '', loading: false, error: 'API不可用' }
+          apiAddress: { value: '', loading: false, error: 'API不可用' },
+          allowLan: { value: false, loading: false, error: 'API不可用' }
         });
       }
     } catch (error) {
       console.error('读取配置文件失败:', error);
       setConfigValues({
         proxyPort: { value: '', loading: false, error: '读取失败' },
-        apiAddress: { value: '', loading: false, error: '读取失败' }
+        apiAddress: { value: '', loading: false, error: '读取失败' },
+        allowLan: { value: false, loading: false, error: '读取失败' }
       });
     }
   };
@@ -924,7 +939,13 @@ const SettingsContent = ({ section }) => {
               />
 
               {/* 允许局域网连接开关 */}
-              {renderToggle(t('settings.allowLan'), 'allowLan', settings.allowLan)}
+              {renderToggle(
+                configValues.allowLan.loading
+                  ? t('settings.allowLan')
+                  : `${t('settings.allowLan')}（${configValues.allowLan.value ? t('settings.lanStatusPublic') : t('settings.lanStatusLocal')}）`,
+                'allowLan',
+                settings.allowLan
+              )}
 
               {/* 开机自启动开关 */}
               {renderToggle(t('settings.autoStart'), 'autoStart', settings.autoStart)}
