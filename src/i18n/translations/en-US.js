@@ -9,6 +9,8 @@ export default {
     enterApiAddress: 'Enter API address (e.g. 127.0.0.1:9090)',
     apiAddressWarning: '*Note: This value is automatically read from the active configuration file',
     allowLan: 'Allow LAN Connections',
+    lanStatusPublic: 'Currently listening publicly',
+    lanStatusLocal: 'Currently listening locally only',
 
     autoStart: 'Auto Start on Boot',
     tunMode: 'TUN Mode Support',

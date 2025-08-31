@@ -2,7 +2,7 @@
 
 # Lvory
 
-*极简跨平台 Singbox 客户端*
+*跨平台 Singbox 客户端*
 
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=sxueck_lvory&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=sxueck_lvory) 
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=sxueck_lvory&metric=bugs)](https://sonarcloud.io/summary/new_code?id=sxueck_lvory) 
@@ -18,7 +18,7 @@
 
 ## 功能特性
 
-Lvory 是一个基于 Electron 开发的高度灵活的跨平台 SingBox 客户端，**面向具有自建能力的用户**。
+Lvory 是一个基于 Electron 开发的高度灵活的跨平台 SingBox 客户端，**面向具有自建节点能力的技术向用户**。
 
 ### 核心功能
 
