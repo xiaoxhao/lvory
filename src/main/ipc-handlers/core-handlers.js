@@ -164,27 +164,7 @@ function setup() {
     }
   });
 
-  // 验证配置文件
-  ipcMain.handle('core-check-config', async (event, configPath) => {
-    try {
-      const core = coreFactory.getCurrentCore();
-      return await core.checkConfig(configPath);
-    } catch (error) {
-      logger.error('验证配置文件失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
 
-  // 格式化配置文件
-  ipcMain.handle('core-format-config', async (event, configPath) => {
-    try {
-      const core = coreFactory.getCurrentCore();
-      return await core.formatConfig(configPath);
-    } catch (error) {
-      logger.error('格式化配置文件失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
 
   // 下载内核
   ipcMain.handle('core-download', async () => {
@@ -267,7 +247,7 @@ function setup() {
     }
   });
 
-  logger.info('统一内核 IPC 处理程序已设置');
+  // 统一内核 IPC 处理程序已设置
 }
 
 /**

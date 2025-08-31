@@ -52,16 +52,7 @@ class Mihomo extends BaseCore {
         return { success: false, error };
       }
 
-      // 验证配置文件
-      const configValidation = this.configParser.validateConfig(configPath);
-      if (!configValidation.valid) {
-        const error = `配置文件验证失败: ${configValidation.error}`;
-        this.stateManager.updateGlobalState({ 
-          lastError: error,
-          isRunning: false 
-        });
-        return { success: false, error };
-      }
+
 
       // 获取二进制文件路径
       const binaryPath = this.getBinaryPath();
@@ -282,33 +273,7 @@ class Mihomo extends BaseCore {
     }
   }
 
-  /**
-   * 验证配置文件
-   * @param {string} configPath 配置文件路径
-   * @returns {Promise<Object>} 验证结果
-   */
-  async checkConfig(configPath) {
-    try {
-      return this.configParser.validateConfig(configPath);
-    } catch (error) {
-      this.log('error', '验证配置文件失败:', error);
-      return { success: false, error: error.message };
-    }
-  }
 
-  /**
-   * 格式化配置文件
-   * @param {string} configPath 配置文件路径
-   * @returns {Promise<Object>} 格式化结果
-   */
-  async formatConfig(configPath) {
-    try {
-      return await this.configParser.formatConfig(configPath);
-    } catch (error) {
-      this.log('error', '格式化配置文件失败:', error);
-      return { success: false, error: error.message };
-    }
-  }
 
   /**
    * 下载内核

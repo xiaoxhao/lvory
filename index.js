@@ -9,7 +9,6 @@ const windowManager = require('./src/main/window');
 const trayManager = require('./src/main/tray');
 
 let ipcHandlers = require('./src/main/ipc-handlers');
-let newIpcSystem = require('./src/main/ipc');
 let profileManager = require('./src/main/profile-manager');
 let singbox;
 let settingsManager;
@@ -66,12 +65,7 @@ if (electronSquirrelStartup) {
 }
 
 // 判断是否是开发环境
-logger.info(`Running in ${isDev ? 'development' : 'production'} mode`);
-
-// 记录运行模式信息
-const { getRunModeInfo } = require('./src/utils/paths');
-const runModeInfo = getRunModeInfo();
-logger.info(`Application run mode: ${runModeInfo.mode} (portable: ${runModeInfo.isPortable}, appimage: ${runModeInfo.isAppImage}, platform: ${runModeInfo.platform})`);
+// 运行模式信息已记录
 
 logger.logStartup();
 
@@ -133,8 +127,8 @@ const restoreProxyState = async () => {
     // 获取存储的sing-box状态
     const state = await sb.loadState();
 
-    if (state && state.isRunning && state.configPath) {
-      logger.info('恢复上次代理状态，配置文件路径:', state.configPath);
+    if (state?.isRunning && state.configPath) {
+      // 恢复上次代理状态
 
       // 延迟启动代理，确保应用界面已经加载
       setTimeout(async () => {
@@ -173,11 +167,8 @@ const restoreProxyState = async () => {
 // 初始化主要模块
 const setupApp = () => {
   try {
-    // 设置IPC处理程序
+    // 设置统一的IPC处理程序
     ipcHandlers.setupHandlers();
-
-    // 设置新的IPC系统
-    newIpcSystem.setup();
 
     // 初始化配置管理器
     profileManager.getConfigPath();
@@ -202,7 +193,7 @@ const optimizeMemory = () => {
   if (global.gc) {
     try {
       global.gc();
-      logger.info('手动执行垃圾回收');
+      // 手动执行垃圾回收
     } catch (e) {
       logger.warn('手动垃圾回收失败:', e);
     }
@@ -251,7 +242,6 @@ app.on('ready', () => {
     }
     
     // 应用初始化完成
-    logger.info('应用初始化完成');
   }, 1000);
 });
 
@@ -265,10 +255,6 @@ app.on('window-all-closed', (e) => {
 // 设置退出前清理
 app.on('before-quit', () => {
   global.isQuitting = true;
-  // 清理新的IPC系统
-  if (newIpcSystem) {
-    newIpcSystem.cleanup();
-  }
   // 执行最后的内存优化
   optimizeMemory();
 });

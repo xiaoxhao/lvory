@@ -239,27 +239,7 @@ const Profiles = () => {
     }
   };
 
-  // 处理修复文件
-  const handleFix = (fileName) => {
-    closeDropdown();
-    
-    if (window.electron && window.electron.fixProfile) {
-      window.electron.fixProfile(fileName)
-        .then(result => {
-          if (result.success) {
-            showMessage(`${t('profiles.fixSuccess')}${fileName}`);
-            loadProfileFiles(); // 刷新列表
-          } else {
-            showMessage(`${t('profiles.fixFailed')} ${result.error || 'Unknown error'}`);
-          }
-        })
-        .catch(error => {
-          showMessage(`${t('profiles.fixFailed')} ${error.message || 'Unknown error'}`);
-        });
-    } else {
-      showMessage(t('profiles.fixNotAvailable'));
-    }
-  };
+
 
   // 渲染表格行内容
   const renderTableRows = () => {
@@ -311,11 +291,7 @@ const Profiles = () => {
                 {t('profiles.expired')}
               </span>
             )}
-            {!file.isComplete && (
-              <span className="status-badge incomplete">
-                {t('profiles.incomplete')}
-              </span>
-            )}
+
             {file.hasCache && (
               <span className="status-badge cached" title={`缓存文件: ${file.cacheInfo?.fileName}`}>
                 {t('profiles.cached')}
@@ -377,15 +353,7 @@ const Profiles = () => {
                     <span>{file.protocol === 'lvory' ? t('profiles.refreshLvoryCache') : t('profiles.refreshMihomoCache')}</span>
                   </button>
                 )}
-                {!file.isComplete && (
-                  <button
-                    className="dropdown-item"
-                    onClick={() => handleFix(file.name)}
-                  >
-                    <span className="dropdown-icon refresh-icon"></span>
-                    <span>{t('profiles.fixProfile')}</span>
-                  </button>
-                )}
+
                 <div className="dropdown-divider"></div>
                 <button
                   className="dropdown-item delete-item"

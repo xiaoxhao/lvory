@@ -102,39 +102,7 @@ class ConfigParser {
     return null;
   }
 
-  /**
-   * 验证配置文件格式
-   * @param {String} configPath 配置文件路径
-   * @returns {Object} 验证结果
-   */
-  validateConfig(configPath) {
-    try {
-      if (!fs.existsSync(configPath)) {
-        return { valid: false, error: '配置文件不存在' };
-      }
 
-      const configContent = fs.readFileSync(configPath, 'utf8');
-      
-      try {
-        const config = JSON.parse(configContent);
-        
-        // 基本结构验证
-        if (!config.inbounds || !Array.isArray(config.inbounds)) {
-          return { valid: false, error: '配置文件缺少有效的入站配置' };
-        }
-
-        if (!config.outbounds || !Array.isArray(config.outbounds)) {
-          return { valid: false, error: '配置文件缺少有效的出站配置' };
-        }
-
-        return { valid: true, config };
-      } catch (e) {
-        return { valid: false, error: `JSON 格式错误: ${e.message}` };
-      }
-    } catch (error) {
-      return { valid: false, error: `读取文件失败: ${error.message}` };
-    }
-  }
 
   /**
    * 提取配置信息摘要

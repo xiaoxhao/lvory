@@ -14,15 +14,16 @@ const profileEngine = require('../engine/profiles-engine');
  * 设置配置文件相关IPC处理程序
  */
 function setup() {
-  // 获取配置文件路径
-  ipcMain.handle('get-config-path', async () => {
-    try {
-      return profileManager.getConfigPath();
-    } catch (error) {
-      logger.error('获取配置文件路径失败:', error);
-      return null;
-    }
-  });
+  try {
+    // 获取配置文件路径
+    ipcMain.handle('get-config-path', async () => {
+      try {
+        return profileManager.getConfigPath();
+      } catch (error) {
+        logger.error('获取配置文件路径失败:', error);
+        return null;
+      }
+    });
   
   // 获取配置目录路径
   ipcMain.handle('get-config-dir', async () => {
@@ -71,14 +72,13 @@ function setup() {
       // 使用profileManager的智能设置方法处理Lvory和SingBox配置
       const success = await profileManager.setConfigPathSmart(fullPath);
       if (success) {
-        logger.info(`配置文件已成功设置: ${fullPath} (协议: ${options.protocol || 'auto'})`);
-        
+        // 配置文件已成功设置
+
         // 如果内核正在运行，需要重启以应用新配置
         if (isRunning) {
-          logger.info('检测到内核正在运行，重启内核以应用新配置');
+          // 检测到内核正在运行，重启内核以应用新配置
           try {
             // 先停止内核
-            logger.info('正在停止当前运行的内核...');
             const stopResult = await singbox.stopCore();
             if (!stopResult.success) {
               logger.warn(`停止内核时出现警告: ${stopResult.error}`);
@@ -95,7 +95,7 @@ function setup() {
             if (singbox.isRunning()) {
               logger.warn('内核停止超时，强制继续启动新配置');
             } else {
-              logger.info('内核已成功停止');
+              // 内核已成功停止
             }
             
             // 获取设置管理器用于启动内核
@@ -104,8 +104,7 @@ function setup() {
             const proxyConfig = settingsManager.getProxyConfig(fullPath);
             
             // 使用新配置重新启动内核
-            logger.info(`正在使用新配置启动内核: ${fullPath}`);
-            const startResult = await singbox.startCore({ 
+            const startResult = await singbox.startCore({
               configPath: fullPath,
               proxyConfig,
               enableSystemProxy: proxyConfig.enableSystemProxy,
@@ -120,8 +119,8 @@ function setup() {
                 configPath: fullPath 
               };
             }
-            
-            logger.info('内核已成功重启并应用新配置');
+
+            // 内核已成功重启并应用新配置
           } catch (restartError) {
             logger.error('重启内核过程中发生错误:', restartError);
             return { 
@@ -218,86 +217,39 @@ function setup() {
               status = metaCache[file].status || 'active';
               protocol = metaCache[file].protocol || 'singbox';
             } else {
-              // 如果没有元数据，尝试根据文件内容自动检测协议类型
-              try {
-                const content = fs.readFileSync(filePath, 'utf8');
-                const ext = path.extname(file).toLowerCase();
-
-                if (ext === '.json') {
-                  // JSON文件默认为 singbox
-                  protocol = 'singbox';
-                } else if (ext === '.yaml' || ext === '.yml') {
-                  // YAML文件根据内容判断
-                  if (content.includes('lvory_sync:')) {
-                    protocol = 'lvory';
-                  } else if (content.includes('proxies:') || content.includes('proxy-groups:')) {
-                    protocol = 'mihomo';
-                  } else {
-                    protocol = 'mihomo'; // YAML文件默认为 mihomo
-                  }
-                }
-              } catch (err) {
-                logger.warn(`自动检测协议类型失败: ${err.message}`);
+              // 如果没有元数据，根据文件扩展名设置默认协议类型
+              const ext = path.extname(file).toLowerCase();
+              if (ext === '.json') {
+                protocol = 'singbox';
+              } else if (ext === '.yaml' || ext === '.yml') {
+                protocol = 'mihomo';
+              } else {
+                protocol = 'singbox'; // 默认协议
               }
             }
-              
-              // 检查是否有缓存文件
-              if (metaCache[file].singboxCache) {
-                hasCache = true;
-                const cacheFileName = metaCache[file].singboxCache;
-                const cachePath = path.join(configDir, cacheFileName);
-                
-                if (fs.existsSync(cachePath)) {
-                  const cacheStats = fs.statSync(cachePath);
-                  cacheInfo = {
-                    fileName: cacheFileName,
-                    size: `${Math.round(cacheStats.size / 1024)} KB`,
-                    lastGenerated: metaCache[cacheFileName] ? metaCache[cacheFileName].lastGenerated : null
-                  };
-                } else {
-                  hasCache = false; // 缓存文件不存在
-                }
+
+            // 检查是否有缓存文件
+            if (metaCache[file] && metaCache[file].singboxCache) {
+              hasCache = true;
+              const cacheFileName = metaCache[file].singboxCache;
+              const cachePath = path.join(configDir, cacheFileName);
+
+              if (fs.existsSync(cachePath)) {
+                const cacheStats = fs.statSync(cachePath);
+                cacheInfo = {
+                  fileName: cacheFileName,
+                  size: `${Math.round(cacheStats.size / 1024)} KB`,
+                  lastGenerated: metaCache[cacheFileName] ? metaCache[cacheFileName].lastGenerated : null
+                };
+              } else {
+                hasCache = false; // 缓存文件不存在
               }
             }
           } catch (err) {
             logger.error(`读取文件状态失败: ${err.message}`);
           }
           
-          // 检查文件是否包含必要字段
-          let isComplete = true;
-          try {
-            const content = fs.readFileSync(filePath, 'utf8');
-            const ext = path.extname(file).toLowerCase();
 
-            if (ext === '.json') {
-              // JSON文件检查inbounds字段 (SingBox)
-              const configObj = JSON.parse(content);
-              if (!configObj.inbounds || configObj.inbounds.length === 0) {
-                isComplete = false;
-              }
-            } else if (ext === '.yaml' || ext === '.yml') {
-              // YAML文件根据协议类型检查不同字段
-              if (protocol === 'lvory') {
-                // Lvory协议检查lvory_sync字段
-                if (!content.includes('lvory_sync:')) {
-                  isComplete = false;
-                }
-              } else if (protocol === 'mihomo') {
-                // Mihomo协议检查proxies字段
-                if (!content.includes('proxies:')) {
-                  isComplete = false;
-                }
-              } else {
-                // 通用检查
-                if (!content.includes('lvory_sync:') && !content.includes('proxies:')) {
-                  isComplete = false;
-                }
-              }
-            }
-          } catch (err) {
-            logger.error(`检查配置文件结构失败: ${err.message}`);
-            isComplete = false;
-          }
           
           return {
             name: file,
@@ -307,7 +259,6 @@ function setup() {
             modifiedDate: new Date(stats.mtime).toLocaleDateString(),
             status: status,
             protocol: protocol,
-            isComplete: isComplete,
             hasCache: hasCache,
             cacheInfo: cacheInfo
           };
@@ -333,7 +284,7 @@ function setup() {
       // 从meta.cache读取
       const metaCache = utils.readMetaCache();
       if (metaCache[fileName]) {
-        logger.info(`从meta.cache获取元数据: ${fileName}`);
+        // 从meta.cache获取元数据
         return {
           success: true,
           metadata: metaCache[fileName]
@@ -459,7 +410,6 @@ function setup() {
       
       const success = await profileManager.preprocessConfig(configPath);
       if (success) {
-        logger.info('当前配置文件已重新预处理');
         return { success: true };
       } else {
         return { success: false, error: '重新预处理配置文件失败' };
@@ -490,7 +440,7 @@ function setup() {
       
       const success = profileManager.saveUserConfig(config);
       if (success) {
-        logger.info('用户配置已保存并应用映射');
+        // 用户配置已保存并应用映射
         
         // 通知前端配置已更新
         const mainWindow = utils.getMainWindow();
@@ -530,7 +480,7 @@ function setup() {
       // 清除缓存，下次加载时会重新读取
       profileManager.loadMappingDefinition();
       
-      logger.info('映射定义已保存');
+      // 映射定义已保存
       return { success: true };
     } catch (error) {
       logger.error('保存映射定义失败:', error);
@@ -598,7 +548,7 @@ function setup() {
       // 保存映射后的sing-box配置
       fs.writeFileSync(configPath, JSON.stringify(mappedConfig, null, 2), 'utf8');
       
-      logger.info('配置映射已应用到sing-box配置');
+      // 配置映射已应用到sing-box配置
       return { success: true };
     } catch (error) {
       logger.error('应用配置映射失败:', error);
@@ -622,7 +572,7 @@ function setup() {
     try {
       const success = await profileManager.refreshLvorySyncConfig(true); // 强制刷新缓存
       if (success) {
-        logger.info('Lvory同步配置刷新成功');
+        // Lvory同步配置刷新成功
         
         // 通知前端配置已更新
         const mainWindow = utils.getMainWindow();
@@ -732,6 +682,32 @@ function setup() {
     }
   });
 
+  // 获取路由规则
+  ipcMain.handle('get-route-rules', async () => {
+    try {
+      // 获取当前配置文件路径
+      const configPath = profileManager.getConfigPath();
+      if (!configPath || !fs.existsSync(configPath)) {
+        return { success: false, error: '配置文件不存在' };
+      }
+
+      // 读取配置文件
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      const config = JSON.parse(configContent);
+
+      // 使用引擎获取路由规则
+      const routeRules = profileEngine.getValueByPath(config, 'route.rules');
+
+      return {
+        success: true,
+        routeRules: Array.isArray(routeRules) ? routeRules : []
+      };
+    } catch (error) {
+      logger.error('获取路由规则失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 获取当前配置文件内容
   ipcMain.handle('get-current-config', async () => {
     try {
@@ -739,10 +715,10 @@ function setup() {
       if (!configPath || !fs.existsSync(configPath)) {
         return { success: false, error: '配置文件不存在' };
       }
-      
+
       const configContent = fs.readFileSync(configPath, 'utf8');
       const config = JSON.parse(configContent);
-      
+
       return {
         success: true,
         config: config,
@@ -776,69 +752,8 @@ function setup() {
         return { success: false, error: `文件已存在: ${fileName}` };
       }
 
-      // 根据协议类型验证和处理内容
+      // 直接使用原始内容，不进行验证
       let validatedContent = content;
-      if (protocol === 'lvory') {
-        // 对于lvory协议，验证格式
-        try {
-          if (content.includes('lvory_sync:')) {
-            // Lvory同步协议配置
-            const yaml = require('js-yaml');
-            const parsed = yaml.load(content);
-            if (!parsed || !parsed.lvory_sync) {
-              return { success: false, error: '无效的Lvory同步协议格式' };
-            }
-          } else if (content.includes('proxies:')) {
-            // Clash格式配置
-            const yaml = require('js-yaml');
-            const parsed = yaml.load(content);
-            if (!parsed || !parsed.proxies) {
-              return { success: false, error: '无效的Clash配置格式' };
-            }
-          } else {
-            logger.warn('文件内容可能不是有效的lvory格式');
-          }
-        } catch (err) {
-          return { success: false, error: `无效的YAML格式: ${err.message}` };
-        }
-      } else if (protocol === 'mihomo') {
-        // 对于mihomo协议，验证YAML格式
-        try {
-          const yaml = require('js-yaml');
-          const parsed = yaml.load(content);
-
-          // 验证Mihomo/Clash配置基本结构
-          if (!parsed || (typeof parsed !== 'object')) {
-            return { success: false, error: '无效的YAML配置格式' };
-          }
-
-          // 检查是否包含Clash/Mihomo的基本字段
-          const hasValidStructure = parsed.proxies || parsed['proxy-groups'] ||
-                                   parsed.rules || parsed.port || parsed['mixed-port'];
-
-          if (!hasValidStructure) {
-            logger.warn('文件内容可能不是有效的Mihomo/Clash配置格式');
-          }
-
-          // 保持原始YAML格式
-          validatedContent = content;
-        } catch (err) {
-          return { success: false, error: `无效的YAML格式: ${err.message}` };
-        }
-      } else {
-        // 对于singbox协议，验证JSON格式
-        try {
-          const parsedContent = JSON.parse(content);
-          validatedContent = JSON.stringify(parsedContent, null, 2);
-
-          // 验证SingBox配置基本结构
-          if (!parsedContent.inbounds && !parsedContent.outbounds) {
-            logger.warn('文件内容可能不是有效的SingBox配置格式');
-          }
-        } catch (err) {
-          return { success: false, error: `无效的JSON格式: ${err.message}` };
-        }
-      }
 
       // 写入文件
       fs.writeFileSync(filePath, validatedContent, 'utf8');
@@ -853,7 +768,7 @@ function setup() {
       };
       utils.writeMetaCache(metaCache);
 
-      logger.info(`本地文件已载入: ${fileName} (协议: ${protocol})`);
+      // 本地文件已载入
 
       // 通知前端配置文件列表已更新
       const mainWindow = utils.getMainWindow();
@@ -861,8 +776,8 @@ function setup() {
         mainWindow.webContents.send('profiles-changed');
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         fileName: fileName,
         filePath: filePath,
         protocol: protocol
@@ -872,8 +787,74 @@ function setup() {
       return { success: false, error: error.message };
     }
   });
+
+  // 更新单个配置文件
+  ipcMain.handle('updateProfile', async (event, fileName) => {
+    try {
+      if (!fileName) {
+        return { success: false, error: '文件名不能为空' };
+      }
+
+      const configDir = utils.getConfigDir();
+      const filePath = path.join(configDir, fileName);
+
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: '配置文件不存在' };
+      }
+
+      // 这里可以添加具体的更新逻辑
+      // 目前只是触发配置文件变更事件
+      const mainWindow = utils.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('profiles-changed');
+      }
+
+      // 配置文件已更新
+      return { success: true, fileName: fileName };
+    } catch (error) {
+      logger.error(`更新配置文件失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 更新所有配置文件
+  ipcMain.handle('updateAllProfiles', async () => {
+    try {
+      const configDir = utils.getConfigDir();
+
+      if (!fs.existsSync(configDir)) {
+        return { success: false, error: '配置目录不存在' };
+      }
+
+      // 获取所有配置文件
+      const files = fs.readdirSync(configDir)
+        .filter(file => {
+          const ext = path.extname(file).toLowerCase();
+          return ext === '.json' || ext === '.yaml' || ext === '.yml';
+        });
+
+      // 这里可以添加批量更新逻辑
+      // 目前只是触发配置文件变更事件
+      const mainWindow = utils.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('profiles-changed');
+      }
+
+      // 所有配置文件已更新
+      return { success: true, count: files.length };
+    } catch (error) {
+      logger.error(`更新所有配置文件失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Profile IPC处理器设置完成
+  } catch (error) {
+    logger.error('设置Profile IPC处理器失败:', error);
+    throw error;
+  }
 }
 
 module.exports = {
   setup
-}; 
+};

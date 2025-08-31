@@ -134,7 +134,7 @@ export default {
     noProfilesFound: '未发现配置文件',
     active: '当前使用',
     expired: '已过期',
-    incomplete: '不完整',
+
     cached: '已缓存',
     lvoryProtocol: 'Lvory',
     mihomoProtocol: 'Mihomo',
@@ -148,7 +148,7 @@ export default {
     copyFileName: '复制文件名',
     editFile: '编辑文件',
     updateProfile: '更新配置',
-    fixProfile: '修复配置',
+
     deleteProfile: '删除配置',
     copied: '已复制: ',
     failedToCopy: '复制失败',

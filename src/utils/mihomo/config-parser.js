@@ -53,28 +53,9 @@ class MihomoConfigParser extends ConfigAdapter {
     return this.parseConfigFile(configPath);
   }
 
-  /**
-   * 验证配置文件
-   * @param {string} configPath 配置文件路径
-   * @returns {Object} 验证结果
-   */
-  validateConfig(configPath) {
-    try {
-      const parseResult = this.parseConfigFile(configPath);
-      if (!parseResult) {
-        return {
-          valid: false,
-          error: '无法解析配置文件'
-        };
-      }
 
-      const validationResult = this._validateConfigStructure(configPath);
-      if (!validationResult.valid) {
-        return validationResult;
-      }
+      const config = parseResult;
 
-      const config = validationResult.config;
-      
       return {
         valid: true,
         proxyPort: parseResult.port || this.defaultProxyConfig.port,
@@ -82,9 +63,6 @@ class MihomoConfigParser extends ConfigAdapter {
         proxiesCount: config.proxies ? config.proxies.length : 0,
         proxyGroupsCount: config['proxy-groups'] ? config['proxy-groups'].length : 0,
         rulesCount: config.rules ? config.rules.length : 0,
-        hasProxies: !!(config.proxies && config.proxies.length > 0),
-        hasProxyGroups: !!(config['proxy-groups'] && config['proxy-groups'].length > 0),
-        hasRules: !!(config.rules && config.rules.length > 0),
         hasTunMode: !!(config.tun && config.tun.enable),
         mode: config.mode || 'rule'
       };
@@ -153,61 +131,8 @@ class MihomoConfigParser extends ConfigAdapter {
     }
   }
 
-  /**
-   * 验证配置文件结构
-   * @param {string} configPath 配置文件路径
-   * @returns {Object} 验证结果
-   * @private
-   */
-  _validateConfigStructure(configPath) {
-    try {
-      const config = this._loadAndParseConfig(configPath);
-      if (!config) {
-        return {
-          valid: false,
-          error: '无法解析YAML配置文件'
-        };
-      }
 
-      // 检查基本结构
-      if (typeof config !== 'object') {
-        return {
-          valid: false,
-          error: '配置文件格式错误：根节点必须是对象'
-        };
-      }
 
-      // 检查必要字段（mihomo 配置相对宽松）
-      const warnings = [];
-      
-      if (!config.proxies && !config['proxy-providers']) {
-        warnings.push('没有找到代理配置 (proxies 或 proxy-providers)');
-      }
-
-      if (!config['proxy-groups']) {
-        warnings.push('没有找到代理组配置 (proxy-groups)');
-      }
-
-      if (!config.rules && !config['rule-providers']) {
-        warnings.push('没有找到规则配置 (rules 或 rule-providers)');
-      }
-
-      if (warnings.length > 0) {
-        logger.warn(`[MihomoConfigParser] 配置文件警告: ${warnings.join(', ')}`);
-      }
-
-      return {
-        valid: true,
-        config,
-        warnings
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        error: `配置文件结构验证失败: ${error.message}`
-      };
-    }
-  }
 
   /**
    * 格式化配置文件

@@ -312,46 +312,7 @@ class UniversalMappingEngine {
     }
   }
 
-  /**
-   * 验证配置
-   * @param {Object} config 配置对象
-   * @returns {Object} 验证结果
-   */
-  validateConfig(config) {
-    const errors = [];
-    const warnings = [];
-    
-    const paths = this.getConfigPaths();
-    
-    // 检查必要的配置项
-    if (this.currentCoreType === CORE_TYPES.MIHOMO) {
-      if (!config['mixed-port'] && !config.port) {
-        errors.push('缺少代理端口配置 (mixed-port 或 port)');
-      }
-      
-      if (!config['external-controller']) {
-        warnings.push('缺少外部控制器配置 (external-controller)');
-      }
-      
-      if (!config.proxies || config.proxies.length === 0) {
-        warnings.push('没有配置代理节点');
-      }
-    } else {
-      if (!config.inbounds || config.inbounds.length === 0) {
-        errors.push('缺少入站配置 (inbounds)');
-      }
-      
-      if (!config.outbounds || config.outbounds.length === 0) {
-        errors.push('缺少出站配置 (outbounds)');
-      }
-    }
 
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings
-    };
-  }
 }
 
 module.exports = new UniversalMappingEngine();

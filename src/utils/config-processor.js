@@ -124,75 +124,8 @@ function processDownloadedConfig(content, fileName) {
   }
 }
 
-/**
- * 验证配置文件格式
- * @param {String} content 配置文件内容
- * @param {String} fileName 文件名
- * @returns {Object} 验证结果
- */
-function validateConfig(content, fileName) {
-  try {
-    // 检测文件类型
-    const isYaml = fileName.endsWith('.yaml') || fileName.endsWith('.yml');
-    const isJson = fileName.endsWith('.json');
-    
-    if (isYaml) {
-      // YAML文件验证
-      return {
-        valid: true,
-        type: 'yaml',
-        message: 'YAML配置文件'
-      };
-    }
-    
-    if (isJson) {
-      // 验证JSON格式
-      const config = JSON.parse(content);
-      
-      // 基本结构验证
-      if (!config.inbounds && !config.outbounds) {
-        return {
-          valid: false,
-          type: 'json',
-          message: '配置文件缺少基本的入站或出站配置'
-        };
-      }
-      
-      return {
-        valid: true,
-        type: 'json',
-        message: 'SingBox配置文件'
-      };
-    }
-    
-    // 尝试当作JSON解析
-    try {
-      JSON.parse(content);
-      return {
-        valid: true,
-        type: 'json',
-        message: 'JSON配置文件'
-      };
-    } catch {
-      return {
-        valid: false,
-        type: 'unknown',
-        message: '未知格式的配置文件'
-      };
-    }
-    
-  } catch (error) {
-    return {
-      valid: false,
-      type: 'unknown',
-      message: error.message
-    };
-  }
-}
-
 module.exports = {
   hasTunConfiguration,
   removeTunConfiguration,
-  processDownloadedConfig,
-  validateConfig
-}; 
+  processDownloadedConfig
+};

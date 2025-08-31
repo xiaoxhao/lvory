@@ -306,9 +306,7 @@ contextBridge.exposeInMainWorld('electron', {
     checkInstalled: () => ipcRenderer.invoke('core-check-installed'),
     checkTypeInstalled: (coreType) => ipcRenderer.invoke('core-check-type-installed', coreType),
 
-    // 配置管理
-    checkConfig: (configPath) => ipcRenderer.invoke('core-check-config', configPath),
-    formatConfig: (configPath) => ipcRenderer.invoke('core-format-config', configPath),
+
 
     // 其他功能
     download: () => ipcRenderer.invoke('core-download'),
