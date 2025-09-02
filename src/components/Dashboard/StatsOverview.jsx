@@ -3,6 +3,7 @@ import * as echarts from 'echarts';
 import '../../assets/css/stats-overview.css';
 import IPService from '../../services/ip/IPService';
 import { formatBytesToObject, formatWithOptimalUnit } from '../../utils/formatters';
+import { testNetworkLatency, isKernelRunning } from '../../utils/speed-test-utils';
 
 // 流量数据缓存
 const trafficData = {

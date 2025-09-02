@@ -33,23 +33,17 @@ if (!isFirstInstance && !isDev) {
   });
 }
 
-// 优化V8内存设置 - 减少初始内存限制以降低资源占用
 app.commandLine.appendSwitch('js-flags', '--harmony --max-old-space-size=256 --optimize-for-size --memory-pressure-threshold=512');
 app.commandLine.appendSwitch('enable-features', 'V8Runtime,V8PerContextHeaps,PartitionedFullCodeCache,V8VmFuture,V8LiftoffForAll');
 app.commandLine.appendSwitch('enable-blink-features', 'JSHeavyAdThrottling');
-// 垃圾回收相关优化 - 使用自然GC
 app.commandLine.appendSwitch('js-flags', '--gc-interval=5000 --max-semi-space-size=1');
-// 禁用后台节流以减少CPU使用率
 app.commandLine.appendSwitch('disable-background-timer-throttling');
-// 禁用不必要的功能以节省内存
 app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor,AudioServiceOutOfProcess');
 app.commandLine.appendSwitch('disable-software-rasterizer');
 app.commandLine.appendSwitch('disable-dev-shm-usage');
-// 限制渲染进程数量
 app.commandLine.appendSwitch('max-active-webgl-contexts', '1');
 app.commandLine.appendSwitch('disable-background-networking');
 
-// 懒加载 AdmZip
 let AdmZip;
 const loadAdmZip = () => {
   if (!AdmZip) {
@@ -64,14 +58,10 @@ if (electronSquirrelStartup) {
   app.quit();
 }
 
-// 判断是否是开发环境
-// 运行模式信息已记录
-
 logger.logStartup();
 
 global.isQuitting = false;
 
-// 初始化SingBox模块 - 增加错误处理以防止异常影响主进程
 const initSingBox = () => {
   if (!singbox) {
     try {
@@ -167,19 +157,10 @@ const restoreProxyState = async () => {
 // 初始化主要模块
 const setupApp = () => {
   try {
-    // 设置统一的IPC处理程序
     ipcHandlers.setupHandlers();
-
-    // 初始化配置管理器
     profileManager.getConfigPath();
-
-    // 预加载singbox，确保核心功能正常
     initSingBox();
-
-    // 加载设置
     initSettingsManager();
-
-    // 恢复上次代理状态
     restoreProxyState().catch(err => {
       logger.error('恢复代理状态过程中出错:', err);
     });
@@ -255,6 +236,10 @@ app.on('window-all-closed', (e) => {
 // 设置退出前清理
 app.on('before-quit', () => {
   global.isQuitting = true;
+  // 清理IPC处理器
+  if (ipcHandlers && typeof ipcHandlers.cleanupHandlers === 'function') {
+    ipcHandlers.cleanupHandlers();
+  }
   // 执行最后的内存优化
   optimizeMemory();
 });

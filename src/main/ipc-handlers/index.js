@@ -85,7 +85,6 @@ const HANDLERS_TO_REMOVE = [
  */
 function loadHandlerModule(name) {
   try {
-    // 减少冗余日志输出，只在出错时记录
     return require(`./${name}-handlers`);
   } catch (error) {
     logger.error(`加载IPC处理程序模块 ${name} 失败:`, error);
@@ -102,20 +101,9 @@ function setupHandlers() {
     return;
   }
 
-  // 首先设置 IPC 处理器验证器以启用跟踪
   const ipcValidator = require('../../utils/ipc-validator');
   ipcValidator.setupValidator();
 
-  // 确保清理任何可能存在的旧处理器，避免重复注册
-  const { ipcMain } = require('electron');
-  const criticalHandlers = ['get-profile-data', 'getProfileFiles', 'get-current-config', 'get-node-groups'];
-  criticalHandlers.forEach(handler => {
-    try {
-      ipcMain.removeHandler(handler);
-    } catch (error) {
-      // 忽略移除不存在处理器的错误
-    }
-  });
   
   try {
     // 加载所有处理程序模块
@@ -263,6 +251,16 @@ function cleanupHandlers() {
       }
     } catch (error) {
       logger.warn(`移除处理程序 ${channel} 失败:`, error);
+    }
+  });
+  
+  // 在程序关闭时清理关键处理器
+  const criticalHandlers = ['get-profile-data', 'getProfileFiles', 'get-current-config', 'get-node-groups'];
+  criticalHandlers.forEach(handler => {
+    try {
+      ipcMain.removeHandler(handler);
+    } catch (error) {
+      logger.warn(`移除关键处理程序 ${handler} 失败:`, error);
     }
   });
 

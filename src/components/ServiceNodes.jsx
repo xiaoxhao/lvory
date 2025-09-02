@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../assets/css/servicenodes.css';
 import { formatBytes } from '../utils/formatters';
+import { testNodeLatency, isKernelRunning } from '../utils/speed-test-utils';
 
 const ServiceNodes = () => {
   const [nodes, setNodes] = useState([]);
@@ -112,34 +113,20 @@ const ServiceNodes = () => {
   }, []);
 
   const testNode = async (node) => {
-    try {
-      const response = await fetch(`http://${apiAddress}/proxies/${encodeURIComponent(node.tag || node.name)}/delay?timeout=5000&url=http://www.gstatic.com/generate_204`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      return data.delay;
-    } catch (error) {
-      console.error(`测试节点 ${node.tag || node.name} 失败:`, error);
-      return 'timeout';
-    }
+    return await testNodeLatency(apiAddress, node);
   };
 
   const handleTestAll = async () => {
     // 检查内核是否运行
-    if (window.electron && window.electron.singbox && window.electron.singbox.getStatus) {
-      try {
-        const status = await window.electron.singbox.getStatus();
-        if (!status.isRunning) {
-          console.log('内核未运行，不执行节点测速');
-          return;
-        }
-      } catch (error) {
-        console.error('获取内核状态失败:', error);
+    try {
+      const kernelRunning = await isKernelRunning();
+      if (!kernelRunning) {
+        console.log('内核未运行，不执行节点测速');
         return;
       }
+    } catch (error) {
+      console.error('获取内核状态失败:', error);
+      return;
     }
     
     setIsTesting(true);
