@@ -12,6 +12,7 @@ const mappingDefinition = require('./engine/mapping-definition');
 const ConfigManager = require('./engine/config-manager');
 const LvorySyncProcessor = require('./adapters/lvory-sync-processor');
 const { DEFAULT_VALUES } = require('./engine/mapping-definition');
+const { loadAndParseConfigFile } = require('../utils/config-processor');
 
 let currentConfigPath = null;
 
@@ -194,7 +195,7 @@ const scanProfileConfig = () => {
     }
     
     const configContent = fs.readFileSync(fileToUse, 'utf8');
-    const config = JSON.parse(configContent);
+    const config = loadAndParseConfigFile(fileToUse);
     
     // 提取outbounds
     if (config && config.outbounds && Array.isArray(config.outbounds)) {

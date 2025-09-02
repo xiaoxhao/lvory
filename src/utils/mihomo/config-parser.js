@@ -53,8 +53,28 @@ class MihomoConfigParser extends ConfigAdapter {
     return this.parseConfigFile(configPath);
   }
 
+  /**
+   * 验证配置文件
+   * @param {string} configPath 配置文件路径
+   * @returns {Object} 验证结果
+   */
+  validateConfig(configPath) {
+    try {
+      const parseResult = this.parseConfigFile(configPath);
+      if (!parseResult) {
+        return {
+          valid: false,
+          error: '无法解析配置文件'
+        };
+      }
 
-      const config = parseResult;
+      const config = this._loadAndParseConfig(configPath);
+      if (!config) {
+        return {
+          valid: false,
+          error: '无法加载配置文件内容'
+        };
+      }
 
       return {
         valid: true,

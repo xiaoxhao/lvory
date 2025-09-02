@@ -4,7 +4,43 @@
  */
 
 const logger = require('./logger');
+const fs = require('fs');
+const path = require('path');
 
+/**
+ * 解析配置文件内容
+ * 根据文件扩展名自动选择正确的解析器（JSON 或 YAML）
+ * @param {String} content 配置文件内容
+ * @param {String} filePath 配置文件路径（用于确定文件格式）
+ * @returns {Object} 解析后的配置对象
+ */
+function parseConfigContent(content, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  
+  if (ext === '.json') {
+    return JSON.parse(content);
+  } else if (ext === '.yaml' || ext === '.yml') {
+    const yaml = require('js-yaml');
+    return yaml.load(content);
+  } else {
+    return JSON.parse(content);
+  }
+}
+
+/**
+ * 加载并解析配置文件
+ * 根据文件扩展名自动选择正确的解析器（JSON 或 YAML）
+ * @param {String} filePath 配置文件路径
+ * @returns {Object} 解析后的配置对象
+ */
+function loadAndParseConfigFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`配置文件不存在: ${filePath}`);
+  }
+  
+  const content = fs.readFileSync(filePath, 'utf8');
+  return parseConfigContent(content, filePath);
+}
 /**
  * 检测配置是否包含TUN相关配置
  * @param {Object} config 配置对象
@@ -127,5 +163,7 @@ function processDownloadedConfig(content, fileName) {
 module.exports = {
   hasTunConfiguration,
   removeTunConfiguration,
-  processDownloadedConfig
+  processDownloadedConfig,
+  parseConfigContent,
+  loadAndParseConfigFile
 };

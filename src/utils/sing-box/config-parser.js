@@ -4,6 +4,7 @@
  */
 const fs = require('fs');
 const logger = require('../logger');
+const { loadAndParseConfigFile } = require('../config-processor');
 
 class ConfigParser {
   constructor() {
@@ -52,7 +53,7 @@ class ConfigParser {
 
     try {
       const configContent = fs.readFileSync(configPath, 'utf8');
-      return JSON.parse(configContent);
+      return loadAndParseConfigFile(configPath);
     } catch (e) {
       logger.error(`[ConfigParser] 解析配置文件失败: ${e.message}`);
       return null;

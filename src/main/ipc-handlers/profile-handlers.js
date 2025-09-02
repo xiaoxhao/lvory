@@ -9,6 +9,7 @@ const utils = require('./utils');
 const profileManager = require('../profile-manager');
 const mappingDefinition = require('../engine/mapping-definition');
 const profileEngine = require('../engine/profiles-engine');
+const { loadAndParseConfigFile } = require('../../utils/config-processor');
 
 /**
  * 设置配置文件相关IPC处理程序
@@ -57,7 +58,7 @@ function setup() {
 
         if (currentCoreType !== options.coreType) {
           logger.info(`切换内核类型: ${currentCoreType} -> ${options.coreType}`);
-          const switchResult = await coreFactory.switchCore(options.coreType);
+          const switchResult = await coreFactory.switchCoreType(options.coreType);
           if (!switchResult.success && !switchResult.warning) {
             logger.warn(`内核切换失败: ${switchResult.error}`);
             // 继续执行，但记录警告
@@ -74,9 +75,7 @@ function setup() {
       if (success) {
         // 配置文件已成功设置
 
-        // 如果内核正在运行，需要重启以应用新配置
         if (isRunning) {
-          // 检测到内核正在运行，重启内核以应用新配置
           try {
             // 先停止内核
             const stopResult = await singbox.stopCore();
@@ -539,7 +538,7 @@ function setup() {
       const configPath = profileManager.getConfigPath();
       if (fs.existsSync(configPath)) {
         const configContent = fs.readFileSync(configPath, 'utf8');
-        targetConfig = JSON.parse(configContent);
+targetConfig = loadAndParseConfigFile(configPath);
       }
       
       // 应用映射
@@ -603,7 +602,7 @@ function setup() {
       
       // 读取配置文件
       const configContent = fs.readFileSync(configPath, 'utf8');
-      const config = JSON.parse(configContent);
+const config = loadAndParseConfigFile(configPath);
       
       // 使用引擎获取规则集
       const ruleSets = profileEngine.getValueByPath(config, 'route.rule_set');
@@ -629,7 +628,7 @@ function setup() {
       
       // 读取配置文件
       const configContent = fs.readFileSync(configPath, 'utf8');
-      const config = JSON.parse(configContent);
+const config = loadAndParseConfigFile(configPath);
       
       // 获取outbounds数组
       const outbounds = profileEngine.getValueByPath(config, 'outbounds');
@@ -692,8 +691,8 @@ function setup() {
       }
 
       // 读取配置文件
-      const configContent = fs.readFileSync(configPath, 'utf8');
-      const config = JSON.parse(configContent);
+const configContent = fs.readFileSync(configPath, 'utf8');
+const config = loadAndParseConfigFile(configPath);
 
       // 使用引擎获取路由规则
       const routeRules = profileEngine.getValueByPath(config, 'route.rules');
@@ -717,7 +716,7 @@ function setup() {
       }
 
       const configContent = fs.readFileSync(configPath, 'utf8');
-      const config = JSON.parse(configContent);
+const config = loadAndParseConfigFile(configPath);
 
       return {
         success: true,
