@@ -958,12 +958,16 @@ class SingBox {
    */
   async downloadCore() {
     try {
-      const coreDownloader = require('../main/core-downloader');
+      const { universalCoreDownloader } = require('../main/core-downloader-universal');
       const utils = require('../main/ipc-handlers/utils');
       const mainWindow = utils.getMainWindow();
 
       logger.info('[SingBox] 开始下载内核');
-      const result = await coreDownloader.downloadCore(mainWindow);
+
+      // 使用配置版本下载 sing-box
+      const { CORE_VERSIONS } = require('../config/versions');
+      const version = CORE_VERSIONS['sing-box'];
+      const result = await universalCoreDownloader.downloadCore('sing-box', version, mainWindow);
 
       if (result.success) {
         logger.info('[SingBox] 内核下载成功');
@@ -971,10 +975,13 @@ class SingBox {
         logger.error('[SingBox] 内核下载失败:', result.error);
       }
 
-      return result;
+      // 使用统一的错误处理
+      const { createSerializableResult } = require('../utils/error-handler');
+      return createSerializableResult(result);
     } catch (error) {
       logger.error('[SingBox] 下载内核时发生异常:', error);
-      return { success: false, error: error.message };
+      const { normalizeError } = require('../utils/error-handler');
+      return normalizeError(error, { defaultMessage: '下载失败' });
     }
   }
 }

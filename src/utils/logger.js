@@ -46,7 +46,7 @@ class Logger {
       // 设置定时写入
       this.flushTimer = setInterval(() => this.flushLogBuffer(), this.flushInterval);
       
-      this.info('日志系统初始化完成');
+      // 日志系统初始化完成
     } catch (error) {
       console.error('日志系统初始化失败:', error.message);
     }
@@ -86,7 +86,7 @@ class Logger {
    */
   log(level, type, message, data = {}) {
     if (!this.enabled) return;
-    
+
     const timestamp = new Date().toISOString();
     const logEntry = {
       level,
@@ -95,7 +95,17 @@ class Logger {
       message,
       data
     };
-    
+
+    // 只输出ERROR和WARN级别的日志到控制台
+    if (level === 'ERROR' || level === 'WARN') {
+      const timeStr = new Date().toLocaleTimeString();
+      const prefix = `${timeStr}\n${level}\n🔹 ${type}`;
+      console.log(`${prefix}\n${message}`);
+      if (Object.keys(data).length > 0) {
+        console.log('数据:', data);
+      }
+    }
+
     this.addToBuffer(logEntry);
     this.addToHistory(logEntry);
     this.sendToRenderer(logEntry);
@@ -268,7 +278,7 @@ class Logger {
     console.log('  Electron: ' + process.versions.electron);
     console.log('==================================================');
     
-    this.info('初始化日志系统');
+    // 初始化日志系统
   }
 }
 

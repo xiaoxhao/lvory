@@ -49,7 +49,7 @@ class PlatformLauncher {
    * @returns {Object} 子进程对象
    */
   startNormal(binPath, args, workingDir) {
-    logger.info(`[PlatformLauncher] 普通模式启动: ${binPath} ${args.join(' ')}`);
+    // 普通模式启动
     
     return spawn(binPath, args, {
       windowsHide: true,

@@ -36,7 +36,7 @@ const useSingBoxControl = () => {
     const handleDownloadProgress = (progress) => {
       setDownloadProgress(progress.progress);
       setDownloadMessage(progress.message || '');
-      
+
       if (progress.progress === 100) {
         setTimeout(() => {
           setIsDownloadingCore(false);
@@ -48,15 +48,32 @@ const useSingBoxControl = () => {
       }
     };
 
-    if (window.electron && window.electron.download && window.electron.download.onCoreProgress) {
-      window.electron.download.onCoreProgress(handleDownloadProgress);
-    }
+    const handleDownloadComplete = (data) => {
+      console.log('SingBox download complete:', data);
 
-    return () => {
-      if (window.electron && window.electron.removeCoreDownloadProgress) {
-        window.electron.removeCoreDownloadProgress(handleDownloadProgress);
+      if (data.success) {
+        setIsDownloadingCore(false);
+        setDownloadProgress(100);
+        setDownloadMessage('安装完成');
+        showMessage(`${data.coreType} 内核安装完成`, 'success');
+        checkCoreExists();
+      } else {
+        setIsDownloadingCore(false);
+        setDownloadProgress(0);
+        setDownloadMessage('');
+        showMessage('下载失败: ' + (data.error || '未知错误'), 'error');
       }
     };
+
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.on('core-download-progress', handleDownloadProgress);
+      window.electron.ipcRenderer.on('core-download-complete', handleDownloadComplete);
+
+      return () => {
+        window.electron.ipcRenderer.removeListener('core-download-progress', handleDownloadProgress);
+        window.electron.ipcRenderer.removeListener('core-download-complete', handleDownloadComplete);
+      };
+    }
   }, []);
 
   // 组件挂载时检查内核状态
@@ -94,27 +111,35 @@ const useSingBoxControl = () => {
   }, []);
 
   const downloadCore = async () => {
-    if (window.electron && window.electron.singbox && window.electron.singbox.downloadCore) {
-      setIsDownloadingCore(true);
-      setDownloadProgress(0);
-      setDownloadMessage('准备下载...');
-      
-      try {
-        const result = await window.electron.singbox.downloadCore();
-        if (result && result.success) {
-          showMessage('内核下载完成');
-          await checkCoreExists();
-        } else {
-          showMessage('下载失败: ' + (result.error || '未知错误'));
-        }
-        setIsDownloadingCore(false);
-      } catch (err) {
-        setIsDownloadingCore(false);
-        console.error('下载内核错误:', err);
-        showMessage('下载错误: ' + (err.message || '未知错误'));
-      }
-    } else {
+    if (!window.electron?.coreManager?.downloadCore) {
       showMessage('下载功能不可用');
+      return;
+    }
+
+    setIsDownloadingCore(true);
+    setDownloadProgress(0);
+    setDownloadMessage('准备下载...');
+
+    try {
+      // 指定下载 sing-box v1.12.0-rc.4
+      const coreType = 'sing-box';
+      const version = 'v1.12.0-rc.4';
+
+      console.log(`开始下载 ${coreType} ${version}`);
+
+      const result = await window.electron.coreManager.downloadCore(coreType, version);
+
+      if (result?.success) {
+        showMessage('内核下载完成');
+        await checkCoreExists();
+      } else {
+        setIsDownloadingCore(false);
+        showMessage('下载失败: ' + (result?.error || '未知错误'));
+      }
+    } catch (err) {
+      setIsDownloadingCore(false);
+      console.error('下载内核错误:', err);
+      showMessage('下载错误: ' + (err.message || '未知错误'));
     }
   };
 
