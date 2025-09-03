@@ -60,7 +60,7 @@
     "node-fetch": "^3.3.2",
     "nodejs-traceroute": "^2.0.1",
     "react": "^19.1.1",
-    "react-dom": "^19.0.0",
+    "react-dom": "^19.1.1",
     "react-i18next": "^15.6.0",
     "react-router-dom": "^7.7.1"
   },
