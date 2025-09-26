@@ -15,7 +15,7 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
   const [errorDetails, setErrorDetails] = useState('');
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   const [updateInterval, setUpdateInterval] = useState('0'); // '0'表示不自动更新
-  const [protocolType, setProtocolType] = useState('singbox'); // 'singbox' 或 'lvory'
+  const [protocolType, setProtocolType] = useState('lvory'); // 'lvory', 'mihomo' 或 'singbox'
   const fileInputRef = useRef(null);
 
   // 重置所有交互状态
@@ -147,12 +147,12 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
     let customFileName = fileName.trim() || url.substring(url.lastIndexOf('/') + 1) || 'profile.config';
     
     // 根据协议类型调整文件名和扩展名
-    if (protocolType === 'lvory') {
-      // Lvory 协议使用 .yaml 扩展名
+    if (protocolType === 'lvory' || protocolType === 'mihomo') {
+      // Lvory 和 Mihomo 协议使用 .yaml 扩展名
       if (!customFileName.endsWith('.yaml') && !customFileName.endsWith('.yml')) {
         customFileName = customFileName.replace(/\.[^/.]+$/, '') + '.yaml';
       }
-    } else {
+    } else if (protocolType === 'singbox') {
       // SingBox 协议使用 .json 扩展名
       if (!customFileName.endsWith('.json')) {
         customFileName = customFileName.replace(/\.[^/.]+$/, '') + '.json';
@@ -334,22 +334,6 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
             <div className="protocol-option">
               <input
                 type="radio"
-                id="singbox-protocol"
-                name="protocol"
-                value="singbox"
-                checked={protocolType === 'singbox'}
-                onChange={(e) => setProtocolType(e.target.value)}
-              />
-              <label htmlFor="singbox-protocol" className="protocol-option-label">
-                <div className="protocol-option-title">{t('profileModal.singboxProtocol')}</div>
-                <div className="protocol-option-description">
-                  {t('profileModal.singboxDescription')}
-                </div>
-              </label>
-            </div>
-            <div className="protocol-option">
-              <input
-                type="radio"
                 id="lvory-protocol"
                 name="protocol"
                 value="lvory"
@@ -360,6 +344,38 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
                 <div className="protocol-option-title">{t('profileModal.lvoryProtocol')}</div>
                 <div className="protocol-option-description">
                   {t('profileModal.lvoryDescription')}
+                </div>
+              </label>
+            </div>
+            <div className="protocol-option">
+              <input
+                type="radio"
+                id="mihomo-protocol"
+                name="protocol"
+                value="mihomo"
+                checked={protocolType === 'mihomo'}
+                onChange={(e) => setProtocolType(e.target.value)}
+              />
+              <label htmlFor="mihomo-protocol" className="protocol-option-label">
+                <div className="protocol-option-title">{t('profileModal.mihomoProtocol')}</div>
+                <div className="protocol-option-description">
+                  {t('profileModal.mihomoDescription')}
+                </div>
+              </label>
+            </div>
+            <div className="protocol-option">
+              <input
+                type="radio"
+                id="singbox-protocol"
+                name="protocol"
+                value="singbox"
+                checked={protocolType === 'singbox'}
+                onChange={(e) => setProtocolType(e.target.value)}
+              />
+              <label htmlFor="singbox-protocol" className="protocol-option-label">
+                <div className="protocol-option-title">{t('profileModal.singboxProtocol')}</div>
+                <div className="protocol-option-description">
+                  {t('profileModal.singboxDescription')}
                 </div>
               </label>
             </div>
@@ -405,9 +421,9 @@ const ProfileModal = ({ isOpen, onClose, onDownloadSuccess }) => {
                   onChange={handleFileSelect}
                   className="hidden-file-input"
                 />
-                <button 
+                <button
                   type="button"
-                  className="file-select-button"
+                  className={`file-select-button ${selectedFile ? 'file-selected' : ''}`}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {selectedFile ? selectedFile.name : t('profileModal.chooseFile')}

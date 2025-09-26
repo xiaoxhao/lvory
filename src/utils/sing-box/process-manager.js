@@ -40,7 +40,7 @@ class ProcessManager {
       logFilePath: handler.logFilePath
     };
     
-    logger.info(`[ProcessManager] 添加进程处理器: PID ${pid}`);
+    // 添加进程处理器
   }
 
   /**
@@ -50,7 +50,7 @@ class ProcessManager {
   removeProcessHandler(pid) {
     if (this.processHandlers.has(pid)) {
       this.processHandlers.delete(pid);
-      logger.info(`[ProcessManager] 移除进程处理器: PID ${pid}`);
+      // 移除进程处理器
     }
     
     if (this.process && this.process.pid === pid) {
@@ -79,7 +79,7 @@ class ProcessManager {
     this.process = null;
     this.elevatedProcess = null;
     
-    logger.info('[ProcessManager] 已清理所有进程');
+    // 已清理所有进程
   }
 
   /**
@@ -212,7 +212,7 @@ class ProcessManager {
     // 启动状态检查
     this.startStatusCheck();
     
-    logger.info(`[ProcessManager] 已启动管理员权限进程监控，日志文件: ${logFilePath}`);
+    // 已启动管理员权限进程监控
   }
 
   /**
@@ -339,7 +339,7 @@ class ProcessManager {
       }
     }, 3000); // 缩短检查间隔
     
-    logger.info('[ProcessManager] 已启动进程存活检查');
+    // 已启动进程存活检查
   }
 
   /**

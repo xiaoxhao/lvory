@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 const connectionLogger = require('../utils/connection-logger');
 const singbox = require('../utils/sing-box');
 const profileManager = require('./profile-manager');
-const ipcManager = require('./ipc-manager');
+
 const settingsManager = require('./settings-manager');
 
 // 判断是否是开发环境
@@ -95,8 +95,6 @@ const createWindow = () => {
   logger.setMainWindow(mainWindow);
   connectionLogger.setMainWindow(mainWindow);
   singbox.setMainWindow(mainWindow);
-  ipcManager.setMainWindow(mainWindow);
-  ipcManager.init();
   
   // 设置CSP策略，允许eval执行（开发模式需要）
   if (isDev) {
@@ -137,19 +135,40 @@ const createWindow = () => {
     setTimeout(() => loadAppContent(), 1000);
   });
 
-  mainWindow.webContents.on('did-finish-load', () => {
+  mainWindow.webContents.on('did-finish-load', async () => {
     logger.info('Page loaded successfully');
-    
-      // 页面加载完成后显示窗口
+
+    // 等待 IPC 处理器就绪后再显示窗口
+    try {
+      const ipcValidator = require('../utils/ipc-validator');
+      const isReady = await ipcValidator.waitForIpcReady(5000);
+
+      if (isReady) {
+        logger.info('IPC 处理器已就绪，显示窗口');
+      } else {
+        logger.warn('IPC 处理器就绪超时，仍然显示窗口');
+      }
+    } catch (error) {
+      logger.error('等待 IPC 就绪时出错:', error);
+    }
+
+    // 页面加载完成后显示窗口
     if (!mainWindow.isVisible()) {
       mainWindow.show();
     }
-    
-    // 扫描配置文件并将数据发送到渲染进程
-    const profileData = profileManager.scanProfileConfig();
-    if (profileData) {
-      mainWindow.webContents.send('profile-data', profileData);
-    }
+
+    // 延迟发送配置数据，确保渲染进程已准备好接收
+    setTimeout(() => {
+      try {
+        const profileData = profileManager.scanProfileConfig();
+        if (profileData && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('profile-data', profileData);
+          logger.info('配置数据已发送到渲染进程');
+        }
+      } catch (error) {
+        logger.error('发送配置数据失败:', error);
+      }
+    }, 1000);
   });
 
   loadAppContent();

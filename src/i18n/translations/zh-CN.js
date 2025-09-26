@@ -136,9 +136,10 @@ export default {
     noProfilesFound: '未发现配置文件',
     active: '当前使用',
     expired: '已过期',
-    incomplete: '不完整',
+
     cached: '已缓存',
     lvoryProtocol: 'Lvory',
+    mihomoProtocol: 'Mihomo',
     singboxProtocol: 'SingBox',
     loadLocalFile: '本地文件',
     selectConfigFile: '选择配置文件',
@@ -149,7 +150,7 @@ export default {
     copyFileName: '复制文件名',
     editFile: '编辑文件',
     updateProfile: '更新配置',
-    fixProfile: '修复配置',
+
     deleteProfile: '删除配置',
     copied: '已复制: ',
     failedToCopy: '复制失败',
@@ -165,7 +166,9 @@ export default {
     fixNotAvailable: '修复API不可用，请检查应用是否需要更新',
     configActivated: '配置文件已切换: ',
     lvoryConfigActivated: 'Lvory配置已激活并解析为SingBox: ',
+    mihomoConfigActivated: 'Mihomo 配置已激活: ',
     refreshLvoryCache: '刷新缓存',
+    refreshMihomoCache: '刷新缓存',
     refreshLvoryCacheSuccess: 'Lvory缓存已刷新',
     refreshLvoryCacheFailed: 'Lvory缓存刷新失败:',
     refreshLvoryCacheNotAvailable: '刷新缓存功能不可用'
@@ -184,6 +187,8 @@ export default {
     singboxDescription: 'SingBox 标准配置格式，支持完整的代理功能和路由规则',
     lvoryProtocol: 'Lvory 协议',
     lvoryDescription: 'Lvory 智能同步协议，支持多源配置合并和自动更新',
+    mihomoProtocol: 'Mihomo',
+    mihomoDescription: '兼容 Clash 的配置格式，支持主流代理协议和规则',
     // 输入字段
     enterUrl: '输入要下载配置文件的URL：',
     urlPlaceholder: 'https://example.com/profile.config',
