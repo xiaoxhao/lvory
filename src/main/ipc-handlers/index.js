@@ -6,7 +6,7 @@ const { ipcMain } = require('electron');
 const logger = require('../../utils/logger');
 
 // 加载所有处理程序模块
-let profileHandlers; 
+let profileHandlers;
 let singboxHandlers;
 let downloadHandlers;
 let settingsHandlers;
@@ -14,6 +14,8 @@ let updateHandlers;
 let nodeHistoryHandlers;
 let tracerouteHandlers;
 let coreManagerHandlers;
+let trafficStatsHandlers;
+let subscriptionHandlers;
 
 let ipcHandlersRegistered = false;
 
@@ -102,7 +104,9 @@ function setupHandlers() {
     nodeHistoryHandlers = loadHandlerModule('node-history');
     tracerouteHandlers = loadHandlerModule('traceroute');
     coreManagerHandlers = loadHandlerModule('core-manager');
-    
+    trafficStatsHandlers = loadHandlerModule('traffic-stats');
+    subscriptionHandlers = loadHandlerModule('subscription');
+
     // 导入工具模块
     const utils = require('./utils');
     
@@ -115,7 +119,9 @@ function setupHandlers() {
     if (nodeHistoryHandlers) nodeHistoryHandlers.setup();
     if (tracerouteHandlers) tracerouteHandlers.registerTracerouteHandlers();
     if (coreManagerHandlers) coreManagerHandlers.setup();
-    
+    if (trafficStatsHandlers) trafficStatsHandlers.setup();
+    if (subscriptionHandlers) subscriptionHandlers.setup();
+
     // 设置网络接口处理程序
     utils.getNetworkInterfaces();
     utils.getAppVersion();

@@ -22,34 +22,39 @@ function getMainWindow() {
 }
 
 /**
- * 读取元数据缓存文件
+ * 读取元数据缓存
  * @returns {Object} 元数据缓存对象
  */
 function readMetaCache() {
   try {
-    const metaCachePath = path.join(getConfigDir(), 'meta.cache');
-    if (fs.existsSync(metaCachePath)) {
-      const cacheData = fs.readFileSync(metaCachePath, 'utf8');
-      return JSON.parse(cacheData);
+    const subscriptionManager = require('../data-managers/subscription-manager');
+    const result = subscriptionManager.getAllSubscriptions();
+
+    if (result.success) {
+      return result.subscriptions;
     }
   } catch (error) {
-    logger.error(`读取meta.cache失败: ${error.message}`);
+    logger.error(`读取订阅数据失败: ${error.message}`);
   }
   return {};
 }
 
 /**
- * 写入元数据缓存文件
+ * 写入元数据缓存
  * @param {Object} metaCache 元数据缓存对象
  * @returns {Boolean} 是否成功写入
  */
 function writeMetaCache(metaCache) {
   try {
-    const metaCachePath = path.join(getConfigDir(), 'meta.cache');
-    fs.writeFileSync(metaCachePath, JSON.stringify(metaCache, null, 2));
+    const subscriptionManager = require('../data-managers/subscription-manager');
+
+    for (const [fileName, metadata] of Object.entries(metaCache)) {
+      subscriptionManager.addSubscription(fileName, metadata);
+    }
+
     return true;
   } catch (error) {
-    logger.error(`更新meta.cache失败: ${error.message}`);
+    logger.error(`更新订阅数据失败: ${error.message}`);
     return false;
   }
 }

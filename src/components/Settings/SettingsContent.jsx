@@ -421,7 +421,10 @@ const SettingsContent = ({ section }) => {
     nodeExitStatusMonitoring: false,
     nodeExitIPPurity: false,
     keepNodeTrafficHistory: false,
-    
+
+    // 流量统计设置
+    trafficStatsPeriod: 'month',
+
     // 多云互联设置
     cloudInterconnection: false,
     backendAddress: '',
@@ -804,7 +807,10 @@ const SettingsContent = ({ section }) => {
       nodeExitStatusMonitoring: config.node_exit_status_monitoring || false,
       nodeExitIPPurity: config.node_exit_ip_purity || false,
       keepNodeTrafficHistory: config.keep_node_traffic_history || false,
-      
+
+      // 流量统计设置
+      trafficStatsPeriod: config.traffic_stats_period || 'month',
+
       // 多云互联设置
       cloudInterconnection: config.cloud_interconnection || false,
       backendAddress: config.backend_address || '',
@@ -1064,6 +1070,19 @@ const SettingsContent = ({ section }) => {
               {/* 保留节点流量历史数据 */}
               {renderToggle(t('settings.keepNodeTraffic'), 'keepNodeTrafficHistory', settings.keepNodeTrafficHistory)}
               <DescriptionText>{t('settings.keepNodeTrafficDesc')}</DescriptionText>
+
+              {/* 流量统计周期 */}
+              <SelectWithLabel
+                label={t('settings.trafficStatsPeriod')}
+                value={settings.trafficStatsPeriod}
+                onChange={(e) => handleSettingChange('trafficStatsPeriod', e.target.value)}
+                options={[
+                  { value: 'day', label: t('settings.trafficPeriodDay') },
+                  { value: 'week', label: t('settings.trafficPeriodWeek') },
+                  { value: 'month', label: t('settings.trafficPeriodMonth') }
+                ]}
+              />
+              <DescriptionText>{t('settings.trafficStatsPeriodDesc')}</DescriptionText>
               
               {/* 子选项始终显示，但在未启用高级监控时禁用 */}
               <div style={{ marginLeft: '0px', marginTop: '0px', opacity: settings.nodeAdvancedMonitoring ? 1 : 0.5, pointerEvents: settings.nodeAdvancedMonitoring ? 'auto' : 'none' }}>

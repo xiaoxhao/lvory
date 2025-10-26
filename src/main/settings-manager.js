@@ -4,6 +4,7 @@ const fs = require('fs');
 const logger = require('../utils/logger');
 const { getAppDataDir, generateDefaultLogPath } = require('../utils/paths');
 const nodeHistoryManager = require('./data-managers/node-history-manager');
+const trafficStatsManager = require('./data-managers/traffic-stats-manager');
 const ConfigParser = require('../utils/sing-box/config-parser');
 
 class SettingsManager {
@@ -27,7 +28,10 @@ class SettingsManager {
       nodeExitStatusMonitoring: false,
       nodeExitIPPurity: false,
       keepNodeTrafficHistory: false,
-      
+
+      // 流量统计设置
+      trafficStatsPeriod: 'month',
+
       // 高级设置
       kernelWatchdog: true,
       language: 'zh_CN',
@@ -59,10 +63,15 @@ class SettingsManager {
       
       // 同步开机自启动状态
       await this.syncAutoLaunch();
-      
+
       // 同步节点历史数据设置
       nodeHistoryManager.setEnabled(this.settings.keepNodeTrafficHistory);
-      
+
+      // 同步流量统计周期设置
+      if (this.settings.trafficStatsPeriod) {
+        trafficStatsManager.setStatsPeriod(this.settings.trafficStatsPeriod);
+      }
+
       logger.info('设置已加载');
       return this.settings;
     } catch (error) {
@@ -95,7 +104,12 @@ class SettingsManager {
       if ('keepNodeTrafficHistory' in settings) {
         nodeHistoryManager.setEnabled(settings.keepNodeTrafficHistory);
       }
-      
+
+      // 如果设置中包含trafficStatsPeriod，更新流量统计周期
+      if ('trafficStatsPeriod' in settings) {
+        trafficStatsManager.setStatsPeriod(settings.trafficStatsPeriod);
+      }
+
       logger.info('设置已保存');
       return { success: true };
     } catch (error) {

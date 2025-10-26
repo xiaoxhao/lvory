@@ -46,6 +46,7 @@ class ConfigManager {
         nodeExitStatusMonitoring: false,
         nodeExitIPPurity: false,
         keepNodeTrafficHistory: false,
+        trafficStatsPeriod: 'month',
         kernelWatchdog: true,
         language: 'zh_CN',
         foregroundOnly: false

@@ -53,6 +53,13 @@ export default {
     keepNodeTrafficDesc: '存储节点流量数据最多一个月',
     nodeExitStatus: '节点出口状态监控',
     nodeExitIpPurity: '节点出口 IP 纯净度检查',
+
+    // 流量统计设置
+    trafficStatsPeriod: '流量统计周期',
+    trafficStatsPeriodDesc: '设置流量统计的时间周期，程序关闭后流量数据将持久化保存',
+    trafficPeriodDay: '每日',
+    trafficPeriodWeek: '每周',
+    trafficPeriodMonth: '每月',
     
     // 云连接
     cloudConnection: '多云互联',

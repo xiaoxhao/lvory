@@ -53,6 +53,13 @@ export default {
     keepNodeTrafficDesc: 'Store node traffic data for up to one month',
     nodeExitStatus: 'Node Exit Status Monitoring',
     nodeExitIpPurity: 'Node Exit IP Purity Check',
+
+    // Traffic statistics settings
+    trafficStatsPeriod: 'Traffic Statistics Period',
+    trafficStatsPeriodDesc: 'Set the time period for traffic statistics, data will be persisted after program closes',
+    trafficPeriodDay: 'Daily',
+    trafficPeriodWeek: 'Weekly',
+    trafficPeriodMonth: 'Monthly',
     
     // Cloud connection
     cloudConnection: 'Cloud Connection',

@@ -250,6 +250,28 @@ contextBridge.exposeInMainWorld('electron', {
     resetTotalTraffic: (nodeTag) => ipcRenderer.invoke('reset-node-total-traffic', nodeTag)
   },
 
+  // 统一的流量统计接口
+  trafficStats: {
+    setPeriod: (period) => ipcRenderer.invoke('traffic-stats:set-period', period),
+    getPeriod: () => ipcRenderer.invoke('traffic-stats:get-period'),
+    update: (upload, download) => ipcRenderer.invoke('traffic-stats:update', { upload, download }),
+    getCurrent: () => ipcRenderer.invoke('traffic-stats:get-current'),
+    getHistory: (limit) => ipcRenderer.invoke('traffic-stats:get-history', limit),
+    resetCurrent: () => ipcRenderer.invoke('traffic-stats:reset-current'),
+    cleanup: (retentionDays) => ipcRenderer.invoke('traffic-stats:cleanup', retentionDays),
+    setRetentionDays: (days) => ipcRenderer.invoke('traffic-stats:set-retention-days', days),
+    getRetentionDays: () => ipcRenderer.invoke('traffic-stats:get-retention-days')
+  },
+
+  // 统一的订阅管理接口
+  subscription: {
+    add: (fileName, metadata) => ipcRenderer.invoke('subscription:add', { fileName, metadata }),
+    get: (fileName) => ipcRenderer.invoke('subscription:get', fileName),
+    getAll: () => ipcRenderer.invoke('subscription:get-all'),
+    update: (fileName, updates) => ipcRenderer.invoke('subscription:update', { fileName, updates }),
+    delete: (fileName) => ipcRenderer.invoke('subscription:delete', fileName)
+  },
+
   // 监听代理状态恢复
   onProxyStateRestored: (callback) => {
     ipcRenderer.on('proxy-state-restored', callback);

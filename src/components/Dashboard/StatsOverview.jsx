@@ -279,7 +279,14 @@ const StatsOverview = ({ apiAddress, privacySettings }) => {
                 up: persistentData.cumulativeTraffic.up,
                 down: persistentData.cumulativeTraffic.down
               });
-              
+
+              // 更新到数据库
+              if (window.electron && window.electron.trafficStats) {
+                window.electron.trafficStats.update(data.up, data.down).catch(err => {
+                  console.error('更新流量统计失败:', err);
+                });
+              }
+
               // 更新图表
               updateTrafficChart();
             } catch (parseError) {
@@ -1104,7 +1111,23 @@ const StatsOverview = ({ apiAddress, privacySettings }) => {
     // 首次获取数据
     fetchTrafficData();
     testLatency();
-    
+
+    // 加载当前周期的流量统计
+    if (window.electron && window.electron.trafficStats) {
+      window.electron.trafficStats.getCurrent().then(result => {
+        if (result.success && result.stats) {
+          persistentData.cumulativeTraffic.up = result.stats.upload;
+          persistentData.cumulativeTraffic.down = result.stats.download;
+          setCumulativeTraffic({
+            up: result.stats.upload,
+            down: result.stats.download
+          });
+        }
+      }).catch(err => {
+        console.error('加载流量统计失败:', err);
+      });
+    }
+
     // 组件卸载时清理
     return () => {
       clearInterval(latencyTimer);
