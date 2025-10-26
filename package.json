@@ -40,11 +40,10 @@
     "css-loader": "^7.1.2",
     "electron": "37.2.5",
     "electron-builder": "^25.1.8",
-    "global": "^4.4.0",
     "html-webpack-plugin": "^5.6.3",
     "mini-css-extract-plugin": "^2.9.2",
-    "process": "^0.11.10",
     "style-loader": "^4.0.0",
+    "terser-webpack-plugin": "^5.3.11",
     "wait-on": "^8.0.3",
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1",
@@ -53,7 +52,6 @@
   "dependencies": {
     "adm-zip": "^0.5.16",
     "echarts": "^5.6.0",
-    "electron-squirrel-startup": "^1.0.1",
     "i18next": "^25.3.0",
     "i18next-browser-languagedetector": "^8.1.0",
     "js-yaml": "^4.1.0",
@@ -65,7 +63,8 @@
     "react-router-dom": "^7.7.1"
   },
   "optionalDependencies": {
-    "dmg-license": "^1.0.11"
+    "dmg-license": "^1.0.11",
+    "electron-squirrel-startup": "^1.0.1"
   },
   "build": {
     "appId": "com.lvory.app",
@@ -78,10 +77,19 @@
       "dist/**/*",
       "index.js",
       "package.json",
-      "src/**/*",
-      "resource/**/*",
-      "public/**/*",
-      "preload.js"
+      "src/main/**/*",
+      "src/utils/**/*",
+      "src/services/**/*",
+      "resource/icon/**/*",
+      "preload.js",
+      "!**/*.map",
+      "!**/*.md",
+      "!test/**/*",
+      "!scripts/**/*",
+      "!docs/**/*",
+      "!src/components/**/*",
+      "!src/assets/**/*",
+      "!public/**/*"
     ],
     "extraResources": [
       {
@@ -199,7 +207,9 @@
       ]
     },
     "fileAssociations": [],
-    "asarUnpack": []
+    "asarUnpack": [
+      "node_modules/nodejs-traceroute/**/*"
+    ]
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -1,8 +1,28 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import * as echarts from 'echarts';
+import * as echarts from 'echarts/core';
+import { LineChart, ScatterChart } from 'echarts/charts';
+import {
+  GridComponent,
+  TooltipComponent,
+  TitleComponent,
+  LegendComponent,
+  MarkLineComponent
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import '../../assets/css/stats-overview.css';
 import IPService from '../../services/ip/IPService';
 import { formatBytesToObject, formatWithOptimalUnit } from '../../utils/formatters';
+
+echarts.use([
+  LineChart,
+  ScatterChart,
+  GridComponent,
+  TooltipComponent,
+  TitleComponent,
+  LegendComponent,
+  MarkLineComponent,
+  CanvasRenderer
+]);
 
 // 流量数据缓存
 const trafficData = {

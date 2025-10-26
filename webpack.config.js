@@ -1,7 +1,8 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const { DefinePlugin, ProvidePlugin } = require('webpack');
+const TerserPlugin = require('terser-webpack-plugin');
+const { DefinePlugin } = require('webpack');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -16,23 +17,52 @@ module.exports = {
     clean: true
   },
   optimization: {
+    minimize: isProduction,
+    minimizer: isProduction ? [
+      new TerserPlugin({
+        terserOptions: {
+          compress: {
+            drop_console: true,
+            drop_debugger: true,
+            pure_funcs: ['console.log', 'console.info', 'console.debug']
+          },
+          mangle: true,
+          output: {
+            comments: false
+          }
+        },
+        extractComments: false
+      })
+    ] : [],
     splitChunks: {
       chunks: 'all',
+      maxInitialRequests: 25,
+      minSize: 20000,
       cacheGroups: {
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
+        echarts: {
+          test: /[\\/]node_modules[\\/]echarts[\\/]/,
+          name: 'echarts',
           chunks: 'all',
-          priority: 10
+          priority: 30,
+          reuseExistingChunk: true
         },
         react: {
           test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
           name: 'react',
           chunks: 'all',
-          priority: 20
+          priority: 20,
+          reuseExistingChunk: true
+        },
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+          priority: 10,
+          reuseExistingChunk: true
         }
       }
     },
+    runtimeChunk: 'single',
     usedExports: true,
     sideEffects: false
   },
@@ -87,19 +117,11 @@ module.exports = {
     extensions: ['.js', '.jsx', '.mjs'],
     alias: {
       '@': path.resolve(__dirname, 'src')
-    },
-    fallback: {
-      "process": require.resolve("process/browser.js"),
-      "global": require.resolve("global/window")
     }
   },
   plugins: [
     new DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-      global: 'globalThis'
-    }),
-    new ProvidePlugin({
-      process: 'process/browser.js'
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
     }),
     new HtmlWebpackPlugin({
       template: './public/index.html',
@@ -144,5 +166,5 @@ module.exports = {
       return middlewares;
     }
   },
-  devtool: isProduction ? 'source-map' : 'eval-source-map'
-}; 
+  devtool: isProduction ? false : 'eval-source-map'
+};

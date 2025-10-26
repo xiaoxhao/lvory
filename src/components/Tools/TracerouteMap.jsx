@@ -1,8 +1,27 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import * as echarts from 'echarts';
+import * as echarts from 'echarts/core';
+import { ScatterChart, LinesChart, EffectScatterChart } from 'echarts/charts';
+import {
+  GeoComponent,
+  TooltipComponent,
+  VisualMapComponent,
+  LegendComponent
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import IPService from '../../services/ip/IPService';
 import TracerouteService from '../../services/network/TracerouteService';
+
+echarts.use([
+  ScatterChart,
+  LinesChart,
+  EffectScatterChart,
+  GeoComponent,
+  TooltipComponent,
+  VisualMapComponent,
+  LegendComponent,
+  CanvasRenderer
+]);
 
 const TracerouteMap = forwardRef(({ targetHost, setTargetHost, setIsTracing, onTraceComplete, existingData, onBackToTable }, ref) => {
   const { t } = useTranslation();
