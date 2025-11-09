@@ -199,56 +199,6 @@ function setup() {
     }
   });
   
-  // 下载核心
-  ipcMain.handle('download-core', async (event) => {
-    try {
-      const mainWindow = utils.getMainWindow();
-      const result = await coreDownloader.downloadCore(mainWindow);
-      // 如果下载成功，尝试获取版本信息
-      if (result.success) {
-        setTimeout(async () => {
-          const versionInfo = await singbox.getVersion();
-          if (versionInfo.success && mainWindow && !mainWindow.isDestroyed()) {
-            // 通知渲染进程更新版本信息
-            mainWindow.webContents.send('core-version-update', {
-              version: versionInfo.version,
-              fullOutput: versionInfo.fullOutput
-            });
-          }
-        }, 500); // 稍微延迟以确保文件已正确解压并可访问
-      }
-      return result;
-    } catch (error) {
-      logger.error('下载内核处理器错误:', error);
-      return { success: false, error: error.message };
-    }
-  });
-  
-  // 注册sing-box运行服务的IPC处理程序
-  ipcMain.handle('singbox-run', async (event, data) => {
-    try {
-      if (!data || !data.configPath) {
-        return { success: false, error: '配置文件路径不能为空' };
-      }
-      
-      const result = await singbox.run(data.configPath);
-      return result;
-    } catch (error) {
-      logger.error('运行sing-box失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
-  
-  // 停止运行的sing-box服务
-  ipcMain.handle('singbox-stop', async () => {
-    try {
-      const result = await singbox.stop();
-      return result;
-    } catch (error) {
-      logger.error('停止sing-box失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
 
   // 获取路由规则
   ipcMain.handle('get-route-rules', async () => {

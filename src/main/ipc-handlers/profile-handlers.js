@@ -314,13 +314,10 @@ function setup() {
       }
       
       fs.unlinkSync(filePath);
-      
-      // 更新meta.cache
-      const metaCache = utils.readMetaCache();
-      if (metaCache[fileName]) {
-        delete metaCache[fileName];
-        utils.writeMetaCache(metaCache);
-      }
+
+      // 删除订阅记录
+      const subscriptionManager = require('../data-managers/subscription-manager');
+      subscriptionManager.deleteSubscription(fileName);
       
       // 触发配置文件变更事件
       const mainWindow = utils.getMainWindow();
@@ -767,16 +764,15 @@ function setup() {
 
       // 写入文件
       fs.writeFileSync(filePath, validatedContent, 'utf8');
-      
-      // 更新meta.cache记录
-      const metaCache = utils.readMetaCache();
-      metaCache[fileName] = {
+
+      // 添加订阅记录
+      const subscriptionManager = require('../data-managers/subscription-manager');
+      subscriptionManager.addSubscription(fileName, {
         status: 'active',
         protocol: protocol,
         loadedAt: new Date().toISOString(),
         source: 'local'
-      };
-      utils.writeMetaCache(metaCache);
+      });
 
       logger.info(`本地文件已载入: ${fileName} (协议: ${protocol})`);
 

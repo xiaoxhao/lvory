@@ -167,11 +167,10 @@ function setup() {
               status: 'active',
               protocol: data.protocolType || 'singbox'
             };
-            
+
             try {
-              let metaCache = utils.readMetaCache();
-              metaCache[customFileName] = metadata;
-              utils.writeMetaCache(metaCache);
+              const subscriptionManager = require('../data-managers/subscription-manager');
+              subscriptionManager.addSubscription(customFileName, metadata);
               logger.info('The profile metadata has been updated');
             } catch (cacheErr) {
               logger.error(`Failed to update meta.cache: ${cacheErr.message}`);

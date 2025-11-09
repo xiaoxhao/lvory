@@ -448,48 +448,49 @@ async function processLvorySyncConfig(syncConfigPath, forceRefresh = false) {
       logger.info(`Lvory缓存文件已创建: ${cacheFileName}`);
       
       // 更新meta.cache映射关系
-      const { readMetaCache, writeMetaCache } = require('./ipc-handlers/utils');
-      const metaCache = readMetaCache();
+      const subscriptionManager = require('./data-managers/subscription-manager');
       const originalFileName = path.basename(syncConfigPath);
-      
+
+      // 获取原始文件的现有元数据
+      const existingMetaResult = subscriptionManager.getSubscription(originalFileName);
+      const existingMeta = existingMetaResult.success ? existingMetaResult.metadata : {};
+
       // 清理旧的缓存文件（如果存在）
-      if (metaCache[originalFileName] && metaCache[originalFileName].singboxCache) {
-        const oldCacheFile = metaCache[originalFileName].singboxCache;
+      if (existingMeta.singboxCache) {
+        const oldCacheFile = existingMeta.singboxCache;
         const oldCachePath = path.join(configDir, oldCacheFile);
         if (fs.existsSync(oldCachePath)) {
           try {
             fs.unlinkSync(oldCachePath);
             logger.info(`已删除旧的缓存文件: ${oldCacheFile}`);
-            // 清理meta中的旧缓存记录
-            if (metaCache[oldCacheFile]) {
-              delete metaCache[oldCacheFile];
-            }
+            // 删除旧缓存记录
+            subscriptionManager.deleteSubscription(oldCacheFile);
           } catch (err) {
             logger.warn(`删除旧缓存文件失败: ${err.message}`);
           }
         }
       }
-      
-      // 更新原始Lvory文件的meta信息
-      metaCache[originalFileName] = {
+
+      // 更新原始Lvory文件的meta信息,保留原有的URL等信息
+      subscriptionManager.addSubscription(originalFileName, {
+        ...existingMeta,
         status: 'active',
         protocol: 'lvory',
         lastProcessed: new Date().toISOString(),
         singboxCache: cacheFileName,
-        source: 'loaded'
-      };
-      
+        source: existingMeta.source || 'loaded'
+      });
+
       // 添加缓存文件的meta信息
-      metaCache[cacheFileName] = {
+      subscriptionManager.addSubscription(cacheFileName, {
         status: 'cached',
         protocol: 'singbox',
         generatedFrom: originalFileName,
         lastGenerated: new Date().toISOString(),
         source: 'lvory_processed',
         isCache: true
-      };
-      
-      writeMetaCache(metaCache);
+      });
+
       logger.info(`已更新meta.cache映射关系: ${originalFileName} -> ${cacheFileName}`);
     }
     

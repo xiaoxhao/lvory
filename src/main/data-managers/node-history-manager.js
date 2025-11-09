@@ -1,290 +1,330 @@
-const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
+const fs = require('fs');
 const logger = require('../../utils/logger');
 const { getAppDataDir } = require('../../utils/paths');
+const BaseDatabaseManager = require('./base-database-manager');
 
-class NodeHistoryManager {
+class NodeHistoryManager extends BaseDatabaseManager {
   constructor() {
-    this.historyData = {}; // 内存中的历史数据缓存
-    this.totalTrafficData = {}; // 节点累计流量数据
-    this.storageDir = path.join(getAppDataDir(), 'node_history');
-    this.totalTrafficPath = path.join(getAppDataDir(), 'node_total_traffic.json');
-    this.isEnabled = false; // 是否启用历史数据存储
-    this.dataRetentionDays = 30; // 数据保留天数，默认30天
-    
-    // 确保存储目录存在
-    this.ensureStorageDirectory();
-    
-    // 加载累计流量数据
-    this.loadTotalTrafficData();
+    super('node_history.db', '节点历史数据库');
+    this.isEnabled = false;
+    this.dataRetentionDays = 30;
+
+    this.initDatabase();
+    this.migrateFromJsonFiles();
   }
 
-  // 确保存储目录存在
-  ensureStorageDirectory() {
+  createTables() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS node_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        node_tag TEXT NOT NULL,
+        date TEXT NOT NULL,
+        upload INTEGER DEFAULT 0,
+        download INTEGER DEFAULT 0,
+        total INTEGER DEFAULT 0,
+        last_updated TEXT,
+        UNIQUE(node_tag, date)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_node_tag ON node_history(node_tag);
+      CREATE INDEX IF NOT EXISTS idx_date ON node_history(date);
+
+      CREATE TABLE IF NOT EXISTS node_total_traffic (
+        node_tag TEXT PRIMARY KEY,
+        upload INTEGER DEFAULT 0,
+        download INTEGER DEFAULT 0,
+        total INTEGER DEFAULT 0,
+        last_updated TEXT
+      );
+    `);
+  }
+
+  migrateFromJsonFiles() {
     try {
-      if (!fs.existsSync(this.storageDir)) {
-        fs.mkdirSync(this.storageDir, { recursive: true });
-        logger.info('节点历史数据存储目录已创建');
+      const oldStorageDir = path.join(getAppDataDir(), 'node_history');
+      const oldTotalTrafficPath = path.join(getAppDataDir(), 'node_total_traffic.json');
+
+      if (fs.existsSync(oldStorageDir)) {
+        const files = fs.readdirSync(oldStorageDir);
+        let migratedCount = 0;
+
+        this.executeInTransaction(() => {
+          files.forEach(file => {
+            if (file.endsWith('.json')) {
+              const nodeTag = path.basename(file, '.json');
+              const filePath = path.join(oldStorageDir, file);
+
+              try {
+                const fileData = fs.readFileSync(filePath, 'utf8');
+                const nodeHistory = JSON.parse(fileData);
+
+                const stmt = this.db.prepare(`
+                  INSERT OR REPLACE INTO node_history (node_tag, date, upload, download, total, last_updated)
+                  VALUES (?, ?, ?, ?, ?, ?)
+                `);
+
+                Object.entries(nodeHistory).forEach(([date, data]) => {
+                  stmt.run(nodeTag, date, data.upload || 0, data.download || 0, data.total || 0, data.lastUpdated);
+                });
+
+                migratedCount++;
+              } catch (error) {
+                logger.error(`迁移节点历史数据文件失败 ${file}:`, error);
+              }
+            }
+          });
+          return {};
+        });
+
+        if (migratedCount > 0) {
+          logger.info(`已迁移 ${migratedCount} 个节点的历史数据从 JSON 到 SQLite`);
+          fs.rmSync(oldStorageDir, { recursive: true, force: true });
+          logger.info('已删除旧的 JSON 历史数据文件');
+        }
+      }
+
+      if (fs.existsSync(oldTotalTrafficPath)) {
+        try {
+          const data = fs.readFileSync(oldTotalTrafficPath, 'utf8');
+          const totalTrafficData = JSON.parse(data);
+
+          const stmt = this.db.prepare(`
+            INSERT OR REPLACE INTO node_total_traffic (node_tag, upload, download, total, last_updated)
+            VALUES (?, ?, ?, ?, ?)
+          `);
+
+          Object.entries(totalTrafficData).forEach(([nodeTag, traffic]) => {
+            stmt.run(nodeTag, traffic.upload || 0, traffic.download || 0, traffic.total || 0, traffic.lastUpdated);
+          });
+
+          fs.unlinkSync(oldTotalTrafficPath);
+          logger.info('已迁移累计流量数据从 JSON 到 SQLite');
+        } catch (error) {
+          logger.error('迁移累计流量数据失败:', error);
+        }
       }
     } catch (error) {
-      logger.error('创建节点历史数据存储目录失败:', error);
+      logger.error('数据迁移过程失败:', error);
     }
   }
 
-  // 设置是否启用历史数据存储
   setEnabled(enabled) {
     this.isEnabled = enabled;
     logger.info(`节点历史数据存储已${enabled ? '启用' : '禁用'}`);
     return { success: true };
   }
 
-  // 获取是否启用历史数据存储
   isHistoryEnabled() {
     return this.isEnabled;
   }
 
-  // 更新节点流量数据
   updateNodeTraffic(nodeTag, trafficData) {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled || !this.initialized) return;
 
     try {
-      // 获取当前日期作为键
-      const today = new Date().toISOString().split('T')[0]; // 格式: YYYY-MM-DD
-      
-      // 初始化节点数据结构
-      if (!this.historyData[nodeTag]) {
-        this.historyData[nodeTag] = {};
-      }
-      
-      // 初始化当天的数据
-      if (!this.historyData[nodeTag][today]) {
-        this.historyData[nodeTag][today] = {
-          upload: 0,
-          download: 0,
-          total: 0,
-          lastUpdated: new Date().toISOString()
-        };
-      }
-      
-      // 更新流量数据
-      const nodeData = this.historyData[nodeTag][today];
-      nodeData.upload += trafficData.upload || 0;
-      nodeData.download += trafficData.download || 0;
-      nodeData.total = nodeData.upload + nodeData.download;
-      nodeData.lastUpdated = new Date().toISOString();
-      
-      // 更新累计流量数据
-      if (!this.totalTrafficData[nodeTag]) {
-        this.totalTrafficData[nodeTag] = {
-          upload: 0,
-          download: 0,
-          total: 0,
-          lastUpdated: new Date().toISOString()
-        };
-      }
-      
-      // 更新累计流量
-      this.totalTrafficData[nodeTag].upload += trafficData.upload || 0;
-      this.totalTrafficData[nodeTag].download += trafficData.download || 0;
-      this.totalTrafficData[nodeTag].total = this.totalTrafficData[nodeTag].upload + this.totalTrafficData[nodeTag].download;
-      this.totalTrafficData[nodeTag].lastUpdated = new Date().toISOString();
-      
-      // 定期保存到磁盘
-      this.saveHistoryData();
-      this.saveTotalTrafficData();
+      const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
+      const upload = trafficData.upload || 0;
+      const download = trafficData.download || 0;
+      const total = upload + download;
+
+      const historyStmt = this.db.prepare(`
+        INSERT INTO node_history (node_tag, date, upload, download, total, last_updated)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(node_tag, date) DO UPDATE SET
+          upload = upload + excluded.upload,
+          download = download + excluded.download,
+          total = total + excluded.total,
+          last_updated = excluded.last_updated
+      `);
+
+      historyStmt.run(nodeTag, today, upload, download, total, now);
+
+      const totalStmt = this.db.prepare(`
+        INSERT INTO node_total_traffic (node_tag, upload, download, total, last_updated)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(node_tag) DO UPDATE SET
+          upload = upload + excluded.upload,
+          download = download + excluded.download,
+          total = total + excluded.total,
+          last_updated = excluded.last_updated
+      `);
+
+      totalStmt.run(nodeTag, upload, download, total, now);
     } catch (error) {
       logger.error('更新节点流量历史数据失败:', error);
     }
   }
 
-  // 获取指定节点的历史数据
   getNodeHistory(nodeTag) {
+    if (!this.initialized) {
+      return { success: false, error: 'Database not initialized' };
+    }
+
     try {
-      // 尝试从内存缓存获取
-      if (this.historyData[nodeTag]) {
-        return { success: true, history: this.historyData[nodeTag] };
+      const stmt = this.db.prepare(`
+        SELECT date, upload, download, total, last_updated
+        FROM node_history
+        WHERE node_tag = ?
+        ORDER BY date DESC
+      `);
+
+      const rows = stmt.all(nodeTag);
+
+      if (rows.length === 0) {
+        return { success: false, message: 'No history data found for this node' };
       }
-      
-      // 尝试从磁盘加载
-      const filePath = path.join(this.storageDir, `${nodeTag}.json`);
-      if (fs.existsSync(filePath)) {
-        const fileData = fs.readFileSync(filePath, 'utf8');
-        const nodeHistory = JSON.parse(fileData);
-        
-        // 更新内存缓存
-        this.historyData[nodeTag] = nodeHistory;
-        
-        return { success: true, history: nodeHistory };
-      }
-      
-      return { success: false, message: 'No history data found for this node' };
+
+      const history = {};
+      rows.forEach(row => {
+        history[row.date] = {
+          upload: row.upload,
+          download: row.download,
+          total: row.total,
+          lastUpdated: row.last_updated
+        };
+      });
+
+      return { success: true, history };
     } catch (error) {
       logger.error('获取节点历史数据失败:', error);
       return { success: false, error: error.message };
     }
   }
 
-  // 保存历史数据到磁盘
-  saveHistoryData() {
-    try {
-      // 确保存储目录存在
-      this.ensureStorageDirectory();
-      
-      // 遍历所有节点数据并保存
-      Object.keys(this.historyData).forEach(nodeTag => {
-        const filePath = path.join(this.storageDir, `${nodeTag}.json`);
-        fs.writeFileSync(filePath, JSON.stringify(this.historyData[nodeTag], null, 2));
-      });
-      
-      logger.debug('节点历史数据已保存到磁盘');
-    } catch (error) {
-      logger.error('保存节点历史数据到磁盘失败:', error);
-    }
-  }
-
-  // 清理过期数据
   cleanupExpiredData() {
-    if (!this.isEnabled) return;
+    if (!this.initialized) return;
 
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - this.dataRetentionDays);
       const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
-      
-      let cleanupCount = 0;
-      
-      // 遍历所有节点数据
-      Object.keys(this.historyData).forEach(nodeTag => {
-        const nodeData = this.historyData[nodeTag];
-        
-        // 删除早于保留期限的数据
-        Object.keys(nodeData).forEach(dateStr => {
-          if (dateStr < cutoffDateStr) {
-            delete nodeData[dateStr];
-            cleanupCount++;
-          }
-        });
-      });
-      
-      if (cleanupCount > 0) {
-        logger.info(`已清理 ${cleanupCount} 条过期节点历史数据`);
-        this.saveHistoryData();
+
+      const stmt = this.db.prepare('DELETE FROM node_history WHERE date < ?');
+      const result = stmt.run(cutoffDateStr);
+
+      if (result.changes > 0) {
+        logger.info(`已清理 ${result.changes} 条过期节点历史数据（保留 ${this.dataRetentionDays} 天）`);
       }
+
+      return { success: true, deletedCount: result.changes };
     } catch (error) {
       logger.error('清理过期节点历史数据失败:', error);
+      return { success: false, error: error.message };
     }
   }
 
-  // 加载所有节点历史数据
   loadAllHistoryData() {
     try {
-      // 确保存储目录存在
-      this.ensureStorageDirectory();
-      
-      // 读取目录中的所有文件
-      const files = fs.readdirSync(this.storageDir);
-      
-      // 遍历所有JSON文件
-      files.forEach(file => {
-        if (file.endsWith('.json')) {
-          const nodeTag = path.basename(file, '.json');
-          const filePath = path.join(this.storageDir, file);
-          
-          try {
-            const fileData = fs.readFileSync(filePath, 'utf8');
-            this.historyData[nodeTag] = JSON.parse(fileData);
-          } catch (readError) {
-            logger.error(`读取节点历史数据文件失败 ${file}:`, readError);
-          }
-        }
-      });
-      
-      logger.info(`已加载 ${Object.keys(this.historyData).length} 个节点的历史数据`);
-      
-      // 清理过期数据
+      if (!this.initialized) {
+        this.initDatabase();
+      }
+
+      const stmt = this.db.prepare('SELECT DISTINCT node_tag FROM node_history');
+      const nodes = stmt.all();
+
+      logger.info(`数据库中有 ${nodes.length} 个节点的历史数据`);
+
       this.cleanupExpiredData();
-      
-      // 加载累计流量数据
-      this.loadTotalTrafficData();
-      
+
       return { success: true };
     } catch (error) {
       logger.error('加载所有节点历史数据失败:', error);
       return { success: false, error: error.message };
     }
   }
-  
-  // 获取节点累计流量
+
   getTotalTraffic(nodeTag) {
+    if (!this.initialized) {
+      return { success: false, error: 'Database not initialized' };
+    }
+
     try {
-      if (this.totalTrafficData[nodeTag]) {
-        return { success: true, traffic: this.totalTrafficData[nodeTag] };
+      const stmt = this.db.prepare(`
+        SELECT upload, download, total, last_updated
+        FROM node_total_traffic
+        WHERE node_tag = ?
+      `);
+
+      const row = stmt.get(nodeTag);
+
+      if (!row) {
+        return { success: false, message: 'No total traffic data found for this node' };
       }
-      
-      return { success: false, message: 'No total traffic data found for this node' };
+
+      return {
+        success: true,
+        traffic: {
+          upload: row.upload,
+          download: row.download,
+          total: row.total,
+          lastUpdated: row.last_updated
+        }
+      };
     } catch (error) {
       logger.error('获取节点累计流量失败:', error);
       return { success: false, error: error.message };
     }
   }
-  
-  // 获取所有节点累计流量
+
   getAllTotalTraffic() {
-    return { success: true, trafficData: this.totalTrafficData };
-  }
-  
-  // 重置节点累计流量
-  resetTotalTraffic(nodeTag) {
+    if (!this.initialized) {
+      return { success: false, error: 'Database not initialized' };
+    }
+
     try {
+      const stmt = this.db.prepare(`
+        SELECT node_tag, upload, download, total, last_updated
+        FROM node_total_traffic
+      `);
+
+      const rows = stmt.all();
+      const trafficData = {};
+
+      rows.forEach(row => {
+        trafficData[row.node_tag] = {
+          upload: row.upload,
+          download: row.download,
+          total: row.total,
+          lastUpdated: row.last_updated
+        };
+      });
+
+      return { success: true, trafficData };
+    } catch (error) {
+      logger.error('获取所有节点累计流量失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  resetTotalTraffic(nodeTag) {
+    if (!this.initialized) {
+      return { success: false, error: 'Database not initialized' };
+    }
+
+    try {
+      const now = new Date().toISOString();
+
       if (nodeTag) {
-        // 重置指定节点的累计流量
-        if (this.totalTrafficData[nodeTag]) {
-          this.totalTrafficData[nodeTag] = {
-            upload: 0,
-            download: 0,
-            total: 0,
-            lastUpdated: new Date().toISOString()
-          };
-        }
+        const stmt = this.db.prepare(`
+          UPDATE node_total_traffic
+          SET upload = 0, download = 0, total = 0, last_updated = ?
+          WHERE node_tag = ?
+        `);
+        stmt.run(now, nodeTag);
       } else {
-        // 重置所有节点的累计流量
-        this.totalTrafficData = {};
+        const stmt = this.db.prepare(`
+          UPDATE node_total_traffic
+          SET upload = 0, download = 0, total = 0, last_updated = ?
+        `);
+        stmt.run(now);
       }
-      
-      // 保存到文件
-      this.saveTotalTrafficData();
-      
+
       return { success: true };
     } catch (error) {
       logger.error('重置节点累计流量失败:', error);
       return { success: false, error: error.message };
-    }
-  }
-  
-  // 加载累计流量数据
-  loadTotalTrafficData() {
-    try {
-      if (fs.existsSync(this.totalTrafficPath)) {
-        const data = fs.readFileSync(this.totalTrafficPath, 'utf8');
-        this.totalTrafficData = JSON.parse(data);
-        logger.info(`已加载 ${Object.keys(this.totalTrafficData).length} 个节点的累计流量数据`);
-      } else {
-        this.totalTrafficData = {};
-      }
-    } catch (error) {
-      logger.error('加载累计流量数据失败:', error);
-      this.totalTrafficData = {};
-    }
-  }
-  
-  // 保存累计流量数据
-  saveTotalTrafficData() {
-    try {
-      fs.writeFileSync(this.totalTrafficPath, JSON.stringify(this.totalTrafficData, null, 2));
-      logger.debug('节点累计流量数据已保存到磁盘');
-    } catch (error) {
-      logger.error('保存节点累计流量数据失败:', error);
     }
   }
 }

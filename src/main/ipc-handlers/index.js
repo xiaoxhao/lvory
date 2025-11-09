@@ -16,6 +16,7 @@ let tracerouteHandlers;
 let coreManagerHandlers;
 let trafficStatsHandlers;
 let subscriptionHandlers;
+let logCleanupHandlers;
 
 let ipcHandlersRegistered = false;
 
@@ -29,17 +30,18 @@ const HANDLERS_TO_REMOVE = [
   'updateProfile', 'updateAllProfiles', 'loadLocalProfile',
   'profiles-changed-listen', 'profiles-changed-unlisten',
   // Singbox相关
-  'singbox-start-core', 'singbox-stop-core', 'singbox-get-status', 
-  'singbox-get-version', 'singbox-check-installed', 'singbox-check-config', 
-  'singbox-format-config', 'singbox-download-core', 'singbox-run', 'singbox-stop',
+  'singbox-start-core', 'singbox-stop-core', 'singbox-get-status',
+  'singbox-get-version', 'singbox-check-installed', 'singbox-check-config',
+  'singbox-format-config', 'singbox-download-core',
   // 下载相关
-  'download-core', 'download-profile',
+  'download-profile',
   // 窗口相关 - 已迁移到新的IPC系统
   'show-window', 'quit-app', 'window-minimize', 'window-maximize', 'window-close',
   // 日志相关
   'get-log-history', 'clear-logs', 'get-connection-log-history', 'clear-connection-logs',
   'start-connection-monitoring', 'stop-connection-monitoring',
   'get-singbox-log-files', 'read-singbox-log-file', 'get-current-singbox-log',
+  'log-cleanup:perform', 'log-cleanup:set-retention-days', 'log-cleanup:get-retention-days', 'log-cleanup:get-stats',
   // 设置相关
   'set-auto-launch', 'get-auto-launch', 'save-settings', 'get-settings',
   // 节点历史数据相关
@@ -106,10 +108,11 @@ function setupHandlers() {
     coreManagerHandlers = loadHandlerModule('core-manager');
     trafficStatsHandlers = loadHandlerModule('traffic-stats');
     subscriptionHandlers = loadHandlerModule('subscription');
+    logCleanupHandlers = loadHandlerModule('log-cleanup');
 
     // 导入工具模块
     const utils = require('./utils');
-    
+
     // 设置所有处理程序
     if (profileHandlers) profileHandlers.setup();
     if (singboxHandlers) singboxHandlers.setup();
@@ -121,6 +124,7 @@ function setupHandlers() {
     if (coreManagerHandlers) coreManagerHandlers.setup();
     if (trafficStatsHandlers) trafficStatsHandlers.setup();
     if (subscriptionHandlers) subscriptionHandlers.setup();
+    if (logCleanupHandlers) logCleanupHandlers.setup();
 
     // 设置网络接口处理程序
     utils.getNetworkInterfaces();

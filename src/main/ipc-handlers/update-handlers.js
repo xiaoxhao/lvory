@@ -51,11 +51,12 @@ async function updateProfile(fileName) {
             logger.error(`更新失败: ${error}`);
             
             // 更新失败计数
-            metadata.failCount = (metadata.failCount || 0) + 1;
-            metadata.lastError = error;
-            metadata.lastAttempt = new Date().toISOString();
-            metaCache[fileName] = metadata;
-            utils.writeMetaCache(metaCache);
+            const subscriptionManager = require('../data-managers/subscription-manager');
+            subscriptionManager.updateSubscription(fileName, {
+              failCount: (metadata.failCount || 0) + 1,
+              lastError: error,
+              lastAttempt: new Date().toISOString()
+            });
             
             resolve({ success: false, error: error });
             return;
@@ -77,13 +78,14 @@ async function updateProfile(fileName) {
             
             const errorMsg = `写入文件失败: ${err.message}`;
             logger.error(errorMsg);
-            
+
             // 更新失败计数
-            metadata.failCount = (metadata.failCount || 0) + 1;
-            metadata.lastError = errorMsg;
-            metadata.lastAttempt = new Date().toISOString();
-            metaCache[fileName] = metadata;
-            utils.writeMetaCache(metaCache);
+            const subscriptionManager = require('../data-managers/subscription-manager');
+            subscriptionManager.updateSubscription(fileName, {
+              failCount: (metadata.failCount || 0) + 1,
+              lastError: errorMsg,
+              lastAttempt: new Date().toISOString()
+            });
             
             resolve({ success: false, error: errorMsg });
           });
@@ -102,15 +104,16 @@ async function updateProfile(fileName) {
               fs.renameSync(tempFilePath, filePath);
               
               logger.info(`配置文件更新完成: ${fileName}`);
-              
+
               // 更新元数据
-              metadata.lastUpdated = new Date().toISOString();
-              metadata.updateCount = (metadata.updateCount || 0) + 1;
-              metadata.failCount = 0; // 重置失败计数
-              metadata.status = 'active';
-              delete metadata.lastError; // 清除错误信息
-              metaCache[fileName] = metadata;
-              utils.writeMetaCache(metaCache);
+              const subscriptionManager = require('../data-managers/subscription-manager');
+              subscriptionManager.updateSubscription(fileName, {
+                lastUpdated: new Date().toISOString(),
+                updateCount: (metadata.updateCount || 0) + 1,
+                failCount: 0,
+                status: 'active',
+                lastError: null
+              });
               
               resolve({
                 success: true,
@@ -126,13 +129,14 @@ async function updateProfile(fileName) {
               
               const errorMsg = `替换文件失败: ${replaceError.message}`;
               logger.error(errorMsg);
-              
+
               // 更新失败计数
-              metadata.failCount = (metadata.failCount || 0) + 1;
-              metadata.lastError = errorMsg;
-              metadata.lastAttempt = new Date().toISOString();
-              metaCache[fileName] = metadata;
-              utils.writeMetaCache(metaCache);
+              const subscriptionManager = require('../data-managers/subscription-manager');
+              subscriptionManager.updateSubscription(fileName, {
+                failCount: (metadata.failCount || 0) + 1,
+                lastError: errorMsg,
+                lastAttempt: new Date().toISOString()
+              });
               
               resolve({ success: false, error: errorMsg });
             }
@@ -148,13 +152,14 @@ async function updateProfile(fileName) {
           }
           
           const errorMsg = `响应处理失败: ${responseError.message}`;
-          
+
           // 更新失败计数
-          metadata.failCount = (metadata.failCount || 0) + 1;
-          metadata.lastError = errorMsg;
-          metadata.lastAttempt = new Date().toISOString();
-          metaCache[fileName] = metadata;
-          utils.writeMetaCache(metaCache);
+          const subscriptionManager = require('../data-managers/subscription-manager');
+          subscriptionManager.updateSubscription(fileName, {
+            failCount: (metadata.failCount || 0) + 1,
+            lastError: errorMsg,
+            lastAttempt: new Date().toISOString()
+          });
           
           resolve({ success: false, error: errorMsg });
         }
@@ -176,11 +181,12 @@ async function updateProfile(fileName) {
         }
         
         // 更新失败计数
-        metadata.failCount = (metadata.failCount || 0) + 1;
-        metadata.lastError = errorMessage;
-        metadata.lastAttempt = new Date().toISOString();
-        metaCache[fileName] = metadata;
-        utils.writeMetaCache(metaCache);
+        const subscriptionManager = require('../data-managers/subscription-manager');
+        subscriptionManager.updateSubscription(fileName, {
+          failCount: (metadata.failCount || 0) + 1,
+          lastError: errorMessage,
+          lastAttempt: new Date().toISOString()
+        });
         
         resolve({ success: false, error: errorMessage });
       });
@@ -190,13 +196,14 @@ async function updateProfile(fileName) {
         request.destroy();
         
         const errorMsg = '更新请求超时，服务器响应时间过长';
-        
+
         // 更新失败计数
-        metadata.failCount = (metadata.failCount || 0) + 1;
-        metadata.lastError = errorMsg;
-        metadata.lastAttempt = new Date().toISOString();
-        metaCache[fileName] = metadata;
-        utils.writeMetaCache(metaCache);
+        const subscriptionManager = require('../data-managers/subscription-manager');
+        subscriptionManager.updateSubscription(fileName, {
+          failCount: (metadata.failCount || 0) + 1,
+          lastError: errorMsg,
+          lastAttempt: new Date().toISOString()
+        });
         
         resolve({ success: false, error: errorMsg });
       });

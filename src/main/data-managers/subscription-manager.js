@@ -1,14 +1,9 @@
-const { DatabaseSync } = require('node:sqlite');
-const path = require('path');
-const fs = require('fs');
 const logger = require('../../utils/logger');
-const { getAppDataDir } = require('../../utils/paths');
+const BaseDatabaseManager = require('./base-database-manager');
 
-class SubscriptionManager {
+class SubscriptionManager extends BaseDatabaseManager {
   constructor() {
-    this.db = null;
-    this.dbPath = null;
-    this.initialized = false;
+    super('subscriptions.db', '订阅数据库');
 
     this.ALLOWED_FIELDS = new Set([
       'url',
@@ -34,26 +29,7 @@ class SubscriptionManager {
     if (this.initialized) {
       return;
     }
-
-    try {
-      const appDataDir = getAppDataDir();
-      const dataDir = path.join(appDataDir, 'data');
-      
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-
-      this.dbPath = path.join(dataDir, 'subscriptions.db');
-      this.db = new DatabaseSync(this.dbPath);
-      
-      this.createTables();
-      this.initialized = true;
-      
-      logger.info(`订阅数据库初始化成功: ${this.dbPath}`);
-    } catch (error) {
-      logger.error('订阅数据库初始化失败:', error);
-      throw error;
-    }
+    this.initDatabase();
   }
 
   createTables() {
@@ -88,9 +64,7 @@ class SubscriptionManager {
   }
 
   addSubscription(fileName, metadata) {
-    if (!this.initialized) {
-      this.initialize();
-    }
+    this.ensureInitialized();
 
     try {
       const stmt = this.db.prepare(`
@@ -148,9 +122,7 @@ class SubscriptionManager {
   }
 
   getSubscription(fileName) {
-    if (!this.initialized) {
-      this.initialize();
-    }
+    this.ensureInitialized();
 
     try {
       const stmt = this.db.prepare('SELECT * FROM subscriptions WHERE file_name = ?');
@@ -169,9 +141,7 @@ class SubscriptionManager {
   }
 
   getAllSubscriptions() {
-    if (!this.initialized) {
-      this.initialize();
-    }
+    this.ensureInitialized();
 
     try {
       const stmt = this.db.prepare('SELECT * FROM subscriptions ORDER BY created_at DESC');
@@ -190,9 +160,7 @@ class SubscriptionManager {
   }
 
   updateSubscription(fileName, updates) {
-    if (!this.initialized) {
-      this.initialize();
-    }
+    this.ensureInitialized();
 
     try {
       const fields = [];
@@ -247,9 +215,7 @@ class SubscriptionManager {
   }
 
   deleteSubscription(fileName) {
-    if (!this.initialized) {
-      this.initialize();
-    }
+    this.ensureInitialized();
 
     try {
       const stmt = this.db.prepare('DELETE FROM subscriptions WHERE file_name = ?');
@@ -262,58 +228,29 @@ class SubscriptionManager {
   }
 
   batchAddSubscriptions(subscriptions) {
-    if (!this.initialized) {
-      this.initialize();
-    }
+    this.ensureInitialized();
 
-    try {
-      this.db.exec('BEGIN TRANSACTION');
-
+    return this.executeInTransaction(() => {
       for (const [fileName, metadata] of Object.entries(subscriptions)) {
         const result = this.addSubscription(fileName, metadata);
         if (!result.success) {
-          this.db.exec('ROLLBACK');
-          return { success: false, error: `添加订阅 ${fileName} 失败: ${result.error}` };
+          throw new Error(`添加订阅 ${fileName} 失败: ${result.error}`);
         }
       }
-
-      this.db.exec('COMMIT');
-      return { success: true };
-    } catch (error) {
-      try {
-        this.db.exec('ROLLBACK');
-      } catch (rollbackError) {
-        logger.error('事务回滚失败:', rollbackError);
-      }
-      logger.error('批量添加订阅失败:', error);
-      return { success: false, error: error.message };
-    }
+      return {};
+    });
   }
 
   batchDeleteSubscriptions(fileNames) {
-    if (!this.initialized) {
-      this.initialize();
-    }
+    this.ensureInitialized();
 
-    try {
-      this.db.exec('BEGIN TRANSACTION');
-
+    return this.executeInTransaction(() => {
       const stmt = this.db.prepare('DELETE FROM subscriptions WHERE file_name = ?');
       for (const fileName of fileNames) {
         stmt.run(fileName);
       }
-
-      this.db.exec('COMMIT');
-      return { success: true };
-    } catch (error) {
-      try {
-        this.db.exec('ROLLBACK');
-      } catch (rollbackError) {
-        logger.error('事务回滚失败:', rollbackError);
-      }
-      logger.error('批量删除订阅失败:', error);
-      return { success: false, error: error.message };
-    }
+      return {};
+    });
   }
 
   rowToMetadata(row) {

@@ -188,6 +188,10 @@ const setupApp = () => {
     // 加载设置
     initSettingsManager();
 
+    // 启动日志自动清理
+    const logCleanupManager = require('./src/main/data-managers/log-cleanup-manager');
+    logCleanupManager.startAutoCleanup();
+
     // 恢复上次代理状态
     restoreProxyState().catch(err => {
       logger.error('恢复代理状态过程中出错:', err);

@@ -22,7 +22,6 @@ contextBridge.exposeInMainWorld('electron', {
   // 统一的下载管理接口
   download: {
     profile: (data) => ipcRenderer.invoke('download-profile', data),
-    core: () => ipcRenderer.invoke('download-core'),
     onCoreProgress: (callback) => {
       ipcRenderer.on('core-download-progress', (event, progress) => callback(progress));
       return () => ipcRenderer.removeListener('core-download-progress', callback);
@@ -63,8 +62,6 @@ contextBridge.exposeInMainWorld('electron', {
     getStatus: () => ipcRenderer.invoke('singbox-get-status'),
     getDetailedStatus: () => ipcRenderer.invoke('singbox-get-detailed-status'),
     checkStopPermission: () => ipcRenderer.invoke('singbox-check-stop-permission'),
-    run: (configPath) => ipcRenderer.invoke('singbox-run', { configPath }),
-    stop: () => ipcRenderer.invoke('singbox-stop'),
     downloadCore: () => ipcRenderer.invoke('singbox-download-core'),
     
     onOutput: (callback) => {

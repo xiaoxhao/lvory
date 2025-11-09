@@ -121,9 +121,10 @@ function setup() {
       try {
         const configDir = getConfigDir();
         if (fs.existsSync(configDir)) {
-          const { readMetaCache, writeMetaCache } = require('./utils');
+          const subscriptionManager = require('../data-managers/subscription-manager');
+          const { readMetaCache } = require('./utils');
           const metaCache = readMetaCache();
-          
+
           let cacheCount = 0;
           // 遍历meta.cache找到所有缓存文件并删除
           Object.keys(metaCache).forEach(key => {
@@ -134,27 +135,22 @@ function setup() {
                 fs.unlinkSync(cachePath);
                 cacheCount++;
               }
+              // 删除缓存文件的订阅记录
+              subscriptionManager.deleteSubscription(key);
             }
           });
-          
-          // 清空meta.cache文件，但保留非缓存文件的记录
-          const cleanedMetaCache = {};
+
+          // 清理非缓存文件的缓存相关字段
           Object.keys(metaCache).forEach(key => {
             const meta = metaCache[key];
-            if (meta && meta.isCache !== true) {
-              // 保留非缓存文件的记录，但清理缓存相关字段
-              cleanedMetaCache[key] = {
-                ...meta,
-                singboxCache: undefined
-              };
-              // 移除undefined字段
-              if (cleanedMetaCache[key].singboxCache === undefined) {
-                delete cleanedMetaCache[key].singboxCache;
-              }
+            if (meta && meta.isCache !== true && meta.singboxCache) {
+              // 更新订阅记录,移除singboxCache字段
+              subscriptionManager.updateSubscription(key, {
+                singboxCache: null
+              });
             }
           });
-          writeMetaCache(cleanedMetaCache);
-          
+
           if (cacheCount > 0) {
             clearedItems.push(`配置缓存文件 (${cacheCount} 个文件)`);
           }
