@@ -1,6 +1,6 @@
 {
   "name": "lvory",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "Minimalist Cross-Platform Client for Singbox",
   "main": "index.js",
   "scripts": {
