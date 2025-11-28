@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, clipboard } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
   // 统一的窗口管理接口
@@ -172,6 +172,19 @@ contextBridge.exposeInMainWorld('electron', {
   },
   
   platform: process.platform,
+
+  // 统一的剪贴板接口
+  clipboard: {
+    writeText: (text) => {
+      try {
+        clipboard.writeText(text || '');
+        return true;
+      } catch (error) {
+        console.error('写入剪贴板失败:', error);
+        return false;
+      }
+    }
+  },
 
   // 统一的日志管理接口
   logs: {

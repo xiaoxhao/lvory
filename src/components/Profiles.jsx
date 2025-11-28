@@ -177,14 +177,52 @@ const Profiles = () => {
   };
 
   // 处理链接
-  const handleLink = (fileName) => {
+  const handleLink = async (fileName) => {
     closeDropdown();
-    navigator.clipboard.writeText(fileName).then(() => {
-      showMessage(`${t('profiles.copied')}${fileName}`);
-    }).catch(err => {
+
+    try {
+      let textToCopy = fileName;
+
+      if (window.electron && window.electron.profiles && window.electron.profiles.getMetadata) {
+        try {
+          const result = await window.electron.profiles.getMetadata(fileName);
+          if (result && result.success && result.metadata && result.metadata.url) {
+            textToCopy = result.metadata.url;
+          }
+        } catch (metaError) {
+          console.error('获取配置文件元数据失败:', metaError);
+        }
+      }
+
+      let copied = false;
+
+      // 优先尝试使用浏览器剪贴板API（如果文档处于激活状态）
+      if (navigator.clipboard && document.hasFocus && document.hasFocus()) {
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          copied = true;
+        } catch (clipboardError) {
+          console.warn('navigator.clipboard.writeText 失败，尝试使用 Electron 剪贴板:', clipboardError);
+        }
+      }
+
+      // 回退到 Electron 剪贴板API
+      if (!copied && window.electron && window.electron.clipboard && window.electron.clipboard.writeText) {
+        const result = window.electron.clipboard.writeText(textToCopy);
+        if (result) {
+          copied = true;
+        }
+      }
+
+      if (copied) {
+        showMessage(`${t('profiles.copied')}${textToCopy}`);
+      } else {
+        showMessage(t('profiles.failedToCopy'));
+      }
+    } catch (err) {
       console.error('复制失败:', err);
       showMessage(t('profiles.failedToCopy'));
-    });
+    }
   };
 
   // 处理编辑文件

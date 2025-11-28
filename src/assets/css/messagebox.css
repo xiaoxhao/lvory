@@ -42,8 +42,8 @@
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-  width: 350px;
   max-width: 90%;
+  min-width: 260px;
   overflow: hidden;
   animation: message-pop-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
@@ -58,8 +58,8 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 12px;
-  width: 320px;
   max-width: 85%;
+  min-width: 260px;
 }
 
 @keyframes message-pop-in {
@@ -111,6 +111,7 @@
   color: #333;
   font-size: 14px;
   line-height: 1.5;
+  word-break: break-all;
 }
 
 .messagebox-footer {

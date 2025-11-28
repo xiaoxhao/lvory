@@ -153,7 +153,7 @@ export default {
     loadFailed: '载入配置文件失败: ',
     invalidFileType: '不支持的文件类型。请选择 .json 或 .yaml/.yml 文件',
     // 操作菜单
-    copyFileName: '复制文件名',
+    copyFileName: '复制链接',
     editFile: '编辑文件',
     updateProfile: '更新配置',
     fixProfile: '修复配置',

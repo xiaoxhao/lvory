@@ -153,7 +153,7 @@ export default {
     loadFailed: 'Failed to load config file: ',
     invalidFileType: 'Unsupported file type. Please select .json or .yaml/.yml files',
     // Action menu
-    copyFileName: 'Copy Filename',
+    copyFileName: 'Copy Link',
     editFile: 'Edit File',
     updateProfile: 'Update Profile',
     fixProfile: 'Fix Profile',
