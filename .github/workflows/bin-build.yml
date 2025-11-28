@@ -27,7 +27,7 @@ jobs:
       - name: Configuring nodejs
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
       
       - name: Installation of dependencies
@@ -128,7 +128,7 @@ jobs:
       - name: Configuring nodejs
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
       
       - name: Installation of dependencies
@@ -148,9 +148,9 @@ jobs:
           done
         shell: bash
       
-      - name: Build Universal macOS App
-        run: npm run build:mac-universal
-      
+      - name: Build macOS arm64 App
+        run: npm run build:mac-arm64
+
       - name: List build directory contents
         run: |
           ls -la build
@@ -179,7 +179,7 @@ jobs:
       - name: Configuring nodejs
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
       
       - name: Installation of dependencies
@@ -328,7 +328,7 @@ jobs:
           echo "## 支持平台 / Supported Platforms" >> $GITHUB_OUTPUT
           echo "- Windows MSI (x64) - 安装版" >> $GITHUB_OUTPUT
           echo "- Windows Portable (x64) - 便携版" >> $GITHUB_OUTPUT
-          echo "- macOS DMG (Universal Binary - 支持 Intel x64 和 Apple Silicon arm64)" >> $GITHUB_OUTPUT
+          echo "- macOS DMG (Apple Silicon arm64)" >> $GITHUB_OUTPUT
           echo "- Linux DEB (x64 & arm64) - 安装版" >> $GITHUB_OUTPUT
           echo "- Linux AppImage (x64 & arm64) - 便携版" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
